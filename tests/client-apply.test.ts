@@ -3,7 +3,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 // SpreadJS + module-table rows are not loadable in a Node test environment
 // (SpreadJS touches DOM/canvas at import). Stub them so we can exercise the
 // client apply() registration logic (the slot keys and the effect).
-vi.mock('@deepseek-ai/dsh-client-store', () => ({
+vi.mock('@deepseek-ai/dsh-client-runtime/client', () => ({
   defineStore: (spec: unknown) => ({ __spec: spec }),
 }))
 vi.mock('@grapecity/spread-sheets', () => ({ Workbook: class {} }))

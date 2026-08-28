@@ -5,13 +5,13 @@
  */
 import { useEffect, useMemo, useState } from 'react'
 import type { PropsStore, SnapshotSelectorHook } from '@deepseek-ai/dsh-client-ui-slots'
-import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
+import type { WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
 import { SpreadsheetHost } from './SpreadsheetHost.tsx'
 import type { ViewerStoreHandle } from './store.ts'
 
 export interface SpreadsheetViewerProps extends PropsStore<ViewerStoreHandle> {
-  /** Global standard prop supplied by the workspace plugin. */
-  useWorkspaces: SnapshotSelectorHook<WorkspaceSnapshot>
+  /** Global standard prop supplied by the workspace runtime. */
+  useWorkspaces: SnapshotSelectorHook<WorkspaceListState>
 }
 
 interface ListItem {

@@ -5,13 +5,14 @@
  *  - `sidebar.footer.action` — trigger button that opens the viewer;
  *  - `shell.overlay`         — the full viewer panel (renders nothing closed).
  *
- * Both target slots are declared by other packages, so registration waits on
- * the declaration through `ctx.slots.inject()` rather than assuming order.
- * Service/slot types come from the typed facade (src/typed/dsh-facade.d.ts);
- * at runtime only react and @deepseek-ai/dsh-client-store are external, both
- * resolved by the harness module table.
+ * Both target slots are declared by other packages (ui-sidebar / ui-layout),
+ * so registration waits on the declaration through `ctx.slots.inject()` rather
+ * than assuming order. Service/slot/store types come from the published rc
+ * harness packages; at runtime only react and the harness module-table rows
+ * (@deepseek-ai/dsh-client-runtime, @deepseek-ai/dsh-client-ui-slots) are
+ * external, all resolved by the client module table.
  */
-import type { Context } from '@deepseek-ai/cordis'
+import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 import { ViewerTrigger } from './ViewerTrigger.tsx'
 import { SpreadsheetViewer } from './SpreadsheetViewer.tsx'
 import { createViewerStore } from './store.ts'
@@ -19,10 +20,10 @@ import { injectStyles } from './styles.ts'
 
 export const name = 'dsh-spreadjs-editor'
 
-/** Required service: the slot registry (ui-renderer). */
+/** Required service: the slot registry (provided by dsh-client-runtime). */
 export const inject = ['slots']
 
-export function apply(ctx: Context): void {
+export function apply(ctx: ClientContext): void {
   // One handle shared by both entries (root scope) -> one store instance.
   const store = createViewerStore()
 

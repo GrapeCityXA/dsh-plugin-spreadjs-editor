@@ -22,7 +22,10 @@ const CLIENT_EXTERNALS = new Set([
   'react-dom',
   'react-dom/client',
   '@deepseek-ai/cordis',
-  '@deepseek-ai/dsh-client-store',
+  // The runtime is only consumed through its /client subpath (store factory +
+  // types); the bare name is kept so both spellings stay external.
+  '@deepseek-ai/dsh-client-runtime',
+  '@deepseek-ai/dsh-client-runtime/client',
   '@deepseek-ai/dsh-client-ui-slots',
 ])
 

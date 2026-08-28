@@ -1,6 +1,10 @@
 /** Shared viewer view-state store: open/close, browse root, selected file. */
 
-import { defineStore } from '@deepseek-ai/dsh-client-store'
+// Namespace import: the runtime client entry is a __ModuleLoader__ closure
+// (CJS), which rolldown cannot statically extract named exports from. The
+// namespace form resolves to `require(...)` + property access, matching how
+// the harness's own client bundles consume it.
+import * as runtime from '@deepseek-ai/dsh-client-runtime/client'
 
 /** Root-scoped view state shared by the trigger and the overlay entries. */
 export interface ViewerState {
@@ -15,7 +19,7 @@ export interface ViewerState {
 }
 
 /** Store factory (handle is constructed in apply and shared by both entries). */
-export const createViewerStore = () => defineStore({
+export const createViewerStore = () => runtime.defineStore({
   init: (): ViewerState => ({
     open: false,
     root: undefined,

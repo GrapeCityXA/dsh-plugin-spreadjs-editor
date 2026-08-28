@@ -12,14 +12,22 @@ any Excel / CSV / SJS / SSJSON file inside a task workspace and preview it read-
   `shell.overlay` viewer, sharing one view-state store handle.
 
 SpreadJS **18.2.5** is inlined into the browser bundle; `react` and
-`@deepseek-ai/dsh-client-store` resolve from the harness module table at runtime.
+`@deepseek-ai/dsh-client-runtime/client` resolve from the harness module table at runtime.
+
+## Compatibility
+
+This branch targets the **published** DeepSeek Harness CLI (`@deepseek-ai/dsh` `0.1.1-rc.2`,
+the version `npx @deepseek-ai/dsh` installs today), whose web stack ships the
+`ctx.webServer` service and the `sidebar.footer.action` / `shell.overlay` slot seats.
+
+> The plugin was originally written against the harness `master` architecture (unpublished,
+> `0.1.2-alpha.1`). That version is preserved on the `target/master` branch — the two branches
+> differ only in the harness surfaces they consume.
 
 ## Requirements
 
-- DeepSeek Harness at the current `master` (alpha) architecture: the plugin targets the
-  `ctx.webServer` service and the `sidebar.footer.action` / `shell.overlay` slot seats, which
-  exist on `master` but not in older published `rc` builds.
-- `dsh` CLI installed (`dsh plugin`).
+- `@deepseek-ai/dsh` `0.1.1-rc.2` (or a compatible published `rc`), run however you like —
+  global `dsh`, or `npx @deepseek-ai/dsh`.
 - A Web profile to install into.
 
 ## Install
@@ -27,7 +35,10 @@ SpreadJS **18.2.5** is inlined into the browser bundle; `react` and
 From the directory that contains this checkout:
 
 ```sh
-dsh plugin --profile web add ./dsh-plugin-spreadjs-editor
+# global install:
+dsh plugin --profile web add ./dsh-spreadjs-editor
+# …or if you run the CLI via npx:
+npx @deepseek-ai/dsh plugin --profile web add ./dsh-spreadjs-editor
 ```
 
 This pnpm-links the checkout, appends the bundle to `dsh.profile.bundles`, and activates the
@@ -87,7 +98,7 @@ Harness Web profile
 ```
 
 External keys in the browser bundle: `react`, `react/jsx-runtime`, `react-dom`,
-`react-dom/client`, `@deepseek-ai/cordis`, `@deepseek-ai/dsh-client-store`,
+`react-dom/client`, `@deepseek-ai/cordis`, `@deepseek-ai/dsh-client-runtime/client`,
 `@deepseek-ai/dsh-client-ui-slots`. Everything else (SpreadJS, ExcelIO, the Chinese resource
 dictionary, both stylesheets) is bundled.
 
@@ -107,10 +118,11 @@ The build needs Node ≥ 20 with a `Promise.withResolvers` polyfill (provided by
 
 ## Verification status
 
-- **Typecheck** — passes (`tsc --noEmit`, strict), including the typed facade
-  (`src/typed/`) that stands in for the not-yet-published harness type surfaces
-  (`@deepseek-ai/dsh-client-store`, `@deepseek-ai/dsh-api-workspace-controller/client`,
-  `ctx.slots` / `ctx.webServer`).
+- **Typecheck** — passes (`tsc --noEmit`, strict). Types come from the published harness
+  packages (`@deepseek-ai/dsh-client-runtime`, `@deepseek-ai/dsh-client-ui-slots`,
+  `@deepseek-ai/dsh-client-ui-sidebar`, `@deepseek-ai/dsh-client-ui-layout`,
+  `@deepseek-ai/dsh-host-webserver`); `src/augment.ts` pulls their `SlotMap` / `Context`
+  declaration merges into the program.
 - **Tests** — 30 pass: fs-bridge path-containment/listing, node-half endpoints
   (health/roots/config/list/file, traversal → 403, missing → 404), client `apply()`
   registers both slot seats.

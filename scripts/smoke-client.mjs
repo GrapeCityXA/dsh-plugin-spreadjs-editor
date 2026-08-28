@@ -25,10 +25,13 @@ function check(label, cond, detail = '') {
   }
 }
 
+// The runtime store factory is the only non-react runtime external, consumed
+// through its /client subpath. @deepseek-ai/dsh-client-ui-slots is type-only
+// (erased), so no require of it is expected.
 const EXTERNALS = [
   'react',
   'react/jsx-runtime',
-  '@deepseek-ai/dsh-client-store',
+  '@deepseek-ai/dsh-client-runtime/client',
 ]
 
 check('loader wrapper opens with plugin id', /window\.__ModuleLoader__\.load\(\{\s*id: "dsh-spreadjs-editor"/.test(code))
