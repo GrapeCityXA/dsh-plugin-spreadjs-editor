@@ -1,0 +1,22 @@
+# dsh-spreadjs-editor bundle patch
+#
+# One row activates the whole plugin: the Loader imports the package's node
+# half (lib/index.js, the /spreadjs file bridge) and the client-modules scan
+# picks up the `dsh.client` declaration for the browser half (lib/client.js,
+# the SpreadJS viewer registered into sidebar.footer.action + shell.overlay).
+#
+# The row must run only under the Web composition (it injects the webServer
+# service); a headless profile should not mount this bundle.
+
+- insert:
+    - id: spreadjs-editor
+      name: dsh-spreadjs-editor
+      inject: [webServer]
+      config:
+        # Optional: directory scanned when the viewer sends no explicit root.
+        # Defaults to the harness process working directory.
+        defaultRoot: !!js process.cwd()
+        # Optional: your SpreadJS license key. Empty (default) runs the
+        # evaluation watermark build. Keep it out of the patch if you prefer
+        # to configure it per-deployment.
+        licenseKey: ''
