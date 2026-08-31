@@ -68,12 +68,9 @@ dsh --profile web
 Open the Web UI, refresh the page, and open a supported file from the chat or
 editor panel.
 
-> **Core extension-point caveat:** full chat `openFile` -> `webFileEditors`
-> routing depends on the `shell.editor` / `webFileEditors` extension points in
-> DeepSeek Harness core. Upstream the `feat/web-editor-extension-points`
-> changes or run a patched DSH build if you need DSH's own chat file links to
-> open the editor panel. Without that patch, the generic plugin's produced-file
-> chips and panel still work.
+No DSH core change is required. The generic plugin opens editor-supported
+produced files in its overlay panel; this package only registers the SpreadJS
+editor through `webFileEditors`.
 
 ## Configuration
 

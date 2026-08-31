@@ -49,7 +49,7 @@ dsh --profile web
 
 打开 Web UI、刷新页面，再从 chat 或 editor 面板打开支持的文件。
 
-> **core 扩展点注意：** 完整的 chat `openFile -> webFileEditors` 路由依赖 DeepSeek Harness core 中的 `shell.editor` / `webFileEditors` 扩展点。如果需要 DSH 自己的 chat 文件链接打开 editor 面板，请先 upstream `feat/web-editor-extension-points` 改动，或运行打过 patch 的 DSH 构建。没有该 patch 时，通用插件的 produced-file chips 和面板仍然可用。
+不需要任何 DSH core 改动。通用插件会把 editor 支持的 produced files 在 overlay 面板中打开；本包只通过 `webFileEditors` 注册 SpreadJS editor。
 
 ## 配置
 
