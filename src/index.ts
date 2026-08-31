@@ -1,18 +1,18 @@
 /**
  * dsh-spreadjs-editor — node half.
  *
- * Registers the `/spreadjs` prefix route on the harness web server. The viewer
- * (browser half) lists and reads spreadsheet files through these endpoints.
+ * Registers the `/spreadjs` prefix route on the harness web server. The editor
+ * (browser half) reads and writes spreadsheet files through these endpoints.
  *
  * Security posture: the server binds to 127.0.0.1 by default and this plugin
  * adds no external exposure of its own. Every file read is confined to the
- * requested root's subtree (see resolveWithinRoot); the viewer chooses which
- * root to browse (a task workspace path or the process cwd).
+ * requested root's subtree (see resolveWithinRoot); the editor receives the
+ * resolved path and root from the generic webFileEditors service.
  */
 
-import { createReadStream } from 'node:fs'
-import { stat } from 'node:fs/promises'
-import { extname, resolve } from 'node:path'
+import { createReadStream, createWriteStream } from 'node:fs'
+import { mkdir, stat } from 'node:fs/promises'
+import { dirname, extname, resolve } from 'node:path'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Context } from '@deepseek-ai/cordis'
 import { listSpreadsheetFiles, resolveWithinRoot } from './fs-bridge.ts'
@@ -24,7 +24,7 @@ export const inject = ['webServer']
 
 /** Plugin configuration (patch layer). */
 export interface Config {
-  /** Directory scanned when the viewer sends no explicit root. @default process.cwd() */
+  /** Directory scanned when the editor sends no explicit root. @default process.cwd() */
   defaultRoot?: string
   /** SpreadJS license key; empty runs the evaluation build. @default '' */
   licenseKey?: string
@@ -98,6 +98,19 @@ export function apply(ctx: Context, config: Config = {}): void {
           const abs = resolveWithinRoot(root, rawPath)
           if (abs === null) {
             sendJson(res, 403, { error: 'path escapes the requested root' })
+            return
+          }
+          if (req.method === 'PUT') {
+            await mkdir(dirname(abs), { recursive: true })
+            await new Promise<void>((resolve, reject) => {
+              const out = createWriteStream(abs)
+              req.pipe(out)
+              req.on('error', reject)
+              out.on('error', reject)
+              out.on('finish', resolve)
+            })
+            const info = await stat(abs)
+            sendJson(res, 200, { ok: true, path: rawPath, size: info.size })
             return
           }
           let info

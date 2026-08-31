@@ -1,12 +1,13 @@
 /**
  * Stylesheet injection for the client bundle. SpreadJS ships its own CSS and
- * the viewer adds a small stylesheet; both are inlined as text by the build
+ * the editor adds a small stylesheet; both are inlined as text by the build
  * plugin and injected here at factory materialization (framework style).
  */
-import spreadSheetsCss from '@grapecity/spread-sheets/styles/gc.spread.sheets.css'
+import spreadSheetsCss from '@grapecity-software/spread-sheets/styles/gc.spread.sheets.excel2013white.css'
+import designerCss from '@grapecity-software/spread-sheets-designer/styles/gc.spread.sheets.designer.light.min.css'
 import viewerCss from './viewer.css'
 
-const STYLES = [spreadSheetsCss, viewerCss]
+const STYLES = [spreadSheetsCss, designerCss, viewerCss]
 
 /** Inject the stylesheets; returns a disposer that removes the tags. */
 export function injectStyles(): () => void {

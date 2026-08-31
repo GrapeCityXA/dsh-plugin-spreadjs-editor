@@ -6,14 +6,14 @@
 import { readdir, stat } from 'node:fs/promises'
 import { extname, isAbsolute, join, relative, resolve } from 'node:path'
 
-/** Spreadsheet extensions the viewer knows how to open. */
+/** Spreadsheet extensions the editor knows how to open. */
 export const SPREADSHEET_EXTENSIONS = [
-  '.xlsx', '.xlsm', '.csv', '.sjs', '.ssjson', '.json',
+  '.xlsx', '.xlsm', '.csv', '.sjs', '.ssjson',
 ] as const
 
 export type SpreadExtension = (typeof SPREADSHEET_EXTENSIONS)[number]
 
-/** One spreadsheet file surfaced to the viewer. */
+/** One spreadsheet file surfaced to the editor. */
 export interface SpreadFileEntry {
   /** Basename. */
   name: string

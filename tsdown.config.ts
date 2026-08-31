@@ -7,8 +7,8 @@
  *    node builtins (dsh services are injected, not imported).
  *  - lib/client.js — browser half (CJS closure factory). Loaded by the
  *    client-modules system through window.__ModuleLoader__.load({id, factory}).
- *    React / @deepseek-ai/dsh-client-store resolve from the module table and
- *    stay external; SpreadJS and the stylesheets are inlined into the bundle.
+ *    React resolves from the module table and stays external; SpreadJS and
+ *    the stylesheets are inlined into the bundle.
  */
 import { readFile } from 'node:fs/promises'
 import type { UserConfig } from 'tsdown'
@@ -22,11 +22,6 @@ const CLIENT_EXTERNALS = new Set([
   'react-dom',
   'react-dom/client',
   '@deepseek-ai/cordis',
-  // The runtime is only consumed through its /client subpath (store factory +
-  // types); the bare name is kept so both spellings stay external.
-  '@deepseek-ai/dsh-client-runtime',
-  '@deepseek-ai/dsh-client-runtime/client',
-  '@deepseek-ai/dsh-client-ui-slots',
 ])
 
 /** Inline any `*.css` import as a raw string module (injected by styles.ts). */

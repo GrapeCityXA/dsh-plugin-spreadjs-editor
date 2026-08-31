@@ -1,6 +1,6 @@
 // Structural smoke check for the BUILT browser half (lib/client.js).
 //
-// A full runtime load (factory → apply → slot registration) requires a real
+// A full runtime load (factory → apply → webFileEditors registration) requires a real
 // browser: SpreadJS touches DOM + canvas at module init, which jsdom cannot
 // satisfy without the native `canvas` package. That end-to-end load is left to
 // the harness browser (see README "Verification"). What we CAN assert here
@@ -25,13 +25,11 @@ function check(label, cond, detail = '') {
   }
 }
 
-// The runtime store factory is the only non-react runtime external, consumed
-// through its /client subpath. @deepseek-ai/dsh-client-ui-slots is type-only
-// (erased), so no require of it is expected.
+// The only non-SpreadJS runtime externals are React and its jsx-runtime.
+// @deepseek-ai/dsh-client-runtime/client is consumed type-only and erased.
 const EXTERNALS = [
   'react',
   'react/jsx-runtime',
-  '@deepseek-ai/dsh-client-runtime/client',
 ]
 
 check('loader wrapper opens with plugin id', /window\.__ModuleLoader__\.load\(\{\s*id: "dsh-spreadjs-editor"/.test(code))
@@ -42,7 +40,8 @@ for (const ext of EXTERNALS) {
 }
 check('no @grapecity require remains (inlined)', !/require\("@grapecity/.test(code))
 check('spread-sheets css string embedded', code.includes('gc-spread-sheets'))
-check('viewer css string embedded', code.includes('.dsh-spreadjs-backdrop'))
+check('designer css string embedded', code.includes('SpreadJS Designer Library 19.1.4'))
+check('editor css string embedded', code.includes('.dsh-spreadjs-panel'))
 
 console.log(`\n${pass} passed, ${fail} failed`)
 process.exit(fail === 0 ? 0 : 1)

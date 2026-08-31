@@ -1,7 +1,15 @@
 {
   "name": "dsh-spreadjs-editor",
   "version": "0.2.0",
-  "description": "DeepSeek Harness Web UI plugin: browse Excel / CSV / SJS files in the task workspace with SpreadJS.",
+  "description": "DeepSeek Harness Web UI plugin: SpreadJS editor registered through the generic webFileEditors service.",
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "webui",
+    "plugin",
+    "spreadjs",
+    "excel"
+  ],
   "type": "module",
   "main": "lib/index.js",
   "exports": {
@@ -14,15 +22,30 @@
     "./package.json": "./package.json"
   },
   "files": [
-    "lib",
     "cordis.patch.yml",
-    "README.md"
+    "README.md",
+    "LICENSE",
+    "src",
+    "scripts",
+    "tests",
+    "tsdown.config.ts",
+    "tsconfig.json"
   ],
   "scripts": {
     "build": "node scripts/build.mjs",
     "prepare": "node scripts/build.mjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/dsh-spreadjs-editor.git"
   },
   "dsh": {
     "bundle": {
@@ -31,21 +54,35 @@
     "client": {
       "platform": "web",
       "inject": [
-        "@deepseek-ai/dsh-client-runtime",
-        "@deepseek-ai/dsh-client-ui-sidebar",
-        "@deepseek-ai/dsh-client-ui-layout"
+        "dsh-plugin-web-editors"
       ]
     }
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.0",
     "@deepseek-ai/dsh-client-runtime": ">=0.1.1-rc.2",
-    "react": "^18.0.0"
-  },
-  "dependencies": {
-    "@grapecity/spread-excelio": "18.2.5",
-    "@grapecity/spread-sheets": "18.2.5",
-    "@grapecity/spread-sheets-resources-zh": "18.2.5"
+    "dsh-plugin-web-editors": ">=0.1.0",
+    "react": "^18.0.0",
+    "@grapecity-software/spread-excelio": "19.1.4",
+    "@grapecity-software/spread-sheets": "19.1.4",
+    "@grapecity-software/spread-sheets-io": "19.1.4",
+    "@grapecity-software/spread-sheets-resources-zh": "19.1.4",
+    "@grapecity-software/spread-sheets-designer": "19.1.4",
+    "@grapecity-software/spread-sheets-designer-resources-cn": "19.1.4",
+    "@grapecity-software/spread-sheets-shapes": "19.1.4",
+    "@grapecity-software/spread-sheets-charts": "19.1.4",
+    "@grapecity-software/spread-sheets-slicers": "19.1.4",
+    "@grapecity-software/spread-sheets-sparklines": "19.1.4",
+    "@grapecity-software/spread-sheets-print": "19.1.4",
+    "@grapecity-software/spread-sheets-pdf": "19.1.4",
+    "@grapecity-software/spread-sheets-barcode": "19.1.4",
+    "@grapecity-software/spread-sheets-formula-panel": "19.1.4",
+    "@grapecity-software/spread-sheets-pivot-addon": "19.1.4",
+    "@grapecity-software/spread-sheets-tablesheet": "19.1.4",
+    "@grapecity-software/spread-sheets-datacharts-addon": "19.1.4",
+    "@grapecity-software/spread-sheets-ganttsheet": "19.1.4",
+    "@grapecity-software/spread-sheets-reportsheet-addon": "19.1.4",
+    "@grapecity-software/spread-sheets-languagepackages": "19.1.4"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",
@@ -60,7 +97,27 @@
     "tsdown": "^0.22.0",
     "typescript": "^5.9.0",
     "unrun": "^0.3.1",
-    "vitest": "^3.0.0"
+    "vitest": "^3.0.0",
+    "@grapecity-software/spread-excelio": "19.1.4",
+    "@grapecity-software/spread-sheets": "19.1.4",
+    "@grapecity-software/spread-sheets-io": "19.1.4",
+    "@grapecity-software/spread-sheets-resources-zh": "19.1.4",
+    "@grapecity-software/spread-sheets-designer": "19.1.4",
+    "@grapecity-software/spread-sheets-designer-resources-cn": "19.1.4",
+    "@grapecity-software/spread-sheets-shapes": "19.1.4",
+    "@grapecity-software/spread-sheets-charts": "19.1.4",
+    "@grapecity-software/spread-sheets-slicers": "19.1.4",
+    "@grapecity-software/spread-sheets-sparklines": "19.1.4",
+    "@grapecity-software/spread-sheets-print": "19.1.4",
+    "@grapecity-software/spread-sheets-pdf": "19.1.4",
+    "@grapecity-software/spread-sheets-barcode": "19.1.4",
+    "@grapecity-software/spread-sheets-formula-panel": "19.1.4",
+    "@grapecity-software/spread-sheets-pivot-addon": "19.1.4",
+    "@grapecity-software/spread-sheets-tablesheet": "19.1.4",
+    "@grapecity-software/spread-sheets-datacharts-addon": "19.1.4",
+    "@grapecity-software/spread-sheets-ganttsheet": "19.1.4",
+    "@grapecity-software/spread-sheets-reportsheet-addon": "19.1.4",
+    "@grapecity-software/spread-sheets-languagepackages": "19.1.4"
   },
   "license": "MIT"
 }

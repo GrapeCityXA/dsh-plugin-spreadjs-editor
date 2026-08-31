@@ -32,6 +32,8 @@ describe('isSpreadsheetFile', () => {
     expect(isSpreadsheetFile('README')).toBe(false)
     expect(isSpreadsheetFile('.gitignore')).toBe(false)
     expect(isSpreadsheetFile('book.xlsx.bak')).toBe(false)
+    expect(isSpreadsheetFile('package.json')).toBe(false)
+    expect(isSpreadsheetFile('tsconfig.json')).toBe(false)
   })
 })
 
@@ -86,6 +88,7 @@ describe('listSpreadsheetFiles', () => {
     writeFileSync(join(root, 'a.xlsx'), 'x')
     writeFileSync(join(root, 'b.csv'), 'y')
     writeFileSync(join(root, 'notes.txt'), 'z')
+    writeFileSync(join(root, 'package.json'), '{}')
     mkdirSync(join(root, 'sub'))
     writeFileSync(join(root, 'sub', 'c.sjs'), 'w')
     writeFileSync(join(root, 'sub', 'readme.md'), 'q')

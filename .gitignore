@@ -3,3 +3,6 @@ lib/
 *.tgz
 .DS_Store
 *.log
+.npm-cache/
+coverage/
+pnpm-debug.log*

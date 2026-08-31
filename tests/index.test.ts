@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import { Writable } from 'node:stream'
-import { mkdtempSync, writeFileSync } from 'node:fs'
+import { Readable, Writable } from 'node:stream'
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { apply, inject, name } from '../src/index.ts'
@@ -66,12 +66,15 @@ function harness(config?: Record<string, string>) {
 
   apply(ctx, config)
 
-  async function request(url: string): Promise<MockResponse> {
+  async function request(url: string, options?: { method?: string; body?: string }): Promise<MockResponse> {
     let finished = false
     const res = makeRes(() => {
       finished = true
     })
-    await capturedHandler({ url } as any, res as any)
+    const req = options === undefined
+      ? { url, method: 'GET' } as any
+      : Object.assign(Readable.from([options.body ?? '']), { url, method: options.method ?? 'GET' })
+    await capturedHandler(req, res)
     if (!finished) {
       await new Promise<void>((resolve) => setTimeout(resolve, 20))
     }
@@ -187,6 +190,30 @@ describe('api endpoints', () => {
       `/spreadjs/api/file?root=${encodeURIComponent(root)}&path=${encodeURIComponent('nope.xlsx')}`,
     )
     expect(res.status).toBe(404)
+  })
+
+  it('PUT /spreadjs/api/file writes bytes back inside the root', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'dsh-spreadjs-save-'))
+    const target = join(root, 'data.xlsx')
+    writeFileSync(target, 'old')
+    const { request } = harness({ defaultRoot: root })
+    const res = await request(
+      `/spreadjs/api/file?root=${encodeURIComponent(root)}&path=${encodeURIComponent('data.xlsx')}`,
+      { method: 'PUT', body: 'new-content' },
+    )
+    expect(res.status).toBe(200)
+    expect(JSON.parse(res.body)).toMatchObject({ ok: true, path: 'data.xlsx', size: 'new-content'.length })
+    expect(readFileSync(target, 'utf8')).toBe('new-content')
+  })
+
+  it('PUT /spreadjs/api/file with a traversal path is rejected with 403', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'dsh-spreadjs-save-safe-'))
+    const { request } = harness({ defaultRoot: root })
+    const res = await request(
+      `/spreadjs/api/file?root=${encodeURIComponent(root)}&path=${encodeURIComponent('../outside.xlsx')}`,
+      { method: 'PUT', body: 'x' },
+    )
+    expect(res.status).toBe(403)
   })
 
   it('unknown endpoints return 404', async () => {
