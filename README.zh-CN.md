@@ -8,7 +8,7 @@
 
 - **Node 端**（`lib/index.js`）—— 在 host web server（`ctx.webServer`）上注册 `/spreadjs` 文件桥。它会在 root 下列出 spreadsheet 文件、流式读取文件字节，并用 `PUT` 写回，始终限制在该 root 内。
 - **浏览器端**（`lib/client.js`）—— 通过 `ctx.get('webFileEditors').register(...)` 注册 SpreadJS editor。如果 `webFileEditors` 不存在，浏览器端仍会安全加载，但不会注册任何内容。
-- **查找文件** —— 通用面板的 `打开文件` 选择器会扫描当前 root，只列出已安装 editor 注册的扩展名。SpreadJS 注册 `.xlsx`、`.xlsm`、`.csv`、`.sjs` 和 `.ssjson`，因此用户不需要 chat 产物链接也可以直接打开已有表格。
+- **查找文件** —— 会话标题栏的 `Open file` 按钮会直接打开通用选择器，扫描当前 root，只列出已安装 editor 注册的扩展名。SpreadJS 注册 `.xlsx`、`.xlsm`、`.csv`、`.sjs` 和 `.ssjson`，因此用户不需要 chat 产物链接也可以直接打开已有表格。
 
 ## 开源与授权
 

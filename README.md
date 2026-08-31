@@ -20,10 +20,11 @@ ReportSheet, and language packages.
 - **Browser half** (`lib/client.js`) — registers the SpreadJS editor through
   `ctx.get('webFileEditors').register(...)`. If `webFileEditors` is absent, the
   browser half still loads safely but registers nothing.
-- **Finding files** — the generic panel's `Open file` picker scans the active
-  root and lists only extensions registered by installed editors. SpreadJS
-  contributes `.xlsx`, `.xlsm`, `.csv`, `.sjs`, and `.ssjson`, so users can
-  open existing spreadsheets without a chat-produced file link.
+- **Finding files** — the session-header `Open file` button opens the generic
+  picker directly, which scans the active root and lists only extensions
+  registered by installed editors. SpreadJS contributes `.xlsx`, `.xlsm`,
+  `.csv`, `.sjs`, and `.ssjson`, so users can open existing spreadsheets
+  without a chat-produced file link.
 
 ## Open-source and licensing
 
