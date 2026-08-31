@@ -24,8 +24,8 @@ ReportSheet, and language packages.
 ## Open-source and licensing
 
 The plugin code in this repository is MIT licensed. SpreadJS itself is a
-commercial product by MESCIUS (formerly GrapeCity); deploying it requires
-complying with MESCIUS's license and usually requires a deployment `licenseKey`.
+commercial product by GrapeCity; deploying it requires complying with
+GrapeCity's license and usually requires a deployment `licenseKey`.
 
 The repository intentionally does **not** commit or publish the generated
 `lib/` directory. GrapeCity packages are declared as `peerDependencies` and
@@ -38,7 +38,7 @@ clone does not redistribute commercial binaries. Build locally, then point
 - `dsh-plugin-web-editors` (the generic editor framework) mounted in the same Web profile.
 - A compatible DeepSeek Harness release.
 - Node.js 20+.
-- Access to the `@grapecity-software` 19.1.4 npm packages and a valid MESCIUS/GrapeCity deployment license.
+- Access to the `@grapecity-software` 19.1.4 npm packages and a valid GrapeCity deployment license.
 
 ## Install from source
 
@@ -141,6 +141,6 @@ node scripts/smoke-client.mjs   # structural checks on the BUILT browser half
 
 ## License
 
-MIT for this plugin's code. SpreadJS is a commercial product by MESCIUS
-(formerly GrapeCity); see `cordis.patch.yml` / `/spreadjs/api/config` for where
-to set a real deployment license key.
+MIT for this plugin's code. SpreadJS is a commercial product by GrapeCity;
+see `cordis.patch.yml` / `/spreadjs/api/config` for where to set a real
+deployment license key.

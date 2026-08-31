@@ -11,7 +11,7 @@
 
 ## 开源与授权
 
-本仓库中的插件代码使用 MIT 许可证。SpreadJS 本身是 MESCIUS（原 GrapeCity）的商业产品；部署时需要遵守 MESCIUS 许可，并且通常需要提供部署 `licenseKey`。
+本仓库中的插件代码使用 MIT 许可证。SpreadJS 本身是 GrapeCity 的商业产品；部署时需要遵守 GrapeCity 许可，并且通常需要提供部署 `licenseKey`。
 
 本仓库有意不提交、不发布生成的 `lib/` 目录。GrapeCity 包声明为 `peerDependencies` 和 `devDependencies`，不作为打包后的运行时产物分发，因此开源 clone 不会重新分发商业二进制。请本地构建后，再把本地 checkout 交给 `dsh plugin` 使用。
 
@@ -20,7 +20,7 @@
 - 同一个 Web profile 中挂载 `dsh-plugin-web-editors`（通用 editor 框架）。
 - 兼容的 DeepSeek Harness 版本。
 - Node.js 20+。
-- 能访问 `@grapecity-software` 19.1.4 npm 包，并持有有效的 MESCIUS/GrapeCity 部署许可。
+- 能访问 `@grapecity-software` 19.1.4 npm 包，并持有有效的 GrapeCity 部署许可。
 
 ## 从源码安装
 
@@ -109,4 +109,4 @@ node scripts/smoke-client.mjs   # 对构建后的 browser half 做结构检查
 
 ## License
 
-本插件代码使用 MIT。SpreadJS 是 MESCIUS（原 GrapeCity）的商业产品；真实部署 license key 的配置位置见 `cordis.patch.yml` / `/spreadjs/api/config`。
+本插件代码使用 MIT。SpreadJS 是 GrapeCity 的商业产品；真实部署 license key 的配置位置见 `cordis.patch.yml` / `/spreadjs/api/config`。
