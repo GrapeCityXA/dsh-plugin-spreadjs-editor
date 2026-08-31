@@ -1,5 +1,7 @@
 # dsh-spreadjs-editor
 
+[中文 README](README.zh-CN.md)
+
 A view-first [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) Web UI
 plugin that renders SpreadJS workbooks in the editor panel owned by
 `dsh-plugin-web-editors`. It contributes only the SpreadJS capability and the

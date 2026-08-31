@@ -24,6 +24,7 @@
   "files": [
     "cordis.patch.yml",
     "README.md",
+    "README.zh-CN.md",
     "LICENSE",
     "src",
     "scripts",
@@ -45,7 +46,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-org/dsh-spreadjs-editor.git"
+    "url": "https://github.com/airsasiu/dsh-spreadjs-editor.git"
   },
   "dsh": {
     "bundle": {
