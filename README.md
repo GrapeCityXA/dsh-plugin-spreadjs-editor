@@ -27,6 +27,40 @@ ReportSheet, and language packages.
 - Node.js 20+.
 - Access to the `@grapecity-software` 19.1.4 npm packages and a valid GrapeCity deployment license.
 
+## Install from npm (source-only)
+
+The npm package intentionally does not ship the generated SpreadJS client
+bundle. It declares the GrapeCity 19.1.4 packages as install-time
+dependencies, then builds `lib/client.js` from source. This keeps commercial
+SpreadJS binaries out of our npm tarball; each user still installs and uses
+them under GrapeCity's license.
+
+DSH manages profiles with pnpm 10, which blocks dependency lifecycle scripts
+by default. After adding the package, allow its build once and rebuild:
+
+```sh
+dsh plugin --profile web add dsh-spreadjs-editor
+```
+
+Add this to the Web profile's `pnpm-workspace.yaml`
+(`$DSH_HOME/profiles/web/pnpm-workspace.yaml`, normally
+`~/.dsh/profiles/web/pnpm-workspace.yaml`):
+
+```yaml
+onlyBuiltDependencies:
+  - dsh-spreadjs-editor
+```
+
+Then run:
+
+```sh
+pnpm --dir ~/.dsh/profiles/web rebuild dsh-spreadjs-editor
+dsh web
+```
+
+If you use npm directly instead of pnpm, `npm install` runs the package's
+`postinstall` build automatically.
+
 ## Install from source
 
 ```sh
