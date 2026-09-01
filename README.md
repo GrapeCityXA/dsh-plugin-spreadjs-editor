@@ -1,4 +1,4 @@
-# dsh-spreadjs-editor
+# @grapecity-software/dsh-spreadjs-editor
 
 [GitHub](https://github.com/GrapeCityXA/dsh-plugin-spreadjs-editor)
 
@@ -31,13 +31,13 @@ DSH 的 Web profile 使用 pnpm 10，而 pnpm 10 默认会拦截依赖包的生�
 
 ```yaml
 onlyBuiltDependencies:
-  - dsh-spreadjs-editor
+  - @grapecity-software/dsh-spreadjs-editor
 ```
 
 然后安装插件并启动：
 
 ```sh
-dsh plugin --profile web add dsh-spreadjs-editor
+dsh plugin --profile web add @grapecity-software/dsh-spreadjs-editor
 dsh web
 ```
 
@@ -48,7 +48,7 @@ dsh web
 如果使用 npx 运行 DSH，使用同样的命令：
 
 ```sh
-npx --yes @deepseek-ai/dsh@latest plugin --profile web add dsh-spreadjs-editor
+npx --yes @deepseek-ai/dsh@latest plugin --profile web add @grapecity-software/dsh-spreadjs-editor
 npx --yes @deepseek-ai/dsh@latest web
 ```
 
@@ -57,7 +57,7 @@ DeepSeek Harness CLI 是 `@deepseek-ai/dsh`，不要使用同名 npm 包 `dsh`�
 如果插件已经装好、之后才补放行配置，补一次构建即可：
 
 ```sh
-pnpm --dir ~/.dsh/profiles/web rebuild dsh-spreadjs-editor
+pnpm --dir ~/.dsh/profiles/web rebuild @grapecity-software/dsh-spreadjs-editor
 ```
 
 ### 常见问题
@@ -142,13 +142,13 @@ Add:
 
 ```yaml
 onlyBuiltDependencies:
-  - dsh-spreadjs-editor
+  - @grapecity-software/dsh-spreadjs-editor
 ```
 
 Then install the plugin and start DSH:
 
 ```sh
-dsh plugin --profile web add dsh-spreadjs-editor
+dsh plugin --profile web add @grapecity-software/dsh-spreadjs-editor
 dsh web
 ```
 
@@ -159,7 +159,7 @@ The SpreadJS client is generated automatically during install. There is no need 
 If you run DSH through npx, use the same commands:
 
 ```sh
-npx --yes @deepseek-ai/dsh@latest plugin --profile web add dsh-spreadjs-editor
+npx --yes @deepseek-ai/dsh@latest plugin --profile web add @grapecity-software/dsh-spreadjs-editor
 npx --yes @deepseek-ai/dsh@latest web
 ```
 
@@ -168,7 +168,7 @@ Use `@deepseek-ai/dsh`; the unrelated npm package `dsh` is not the DeepSeek Harn
 If the plugin was already installed before the allow-list entry was added, run the build once:
 
 ```sh
-pnpm --dir ~/.dsh/profiles/web rebuild dsh-spreadjs-editor
+pnpm --dir ~/.dsh/profiles/web rebuild @grapecity-software/dsh-spreadjs-editor
 ```
 
 ### FAQ

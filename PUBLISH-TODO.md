@@ -30,7 +30,7 @@
 
 - [ ] PR 到 https://github.com/zhu1090093659/dsh-web
 - [ ] 修改 `packages/dsh-client-ui-community-plugins/community.json`
-- [ ] 新增 `dsh-spreadjs-editor` 条目，含 repo、name、category、subcategory
+- [ ] 新增 `@grapecity-software/dsh-spreadjs-editor` 条目，含 repo、name、category、subcategory
 - [ ] 确认 `subcategory` 使用现有枚举；如无 file/editor，则先归入 `panel` 或新增
 - [ ] 若后续发布 npm，再补 `npm` 字段
 - [ ] 参考：已安装包 `@linxin666/dsh-client-ui-community-plugins/community.json`

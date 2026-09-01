@@ -13,7 +13,7 @@
 
 - insert:
     - id: spreadjs-editor
-      name: dsh-spreadjs-editor
+      name: @grapecity-software/dsh-spreadjs-editor
       inject: [webServer]
       config:
         # Optional: your SpreadJS license key. Empty (default) runs the
