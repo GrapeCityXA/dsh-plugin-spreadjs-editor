@@ -15,7 +15,6 @@
 - 必须提供 `dsh-better-sidebar` 服务；最简单的方式是挂载 `@linxin666/dsh-web-all`（ui-all），ui-all 自带 better-sidebar。
 - 兼容的 DeepSeek Harness 版本。
 - Node.js 20+。
-- 能访问 `@grapecity-software` 官方 npm 包，并持有有效的 GrapeCity 部署许可。
 
 ## 从 npm 安装（源码构建模式）
 
