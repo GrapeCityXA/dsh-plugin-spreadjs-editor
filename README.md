@@ -1,6 +1,6 @@
 # dsh-spreadjs-editor
 
-[GitHub](https://github.com/GrapeCityXA/dsh-plugin-spreadjs-editor) | [中文完整版](https://github.com/GrapeCityXA/dsh-plugin-spreadjs-editor/blob/main/README.zh-CN.md)
+[GitHub](https://github.com/GrapeCityXA/dsh-plugin-spreadjs-editor)
 
 DeepSeek Harness Web UI 插件，通过 `dsh-better-sidebar`（ui-all 自带）注册 SpreadJS，在右侧文件树中打开和编辑 `.xlsx`、`.xlsm`、`.csv`、`.sjs`、`.ssjson` 文件。不依赖 `dsh-plugin-web-editors`。
 
