@@ -26,7 +26,7 @@ A DeepSeek Harness Web UI plugin that registers SpreadJS through `dsh-better-sid
 
 ### 从 npm 安装（源码构建模式）
 
-npm 包不携带生成后的 SpreadJS client bundle，而是把 GrapeCity 19.1.4 系列声明为安装时依赖，安装阶段自动构建 `lib/client.js`。这样 npm tarball 不包含商业 SpreadJS 二进制；用户仍按 GrapeCity 许可安装和使用这些包。
+本包由 GrapeCity 官方 npm 账号发布。SpreadJS 和 Designer 等组件不在插件包内二次打包，而是通过官方 `@grapecity-software` 19.1.4 npm 包作为安装时依赖分发，安装阶段从这些官方包构建 `lib/client.js`。用户始终直接使用官方 npm 包，便于按 GrapeCity 许可部署、升级和定位问题。
 
 DSH 使用 pnpm 10 管理 profile，而 pnpm 10 默认会拦截依赖包的生命周期脚本。安装前先给 Web profile 放行本包一次（通常是 `~/.dsh/profiles/web/pnpm-workspace.yaml`）：
 
@@ -120,7 +120,7 @@ bundle 的 patch row 接受 `config` 对象，在 `cordis.patch.yml` 中编辑�
 
 ### Install from npm (source-only)
 
-The npm package intentionally does not ship the generated SpreadJS client bundle. It declares the GrapeCity 19.1.4 packages as install-time dependencies and builds `lib/client.js` from source. This keeps commercial SpreadJS binaries out of the npm tarball; each user still installs and uses them under GrapeCity's license.
+This package is published by GrapeCity's official npm account. SpreadJS and the Designer are not bundled into the plugin artifact; they are installed directly from the official `@grapecity-software` 19.1.4 npm packages as install-time dependencies, and `lib/client.js` is built from those official packages during installation. Users stay on official npm packages, which keeps deployment under the GrapeCity license clear and makes upgrades and troubleshooting simpler.
 
 DSH manages profiles with pnpm 10, which blocks dependency lifecycle scripts by default. Add this to the Web profile's `pnpm-workspace.yaml` before installing (normally `~/.dsh/profiles/web/pnpm-workspace.yaml`):
 

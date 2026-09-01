@@ -19,7 +19,7 @@
 
 ## 从 npm 安装（源码构建模式）
 
-npm 包有意不携带生成后的 SpreadJS client bundle。包内把 GrapeCity 19.1.4 系列声明为安装时依赖，安装阶段从源码构建 `lib/client.js`。这样我们的 npm tarball 不包含商业 SpreadJS 二进制；用户仍然在自己本机按 GrapeCity 许可安装和使用这些包。
+本包由 GrapeCity 官方 npm 账号发布。SpreadJS 和 Designer 等组件不在插件包内二次打包，而是通过官方 `@grapecity-software` 19.1.4 npm 包作为安装时依赖分发，安装阶段从这些官方包构建 `lib/client.js`。用户始终直接使用官方 npm 包，便于按 GrapeCity 许可部署、升级和定位问题。
 
 DSH 使用 pnpm 10 管理 profile，而 pnpm 10 默认会拦截依赖包的生命周期脚本。安装前先给 Web profile 放行本包一次（通常是 `~/.dsh/profiles/web/pnpm-workspace.yaml`）：
 
