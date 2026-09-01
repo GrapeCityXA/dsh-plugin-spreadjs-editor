@@ -38,15 +38,24 @@ export interface SpreadsheetHostHandle {
   newWorkbook: () => void
 }
 
+/** Result of one write-back operation. */
+export type SpreadsheetSaveResult = 'saved' | 'download'
+
+/** File access seam: the host panel may use /spreadjs or /sidebar routes. */
+export interface SpreadsheetFileAccess {
+  fileUrl(path: string): string
+  save(blob: Blob, path: string): Promise<SpreadsheetSaveResult>
+}
+
 export interface SpreadsheetHostProps {
   /** Absolute path of the file to open (undefined = nothing). */
   filePath: string | undefined
-  /** Browse root sent to the host (may be undefined for host default). */
-  root: string | undefined
   /** SpreadJS license key from /spreadjs/api/config. */
   licenseKey: string
   /** Whether the host config fetch has completed. */
   ready: boolean
+  /** Concrete read/write access chosen by the active adapter. */
+  fileAccess: SpreadsheetFileAccess
   onStatus: (status: string, tone?: StatusTone) => void
   onLoadingChange: (loading: boolean) => void
   onNewWorkbook: () => void
@@ -65,13 +74,6 @@ interface DesignerNamespace {
   DefaultConfig?: unknown
   LicenseKey?: string
   setTheme?(theme: Record<string, string | undefined> | null): void
-}
-
-function fileApiPath(root: string | undefined, path: string): string {
-  const params = new URLSearchParams()
-  if (root !== undefined && root !== '') params.set('root', root)
-  params.set('path', path)
-  return `/spreadjs/api/file?${params.toString()}`
 }
 
 function basename(path: string): string {
@@ -251,16 +253,14 @@ function workbookBlob(spread: any, path: string, format?: ExportFormat): Promise
 }
 
 export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHostProps>(
-  function SpreadsheetHost({ filePath, root, licenseKey, ready, onStatus, onLoadingChange, onNewWorkbook }, ref) {
+  function SpreadsheetHost({ filePath, licenseKey, ready, fileAccess, onStatus, onLoadingChange, onNewWorkbook }, ref) {
     const hostRef = useRef<HTMLDivElement | null>(null)
     const designerRef = useRef<DesignerLike | null>(null)
     const loadSeqRef = useRef(0)
     const pathRef = useRef(filePath)
-    const rootRef = useRef(root)
     const [status, setStatus] = useState<LoadStatus>({ kind: 'idle' })
 
     pathRef.current = filePath
-    rootRef.current = root
 
     // SpreadJS and Designer require separate license keys and both must be set
     // before the designer is constructed.
@@ -322,7 +322,7 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
       onLoadingChange(true)
       onStatus(`Loading ${basename(filePath)}…`, 'busy')
       void (async () => {
-        const response = await fetch(fileApiPath(root, filePath))
+        const response = await fetch(fileAccess.fileUrl(filePath))
         if (!response.ok) {
           const body = await response.json().catch(() => null) as { error?: string } | null
           throw new Error(body?.error ?? `HTTP ${response.status}`)
@@ -352,7 +352,7 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
         onLoadingChange(false)
         onStatus(`Load failed: ${message}`, 'error')
       })
-    }, [filePath, root, ready, onLoadingChange, onStatus])
+    }, [fileAccess, filePath, ready, onLoadingChange, onStatus])
 
     async function save(): Promise<void> {
       const designer = designerRef.current
@@ -362,22 +362,11 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
       onStatus(`Saving ${basename(path)}…`, 'busy')
       try {
         const blob = await workbookBlob(designer.getWorkbook(), path)
-        const response = await fetch(fileApiPath(rootRef.current, path), {
-          method: 'PUT',
-          body: blob,
-        })
-        if (response.status === 404) {
-          // Older running profiles only serve the read-only bridge. Keep Save useful by
-          // falling back to a local download until the host profile is restarted.
-          downloadBlob(blob, basename(path))
-          onStatus(`Saved ${basename(path)} as download`, 'idle')
-          return
-        }
-        if (!response.ok) {
-          const body = await response.json().catch(() => null) as { error?: string } | null
-          throw new Error(body?.error ?? `HTTP ${response.status}`)
-        }
-        onStatus(`Saved ${basename(path)}`, 'idle')
+        const result = await fileAccess.save(blob, path)
+        onStatus(
+          result === 'download' ? `Saved ${basename(path)} as download` : `Saved ${basename(path)}`,
+          'idle',
+        )
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         onStatus(`Save failed: ${message}`, 'error')

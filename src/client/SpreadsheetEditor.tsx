@@ -1,23 +1,36 @@
 /**
- * SpreadJS editor component registered through `webFileEditors`.
+ * webFileEditors adapter for the SpreadJS editor.
  *
- * The generic plugin owns the panel and passes the resolved file path. This
- * component keeps the /spreadjs host bridge as the only file-access seam: it
- * fetches the SpreadJS license config and loads the requested file through
- * SpreadsheetHost. It is intentionally view-first — no custom toolbar, so the
- * spreadsheet and the Designer ribbon are the only interactive chrome.
+ * This is the clean-web-editors registration path: it opens through
+ * `dsh-plugin-web-editors` and reads/writes through the `/spreadjs` host
+ * bridge. ui-all profiles use SpreadsheetViewer instead.
  */
-import { useCallback, useEffect, useState } from 'react'
-import { SpreadsheetHost } from './SpreadsheetHost.tsx'
-import type { StatusTone } from './SpreadsheetHost.tsx'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { SpreadsheetHost, type SpreadsheetFileAccess, type StatusTone } from './SpreadsheetHost.tsx'
 import type { WebFileEditorViewProps } from './web-file-editors.ts'
 
 interface ConfigResponse {
   licenseKey: string
 }
 
+function fileApiPath(root: string | undefined, path: string): string {
+  const params = new URLSearchParams()
+  if (root !== undefined && root !== '') params.set('root', root)
+  params.set('path', path)
+  return `/spreadjs/api/file?${params.toString()}`
+}
+
 function basename(path: string): string {
   return path.split(/[\\/]/).pop() ?? path
+}
+
+function downloadBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = filename
+  anchor.click()
+  URL.revokeObjectURL(url)
 }
 
 export function SpreadsheetEditor(props: WebFileEditorViewProps): React.JSX.Element {
@@ -50,6 +63,25 @@ export function SpreadsheetEditor(props: WebFileEditorViewProps): React.JSX.Elem
     }
   }, [])
 
+  const fileAccess = useMemo<SpreadsheetFileAccess>(() => ({
+    fileUrl: (target) => fileApiPath(root, target),
+    save: async (blob, target) => {
+      const response = await fetch(fileApiPath(root, target), {
+        method: 'PUT',
+        body: blob,
+      })
+      if (response.status === 404) {
+        downloadBlob(blob, basename(target))
+        return 'download'
+      }
+      if (!response.ok) {
+        const body = await response.json().catch(() => null) as { error?: string } | null
+        throw new Error(body?.error ?? `HTTP ${response.status}`)
+      }
+      return 'saved'
+    },
+  }), [root])
+
   const handleStatus = useCallback((next: string, tone: StatusTone = 'idle') => {
     props.onStatus?.(next, tone)
   }, [props.onStatus])
@@ -61,9 +93,9 @@ export function SpreadsheetEditor(props: WebFileEditorViewProps): React.JSX.Elem
       <div className="dsh-spreadjs-editor">
         <SpreadsheetHost
           filePath={activePath}
-          root={root}
           licenseKey={licenseKey}
           ready={configReady}
+          fileAccess={fileAccess}
           onStatus={handleStatus}
           onLoadingChange={noop}
           onNewWorkbook={noop}

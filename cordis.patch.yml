@@ -1,14 +1,21 @@
 # dsh-spreadjs-editor bundle patch
 #
 # One row activates the whole plugin: the Loader imports the package's node
-# half (lib/index.js, the /spreadjs file bridge) and the client-modules scan
+# half (lib/index.js, the /spreadjs license/config endpoint and web-editors
+# file bridge) and the client-modules scan
 # picks up the `dsh.client` declaration for the browser half (lib/client.js,
-# which registers the SpreadJS editor into webFileEditors).
+# which registers the SpreadJS editor into whichever client service exists).
 #
 # The row must run only under the Web composition (it injects the webServer
-# service); a headless profile should not mount this bundle. The generic
-# dsh-plugin-web-editors row must be mounted in the same Web profile so the
-# client service is available when this browser half activates.
+# service); a headless profile should not mount this bundle. The browser half
+# has no hard client dependency: it registers into `dsh-better-sidebar` when
+# ui-all is mounted and into `webFileEditors` when the clean web-editors plugin
+# is mounted.
+#
+# Do not install both adapters in production: two SpreadJS opener entries are
+# confusing. Dual mode is only for migration/temporary validation. The default
+# when both exist is `webFileEditors`; set `betterSidebar` explicitly for
+# ui-all, and keep `auto` only for migration testing.
 
 - insert:
     - id: spreadjs-editor
@@ -22,3 +29,8 @@
         # evaluation watermark build. Keep it out of the patch if you prefer
         # to configure it per-deployment.
         licenseKey: ''
+        # Adapter selection when both adapters are installed. Default
+        # 'webFileEditors' uses only the clean web-editors panel (recommended
+        # for commercial profiles). 'betterSidebar' uses only ui-all. 'auto'
+        # registers both and is only for migration testing.
+        preferViewer: webFileEditors

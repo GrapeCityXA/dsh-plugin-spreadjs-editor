@@ -1,13 +1,14 @@
 /**
  * dsh-spreadjs-editor — node half.
  *
- * Registers the `/spreadjs` prefix route on the harness web server. The editor
- * (browser half) reads and writes spreadsheet files through these endpoints.
+ * Registers the `/spreadjs` prefix route on the harness web server. The
+ * webFileEditors adapter (browser half) reads and writes spreadsheet files
+ * through these endpoints; the better-sidebar adapter uses the session routes
+ * exposed by ui-all.
  *
  * Security posture: the server binds to 127.0.0.1 by default and this plugin
  * adds no external exposure of its own. Every file read is confined to the
- * requested root's subtree (see resolveWithinRoot); the editor receives the
- * resolved path and root from the generic webFileEditors service.
+ * requested root's subtree (see resolveWithinRoot).
  */
 
 import { createReadStream, createWriteStream } from 'node:fs'

@@ -1,7 +1,7 @@
 {
   "name": "dsh-spreadjs-editor",
   "version": "0.2.0",
-  "description": "DeepSeek Harness Web UI plugin: SpreadJS editor registered through the generic webFileEditors service.",
+  "description": "DeepSeek Harness Web UI plugin: SpreadJS editor adapting to both dsh-better-sidebar (ui-all) and dsh-plugin-web-editors.",
   "keywords": [
     "deepseek-harness",
     "dsh",
@@ -46,7 +46,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/airsasiu/dsh-plugin-spreadjs-editor.git"
+    "url": "https://github.com/GrapeCityXA/dsh-plugin-spreadjs-editor.git"
   },
   "dsh": {
     "bundle": {
@@ -54,14 +54,13 @@
     },
     "client": {
       "platform": "web",
-      "inject": [
-        "dsh-plugin-web-editors"
-      ]
+      "inject": []
     }
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.0",
     "@deepseek-ai/dsh-client-runtime": ">=0.1.1-rc.2",
+    "dsh-better-sidebar": ">=0.6.0",
     "dsh-plugin-web-editors": ">=0.1.0",
     "react": "^18.0.0",
     "@grapecity-software/spread-excelio": "19.1.4",
@@ -84,6 +83,14 @@
     "@grapecity-software/spread-sheets-ganttsheet": "19.1.4",
     "@grapecity-software/spread-sheets-reportsheet-addon": "19.1.4",
     "@grapecity-software/spread-sheets-languagepackages": "19.1.4"
+  },
+  "peerDependenciesMeta": {
+    "dsh-better-sidebar": {
+      "optional": true
+    },
+    "dsh-plugin-web-editors": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",
