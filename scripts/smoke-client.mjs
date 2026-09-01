@@ -1,6 +1,6 @@
 // Structural smoke check for the BUILT browser half (lib/client.js).
 //
-// A full runtime load (factory → apply → webFileEditors registration) requires a real
+// A full runtime load (factory → apply → betterSidebar registration) requires a real
 // browser: SpreadJS touches DOM + canvas at module init, which jsdom cannot
 // satisfy without the native `canvas` package. That end-to-end load is left to
 // the harness browser (see README "Verification"). What we CAN assert here
