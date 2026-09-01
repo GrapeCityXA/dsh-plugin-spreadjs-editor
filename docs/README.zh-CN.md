@@ -41,6 +41,21 @@ dsh web
 pnpm --dir ~/.dsh/profiles/web rebuild dsh-spreadjs-editor
 ```
 
+如果你没有全局安装 `dsh`，而是通过 npx 运行 DSH，把上面的命令改成：
+
+```sh
+npx --yes @deepseek-ai/dsh@latest plugin --profile web add dsh-spreadjs-editor
+npx --yes @deepseek-ai/dsh@latest web
+```
+
+需要补构建时：
+
+```sh
+npx --yes pnpm --dir ~/.dsh/profiles/web rebuild dsh-spreadjs-editor
+```
+
+注意：不要用 `npx dsh`，那是另一个同名包；DeepSeek Harness CLI 是 `@deepseek-ai/dsh`。
+
 如果你直接使用 npm 而不是 pnpm，`npm install` 会自动运行包的 `postinstall` 构建。
 
 ## 从源码安装
