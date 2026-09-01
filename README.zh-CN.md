@@ -46,13 +46,13 @@ dsh web
 ## 从源码安装
 
 ```sh
-git clone <你的-dsh-spreadjs-editor-仓库>
+git clone https://github.com/GrapeCityXA/dsh-plugin-spreadjs-editor.git
 
-cd dsh-spreadjs-editor
+cd dsh-plugin-spreadjs-editor
 npm install
 npm run build
 
-dsh plugin --profile web add ../dsh-spreadjs-editor
+dsh plugin --profile web add ../dsh-plugin-spreadjs-editor
 ```
 
 然后验证并启动：

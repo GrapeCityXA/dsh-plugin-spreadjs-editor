@@ -1,6 +1,6 @@
 # dsh-spreadjs-editor
 
-[中文 README](README.zh-CN.md)
+[中文 README](https://github.com/GrapeCityXA/dsh-plugin-spreadjs-editor/blob/main/README.zh-CN.md)
 
 A view-first [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) Web UI
 plugin that registers SpreadJS into `dsh-better-sidebar`, the right-side file/editor
@@ -64,13 +64,13 @@ If you use npm directly instead of pnpm, `npm install` runs the package's
 ## Install from source
 
 ```sh
-git clone <your-dsh-spreadjs-editor-repo>
+git clone https://github.com/GrapeCityXA/dsh-plugin-spreadjs-editor.git
 
-cd dsh-spreadjs-editor
+cd dsh-plugin-spreadjs-editor
 npm install
 npm run build
 
-dsh plugin --profile web add ../dsh-spreadjs-editor
+dsh plugin --profile web add ../dsh-plugin-spreadjs-editor
 ```
 
 Then verify and boot:
