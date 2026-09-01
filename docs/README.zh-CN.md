@@ -12,7 +12,7 @@
 
 ## 环境要求
 
-- 同一个 Web profile 中挂载 `@linxin666/dsh-web-all`（ui-all / `dsh-better-sidebar`）。
+- 必须提供 `dsh-better-sidebar` 服务；最简单的方式是挂载 `@linxin666/dsh-web-all`（ui-all），ui-all 自带 better-sidebar。
 - 兼容的 DeepSeek Harness 版本。
 - Node.js 20+。
 - 能访问 `@grapecity-software` 19.1.4 npm 包，并持有有效的 GrapeCity 部署许可。

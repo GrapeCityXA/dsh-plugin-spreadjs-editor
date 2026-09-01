@@ -19,7 +19,7 @@ A DeepSeek Harness Web UI plugin that registers SpreadJS through `dsh-better-sid
 
 ### 环境要求
 
-- 同一个 Web profile 中挂载 `@linxin666/dsh-web-all`（ui-all / `dsh-better-sidebar`）。
+- 必须提供 `dsh-better-sidebar` 服务；最简单的方式是挂载 `@linxin666/dsh-web-all`（ui-all），ui-all 自带 better-sidebar。
 - 兼容的 DeepSeek Harness 版本。
 - Node.js 20+。
 - 能访问 `@grapecity-software` 19.1.4 npm 包，并持有有效的 GrapeCity 部署许可。
@@ -113,7 +113,7 @@ bundle 的 patch row 接受 `config` 对象，在 `cordis.patch.yml` 中编辑�
 
 ### Requirements
 
-- `@linxin666/dsh-web-all` (ui-all / `dsh-better-sidebar`) mounted in the same Web profile.
+- `dsh-better-sidebar` must be available. The easiest way is to mount `@linxin666/dsh-web-all` (ui-all), which bundles better-sidebar.
 - A compatible DeepSeek Harness release.
 - Node.js 20+.
 - Access to the `@grapecity-software` 19.1.4 npm packages and a valid GrapeCity deployment license.
