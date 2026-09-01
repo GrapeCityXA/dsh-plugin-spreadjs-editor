@@ -1,6 +1,6 @@
 # dsh-spreadjs-editor
 
-[English README](README.md)
+[English README](../README.md)
 
 一个 view-first 的 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) Web UI 插件，把 SpreadJS 注册到 `dsh-better-sidebar`（由 `@linxin666/dsh-web-all`，即 ui-all 聚合）。它不依赖 `dsh-plugin-web-editors`；spreadsheet 文件直接由 ui-all 右侧文件树打开。
 
@@ -21,24 +21,24 @@
 
 npm 包有意不携带生成后的 SpreadJS client bundle。包内把 GrapeCity 19.1.4 系列声明为安装时依赖，安装阶段从源码构建 `lib/client.js`。这样我们的 npm tarball 不包含商业 SpreadJS 二进制；用户仍然在自己本机按 GrapeCity 许可安装和使用这些包。
 
-DSH 使用 pnpm 10 管理 profile，而 pnpm 10 默认会拦截依赖包的生命周期脚本。添加包后需要放行一次并重新构建：
-
-```sh
-dsh plugin --profile web add dsh-spreadjs-editor
-```
-
-在 Web profile 的 `pnpm-workspace.yaml` 中追加（通常是 `~/.dsh/profiles/web/pnpm-workspace.yaml`）：
+DSH 使用 pnpm 10 管理 profile，而 pnpm 10 默认会拦截依赖包的生命周期脚本。安装前先给 Web profile 放行本包一次（通常是 `~/.dsh/profiles/web/pnpm-workspace.yaml`）：
 
 ```yaml
 onlyBuiltDependencies:
   - dsh-spreadjs-editor
 ```
 
-然后执行：
+然后直接添加插件：
+
+```sh
+dsh plugin --profile web add dsh-spreadjs-editor
+dsh web
+```
+
+放行后 pnpm 会在安装阶段自动运行 `postinstall` 构建，不需要用户手动执行 `npm run build` 或 `pnpm rebuild`。只有已经先装过包、后来才补放行配置时，才需要手动补一次：
 
 ```sh
 pnpm --dir ~/.dsh/profiles/web rebuild dsh-spreadjs-editor
-dsh web
 ```
 
 如果你直接使用 npm 而不是 pnpm，`npm install` 会自动运行包的 `postinstall` 构建。

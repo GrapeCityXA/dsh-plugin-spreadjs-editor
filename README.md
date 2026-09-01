@@ -28,27 +28,27 @@ A DeepSeek Harness Web UI plugin that registers SpreadJS through `dsh-better-sid
 
 npm 包不携带生成后的 SpreadJS client bundle，而是把 GrapeCity 19.1.4 系列声明为安装时依赖，安装阶段自动构建 `lib/client.js`。这样 npm tarball 不包含商业 SpreadJS 二进制；用户仍按 GrapeCity 许可安装和使用这些包。
 
-DSH 使用 pnpm 10 管理 profile，pnpm 10 默认会拦截依赖包的生命周期脚本。添加后需要放行一次并重新构建：
-
-```sh
-dsh plugin --profile web add dsh-spreadjs-editor
-```
-
-在 Web profile 的 `pnpm-workspace.yaml` 中追加（通常是 `~/.dsh/profiles/web/pnpm-workspace.yaml`）：
+DSH 使用 pnpm 10 管理 profile，而 pnpm 10 默认会拦截依赖包的生命周期脚本。安装前先给 Web profile 放行本包一次（通常是 `~/.dsh/profiles/web/pnpm-workspace.yaml`）：
 
 ```yaml
 onlyBuiltDependencies:
   - dsh-spreadjs-editor
 ```
 
-然后执行：
+然后直接添加插件：
 
 ```sh
-pnpm --dir ~/.dsh/profiles/web rebuild dsh-spreadjs-editor
+dsh plugin --profile web add dsh-spreadjs-editor
 dsh web
 ```
 
-如果你直接使用 npm 而不是 pnpm，`npm install` 会自动运行包的 `postinstall` 构建。
+放行后 pnpm 会在安装阶段自动运行 `postinstall` 构建，不需要用户手动执行 `npm run build` 或 `pnpm rebuild`。只有在你已经先装过包、后来才补放行配置时，才需要手动补一次：
+
+```sh
+pnpm --dir ~/.dsh/profiles/web rebuild dsh-spreadjs-editor
+```
+
+如果你直接使用 npm 而不是 pnpm，`npm install` 本来就会自动运行包的 `postinstall` 构建。
 
 ### 从 GitHub 安装
 
@@ -107,24 +107,24 @@ bundle 的 patch row 接受 `config` 对象，在 `cordis.patch.yml` 中编辑�
 
 The npm package intentionally does not ship the generated SpreadJS client bundle. It declares the GrapeCity 19.1.4 packages as install-time dependencies and builds `lib/client.js` from source. This keeps commercial SpreadJS binaries out of the npm tarball; each user still installs and uses them under GrapeCity's license.
 
-DSH manages profiles with pnpm 10, which blocks dependency lifecycle scripts by default. After adding the package, allow its build once and rebuild:
-
-```sh
-dsh plugin --profile web add dsh-spreadjs-editor
-```
-
-Add this to the Web profile's `pnpm-workspace.yaml` (normally `~/.dsh/profiles/web/pnpm-workspace.yaml`):
+DSH manages profiles with pnpm 10, which blocks dependency lifecycle scripts by default. Add this to the Web profile's `pnpm-workspace.yaml` before installing (normally `~/.dsh/profiles/web/pnpm-workspace.yaml`):
 
 ```yaml
 onlyBuiltDependencies:
   - dsh-spreadjs-editor
 ```
 
-Then run:
+Then add the plugin and start DSH:
+
+```sh
+dsh plugin --profile web add dsh-spreadjs-editor
+dsh web
+```
+
+Once the build is allowed, pnpm runs the package's `postinstall` build automatically during install. Users do not need to run `npm run build` or `pnpm rebuild` manually. The manual rebuild command is only needed if the package was already installed before the allow-list entry was added:
 
 ```sh
 pnpm --dir ~/.dsh/profiles/web rebuild dsh-spreadjs-editor
-dsh web
 ```
 
 If you use npm directly instead of pnpm, `npm install` runs the package's `postinstall` build automatically.
