@@ -32,6 +32,7 @@
   ],
   "scripts": {
     "build": "node scripts/build.mjs",
+    "grapecity:update": "node scripts/update-grapecity.mjs",
     "postinstall": "node scripts/build.mjs",
     "prepare": "node scripts/build.mjs",
     "prepublishOnly": "npm run typecheck && npm test && npm run build",

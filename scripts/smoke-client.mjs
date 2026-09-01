@@ -40,7 +40,7 @@ for (const ext of EXTERNALS) {
 }
 check('no @grapecity require remains (inlined)', !/require\("@grapecity/.test(code))
 check('spread-sheets css string embedded', code.includes('gc-spread-sheets'))
-check('designer css string embedded', code.includes('SpreadJS Designer Library 19.1.4'))
+check('designer css string embedded', /SpreadJS Designer Library \d+\.\d+\.\d+/.test(code))
 check('editor css string embedded', code.includes('.dsh-spreadjs-panel'))
 
 console.log(`\n${pass} passed, ${fail} failed`)

@@ -13,7 +13,7 @@ A DeepSeek Harness Web UI plugin that registers SpreadJS through `dsh-better-sid
 ### 功能
 
 - 通过 better-sidebar 在 Web UI 右侧文件树中打开 spreadsheet 文件。
-- 浏览器端使用 GrapeCity npm scope 的 **19.1.4** 包组：SpreadJS、ExcelIO、Designer、中文资源、PivotTable、TableSheet、图表、形状、切片器、迷你图、打印/PDF、条码、公式面板、数据图表、GanttSheet、ReportSheet 等。
+- 浏览器端使用 GrapeCity 官方 npm 包组（所有 SpreadJS 相关包由 `package.json` 统一锁定同一版本）：SpreadJS、ExcelIO、Designer、中文资源、PivotTable、TableSheet、图表、形状、切片器、迷你图、打印/PDF、条码、公式面板、数据图表、GanttSheet、ReportSheet 等。
 - View-first：没有自定义插件工具条，Designer ribbon、公式栏、sheet tabs、右键菜单和工作簿画布就是编辑表面。
 - Designer 界面跟随系统 light/dark 偏好。
 
@@ -22,11 +22,11 @@ A DeepSeek Harness Web UI plugin that registers SpreadJS through `dsh-better-sid
 - 必须提供 `dsh-better-sidebar` 服务；最简单的方式是挂载 `@linxin666/dsh-web-all`（ui-all），ui-all 自带 better-sidebar。
 - 兼容的 DeepSeek Harness 版本。
 - Node.js 20+。
-- 能访问 `@grapecity-software` 19.1.4 npm 包，并持有有效的 GrapeCity 部署许可。
+- 能访问 `@grapecity-software` 官方 npm 包，并持有有效的 GrapeCity 部署许可。
 
 ### 从 npm 安装（源码构建模式）
 
-本包由 GrapeCity 官方 npm 账号发布。SpreadJS 和 Designer 等组件不在插件包内二次打包，而是通过官方 `@grapecity-software` 19.1.4 npm 包作为安装时依赖分发，安装阶段从这些官方包构建 `lib/client.js`。用户始终直接使用官方 npm 包，便于按 GrapeCity 许可部署、升级和定位问题。
+本包由 GrapeCity 官方 npm 账号发布。SpreadJS 和 Designer 等组件不在插件包内二次打包，而是通过官方 `@grapecity-software` npm 包作为安装时依赖分发，安装阶段从这些官方包构建 `lib/client.js`。所有 GrapeCity 依赖在 `package.json` 中统一锁定同一版本；发布新版前可用 `npm run grapecity:update -- --latest` 一次性同步到最新版。用户始终直接使用官方 npm 包，便于按 GrapeCity 许可部署、升级和定位问题。
 
 DSH 使用 pnpm 10 管理 profile，而 pnpm 10 默认会拦截依赖包的生命周期脚本。安装前先给 Web profile 放行本包一次（通常是 `~/.dsh/profiles/web/pnpm-workspace.yaml`）：
 
@@ -107,7 +107,7 @@ bundle 的 patch row 接受 `config` 对象，在 `cordis.patch.yml` 中编辑�
 ### Features
 
 - Opens spreadsheet files from the ui-all right-side file tree through better-sidebar.
-- Uses the GrapeCity npm **19.1.4** package set: SpreadJS, ExcelIO, Designer, Chinese resources, PivotTable, TableSheet, charts, shapes, slicers, sparklines, print/PDF, barcode, formula panel, data charts, GanttSheet, ReportSheet, and language packages.
+- Uses the GrapeCity official npm package set (all SpreadJS-related packages are pinned to the same version in `package.json`): SpreadJS, ExcelIO, Designer, Chinese resources, PivotTable, TableSheet, charts, shapes, slicers, sparklines, print/PDF, barcode, formula panel, data charts, GanttSheet, ReportSheet, and language packages.
 - View-first: the Designer ribbon, formula bar, sheet tabs, context menus, and workbook canvas are the editing surface.
 - The Designer chrome follows the OS light/dark preference.
 
@@ -116,11 +116,11 @@ bundle 的 patch row 接受 `config` 对象，在 `cordis.patch.yml` 中编辑�
 - `dsh-better-sidebar` must be available. The easiest way is to mount `@linxin666/dsh-web-all` (ui-all), which bundles better-sidebar.
 - A compatible DeepSeek Harness release.
 - Node.js 20+.
-- Access to the `@grapecity-software` 19.1.4 npm packages and a valid GrapeCity deployment license.
+- Access to the official `@grapecity-software` npm packages and a valid GrapeCity deployment license.
 
 ### Install from npm (source-only)
 
-This package is published by GrapeCity's official npm account. SpreadJS and the Designer are not bundled into the plugin artifact; they are installed directly from the official `@grapecity-software` 19.1.4 npm packages as install-time dependencies, and `lib/client.js` is built from those official packages during installation. Users stay on official npm packages, which keeps deployment under the GrapeCity license clear and makes upgrades and troubleshooting simpler.
+This package is published by GrapeCity's official npm account. SpreadJS and the Designer are not bundled into the plugin artifact; they are installed directly from the official `@grapecity-software` npm packages as install-time dependencies, and `lib/client.js` is built from those official packages during installation. All GrapeCity dependencies are pinned to the same version in `package.json`; before a new release you can run `npm run grapecity:update -- --latest` to sync them all at once. Users stay on official npm packages, which keeps deployment under the GrapeCity license clear and makes upgrades and troubleshooting simpler.
 
 DSH manages profiles with pnpm 10, which blocks dependency lifecycle scripts by default. Add this to the Web profile's `pnpm-workspace.yaml` before installing (normally `~/.dsh/profiles/web/pnpm-workspace.yaml`):
 

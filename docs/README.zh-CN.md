@@ -4,7 +4,7 @@
 
 一个 view-first 的 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) Web UI 插件，把 SpreadJS 注册到 `dsh-better-sidebar`（由 `@linxin666/dsh-web-all`，即 ui-all 聚合）。它不依赖 `dsh-plugin-web-editors`；spreadsheet 文件直接由 ui-all 右侧文件树打开。
 
-浏览器端使用当前 GrapeCity npm scope 和 **19.1.4** 包组：`@grapecity-software/spread-sheets`、`spread-sheets-io`、`spread-excelio`、Designer、中文资源、PivotTable、TableSheet、charts、shapes、slicers、sparklines、print/PDF、barcode、formula panel、data charts、GanttSheet、ReportSheet 和 language packages。
+浏览器端使用 GrapeCity 官方 npm 包组（所有 SpreadJS 相关包由 `package.json` 统一锁定同一版本）：`@grapecity-software/spread-sheets`、`spread-sheets-io`、`spread-excelio`、Designer、中文资源、PivotTable、TableSheet、charts、shapes、slicers、sparklines、print/PDF、barcode、formula panel、data charts、GanttSheet、ReportSheet 和 language packages。
 
 - **Node 端**（`lib/index.js`）—— 在 host web server（`ctx.webServer`）上注册 `/spreadjs` license/config 配置端点。
 - **浏览器端**（`lib/client.js`）—— 等待 `ctx.betterSidebar` 服务，然后通过 `registerFileViewer` 注册 `SpreadsheetViewer`。
@@ -15,11 +15,11 @@
 - 必须提供 `dsh-better-sidebar` 服务；最简单的方式是挂载 `@linxin666/dsh-web-all`（ui-all），ui-all 自带 better-sidebar。
 - 兼容的 DeepSeek Harness 版本。
 - Node.js 20+。
-- 能访问 `@grapecity-software` 19.1.4 npm 包，并持有有效的 GrapeCity 部署许可。
+- 能访问 `@grapecity-software` 官方 npm 包，并持有有效的 GrapeCity 部署许可。
 
 ## 从 npm 安装（源码构建模式）
 
-本包由 GrapeCity 官方 npm 账号发布。SpreadJS 和 Designer 等组件不在插件包内二次打包，而是通过官方 `@grapecity-software` 19.1.4 npm 包作为安装时依赖分发，安装阶段从这些官方包构建 `lib/client.js`。用户始终直接使用官方 npm 包，便于按 GrapeCity 许可部署、升级和定位问题。
+本包由 GrapeCity 官方 npm 账号发布。SpreadJS 和 Designer 等组件不在插件包内二次打包，而是通过官方 `@grapecity-software` npm 包作为安装时依赖分发，安装阶段从这些官方包构建 `lib/client.js`。所有 GrapeCity 依赖在 `package.json` 中统一锁定同一版本；发布新版前可用 `npm run grapecity:update -- --latest` 一次性同步到最新版。用户始终直接使用官方 npm 包，便于按 GrapeCity 许可部署、升级和定位问题。
 
 DSH 使用 pnpm 10 管理 profile，而 pnpm 10 默认会拦截依赖包的生命周期脚本。安装前先给 Web profile 放行本包一次（通常是 `~/.dsh/profiles/web/pnpm-workspace.yaml`）：
 
