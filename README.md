@@ -1,6 +1,6 @@
 # dsh-spreadjs-editor
 
-[GitHub](https://github.com/GrapeCityXA/dsh-plugin-spreadjs-editor) | [中文完整版](https://github.com/GrapeCityXA/dsh-plugin-spreadjs-editor/blob/main/docs/README.zh-CN.md)
+[GitHub](https://github.com/GrapeCityXA/dsh-plugin-spreadjs-editor)
 
 在 DeepSeek Harness Web UI 里，直接在右侧文件树中打开、查看和编辑 Excel / SpreadJS 文件。
 
