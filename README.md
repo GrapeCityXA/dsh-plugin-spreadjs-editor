@@ -2,9 +2,9 @@
 
 [GitHub](https://github.com/GrapeCityXA/dsh-plugin-spreadjs-editor) | [中文完整版](https://github.com/GrapeCityXA/dsh-plugin-spreadjs-editor/blob/main/docs/README.zh-CN.md)
 
-DeepSeek Harness Web UI 插件，通过 `dsh-better-sidebar`（ui-all 自带）注册 SpreadJS，在右侧文件树中打开和编辑 `.xlsx`、`.xlsm`、`.csv`、`.sjs`、`.ssjson` 文件。不依赖 `dsh-plugin-web-editors`。
+DeepSeek Harness Web UI 插件：在右侧文件树中直接打开和编辑 Excel / SpreadJS 文件。
 
-A DeepSeek Harness Web UI plugin that registers SpreadJS through `dsh-better-sidebar` (bundled by ui-all), so spreadsheet files open from the right-side file tree. It does not depend on `dsh-plugin-web-editors`.
+A DeepSeek Harness Web UI plugin for opening and editing Excel / SpreadJS files from the right-side file tree.
 
 ---
 
@@ -12,59 +12,52 @@ A DeepSeek Harness Web UI plugin that registers SpreadJS through `dsh-better-sid
 
 ### 功能
 
-- 通过 better-sidebar 在 Web UI 右侧文件树中打开 spreadsheet 文件。
-- 浏览器端使用 GrapeCity 官方 npm 包组（所有 SpreadJS 相关包由 `package.json` 统一锁定同一版本）：SpreadJS、ExcelIO、Designer、中文资源、PivotTable、TableSheet、图表、形状、切片器、迷你图、打印/PDF、条码、公式面板、数据图表、GanttSheet、ReportSheet 等。
-- View-first：没有自定义插件工具条，Designer ribbon、公式栏、sheet tabs、右键菜单和工作簿画布就是编辑表面。
-- Designer 界面跟随系统 light/dark 偏好。
+- 支持 `.xlsx`、`.xlsm`、`.csv`、`.sjs`、`.ssjson` 文件。
+- 基于 GrapeCity 官方 SpreadJS 和 SpreadJS Designer，提供完整编辑界面。
+- 文件来自 ui-all 右侧文件树，不需要额外的编辑器入口。
+- Designer 界面自动跟随系统 light/dark 偏好。
 
 ### 环境要求
 
-- 必须提供 `dsh-better-sidebar` 服务；最简单的方式是挂载 `@linxin666/dsh-web-all`（ui-all），ui-all 自带 better-sidebar。
+- 需要 `dsh-better-sidebar` 服务；最简单的方式是挂载 `@linxin666/dsh-web-all`（ui-all）。
 - 兼容的 DeepSeek Harness 版本。
 - Node.js 20+。
 
-### 从 npm 安装（源码构建模式）
+### 安装
 
-本包由 GrapeCity 官方 npm 账号发布。SpreadJS 和 Designer 等组件不在插件包内二次打包，而是通过官方 `@grapecity-software` npm 包作为安装时依赖分发，安装阶段从这些官方包构建 `lib/client.js`。所有 GrapeCity 依赖在 `package.json` 中统一锁定同一版本；发布新版前可用 `npm run grapecity:update -- --latest` 一次性同步到最新版。用户始终直接使用官方 npm 包，便于按 GrapeCity 许可部署、升级和定位问题。
-
-DSH 使用 pnpm 10 管理 profile，而 pnpm 10 默认会拦截依赖包的生命周期脚本。安装前先给 Web profile 放行本包一次（通常是 `~/.dsh/profiles/web/pnpm-workspace.yaml`）：
+DSH 的 Web profile 使用 pnpm 10，而 pnpm 10 默认会拦截依赖包的生命周期脚本。安装前先放行本包：
 
 ```yaml
+# ~/.dsh/profiles/web/pnpm-workspace.yaml
 onlyBuiltDependencies:
   - dsh-spreadjs-editor
 ```
 
-然后直接添加插件：
+然后添加插件并启动：
 
 ```sh
 dsh plugin --profile web add dsh-spreadjs-editor
 dsh web
 ```
 
-放行后 pnpm 会在安装阶段自动运行 `postinstall` 构建，不需要用户手动执行 `npm run build` 或 `pnpm rebuild`。只有在你已经先装过包、后来才补放行配置时，才需要手动补一次：
+安装时会自动构建 SpreadJS 客户端，用户不需要手动执行 `npm run build`。如果已经先装好插件、后来才补放行配置，执行一次：
 
 ```sh
 pnpm --dir ~/.dsh/profiles/web rebuild dsh-spreadjs-editor
 ```
 
-如果你没有全局安装 `dsh`，而是通过 npx 运行 DSH，把上面的命令改成：
+如果使用 npx 运行 DSH：
 
 ```sh
 npx --yes @deepseek-ai/dsh@latest plugin --profile web add dsh-spreadjs-editor
 npx --yes @deepseek-ai/dsh@latest web
 ```
 
-需要补构建时：
+DeepSeek Harness CLI 是 `@deepseek-ai/dsh`，不要使用同名包 `dsh`。
 
-```sh
-npx --yes pnpm --dir ~/.dsh/profiles/web rebuild dsh-spreadjs-editor
-```
+如果直接使用 npm 而不是 pnpm，`npm install` 会自动完成构建。
 
-注意：不要用 `npx dsh`，那是另一个同名包；DeepSeek Harness CLI 是 `@deepseek-ai/dsh`。
-
-如果你直接使用 npm 而不是 pnpm，`npm install` 本来就会自动运行包的 `postinstall` 构建。
-
-### 从 GitHub 安装
+### 从源码安装
 
 ```sh
 git clone https://github.com/GrapeCityXA/dsh-plugin-spreadjs-editor.git
@@ -78,7 +71,7 @@ dsh plugin --profile web add ../dsh-plugin-spreadjs-editor
 
 ### 配置
 
-bundle 的 patch row 接受 `config` 对象，在 `cordis.patch.yml` 中编辑，或在 profile 的 `cordis.patch.yml` 中覆盖该 row：
+在 profile 的 `cordis.patch.yml` 中给插件配置 license key：
 
 | Key | 默认值 | 说明 |
 | --- | --- | --- |
@@ -86,18 +79,16 @@ bundle 的 patch row 接受 `config` 对象，在 `cordis.patch.yml` 中编辑�
 
 ### 支持的文件
 
-| 扩展名 | Loader |
+| 扩展名 | 说明 |
 | --- | --- |
-| `.xlsx` / `.xlsm` | `ExcelIO.IO().open()` -> `fromJSON()` |
-| `.sjs` | `spread.open()` / `spread.save()`（SpreadJS 原生格式） |
-| `.ssjson` | `fromJSON()` |
-| `.csv` | `spread.import()` / `spread.export()` |
-
-文件读取和写回走 better-sidebar 的 session 路由（`/sidebar/file` 和 `/sidebar/upload`），使用 ui-all 传入的 session cwd/path。Host 端的 `/spreadjs/api/config` 只负责提供 license key。
+| `.xlsx` / `.xlsm` | Excel 工作簿 |
+| `.csv` | CSV 文本 |
+| `.sjs` | SpreadJS 原生工作簿格式 |
+| `.ssjson` | SpreadJS JSON 工作簿 |
 
 ### 许可
 
-本插件代码使用 MIT。SpreadJS 是 GrapeCity 的商业产品；真实部署 license key 的配置位置见 `cordis.patch.yml` / `/spreadjs/api/config`。
+插件代码使用 MIT。SpreadJS 是 GrapeCity 的商业产品，部署时请按 GrapeCity 许可配置真实 license key。
 
 ---
 
@@ -105,24 +96,23 @@ bundle 的 patch row 接受 `config` 对象，在 `cordis.patch.yml` 中编辑�
 
 ### Features
 
-- Opens spreadsheet files from the ui-all right-side file tree through better-sidebar.
-- Uses the GrapeCity official npm package set (all SpreadJS-related packages are pinned to the same version in `package.json`): SpreadJS, ExcelIO, Designer, Chinese resources, PivotTable, TableSheet, charts, shapes, slicers, sparklines, print/PDF, barcode, formula panel, data charts, GanttSheet, ReportSheet, and language packages.
-- View-first: the Designer ribbon, formula bar, sheet tabs, context menus, and workbook canvas are the editing surface.
-- The Designer chrome follows the OS light/dark preference.
+- Opens `.xlsx`, `.xlsm`, `.csv`, `.sjs`, and `.ssjson` files.
+- Built on GrapeCity's official SpreadJS and SpreadJS Designer with a full editing surface.
+- Files come from the ui-all right-side file tree; no separate editor entry point is required.
+- The Designer follows the OS light/dark preference.
 
 ### Requirements
 
-- `dsh-better-sidebar` must be available. The easiest way is to mount `@linxin666/dsh-web-all` (ui-all), which bundles better-sidebar.
+- `dsh-better-sidebar` must be available; mounting `@linxin666/dsh-web-all` (ui-all) is the easiest way.
 - A compatible DeepSeek Harness release.
 - Node.js 20+.
 
-### Install from npm (source-only)
+### Install
 
-This package is published by GrapeCity's official npm account. SpreadJS and the Designer are not bundled into the plugin artifact; they are installed directly from the official `@grapecity-software` npm packages as install-time dependencies, and `lib/client.js` is built from those official packages during installation. All GrapeCity dependencies are pinned to the same version in `package.json`; before a new release you can run `npm run grapecity:update -- --latest` to sync them all at once. Users stay on official npm packages, which keeps deployment under the GrapeCity license clear and makes upgrades and troubleshooting simpler.
-
-DSH manages profiles with pnpm 10, which blocks dependency lifecycle scripts by default. Add this to the Web profile's `pnpm-workspace.yaml` before installing (normally `~/.dsh/profiles/web/pnpm-workspace.yaml`):
+DSH's Web profile uses pnpm 10, which blocks dependency lifecycle scripts by default. Allow this package before installing:
 
 ```yaml
+# ~/.dsh/profiles/web/pnpm-workspace.yaml
 onlyBuiltDependencies:
   - dsh-spreadjs-editor
 ```
@@ -134,28 +124,22 @@ dsh plugin --profile web add dsh-spreadjs-editor
 dsh web
 ```
 
-Once the build is allowed, pnpm runs the package's `postinstall` build automatically during install. Users do not need to run `npm run build` or `pnpm rebuild` manually. The manual rebuild command is only needed if the package was already installed before the allow-list entry was added:
+The SpreadJS client is built automatically during install; users do not need to run `npm run build`. If the package was already installed before the allow-list entry was added, run once:
 
 ```sh
 pnpm --dir ~/.dsh/profiles/web rebuild dsh-spreadjs-editor
 ```
 
-If you do not have `dsh` installed globally and run it through npx, use the same commands through the official npm package:
+If you run DSH through npx:
 
 ```sh
 npx --yes @deepseek-ai/dsh@latest plugin --profile web add dsh-spreadjs-editor
 npx --yes @deepseek-ai/dsh@latest web
 ```
 
-For the manual rebuild case:
+Use `@deepseek-ai/dsh`, not the unrelated npm package `dsh`.
 
-```sh
-npx --yes pnpm --dir ~/.dsh/profiles/web rebuild dsh-spreadjs-editor
-```
-
-Do not use `npx dsh`; that is a different npm package. The DeepSeek Harness CLI is `@deepseek-ai/dsh`.
-
-If you use npm directly instead of pnpm, `npm install` runs the package's `postinstall` build automatically.
+If you use npm directly, `npm install` completes the build automatically.
 
 ### Install from GitHub
 
@@ -171,7 +155,7 @@ dsh plugin --profile web add ../dsh-plugin-spreadjs-editor
 
 ### Configuration
 
-The bundle's patch row accepts a `config` object (edit it in `cordis.patch.yml`, or override the row in your profile's `cordis.patch.yml`):
+Set the license key for this plugin in the profile's `cordis.patch.yml`:
 
 | Key | Default | Description |
 | --- | --- | --- |
@@ -179,15 +163,21 @@ The bundle's patch row accepts a `config` object (edit it in `cordis.patch.yml`,
 
 ### Supported files
 
-| Extension | Loader |
+| Extension | Description |
 | --- | --- |
-| `.xlsx` / `.xlsm` | `ExcelIO.IO().open()` -> `fromJSON()` |
-| `.sjs` | `spread.open()` / `spread.save()` (native SpreadJS format) |
-| `.ssjson` | `fromJSON()` |
-| `.csv` | `spread.import()` / `spread.export()` |
-
-File bytes are read and written through better-sidebar's session routes (`/sidebar/file` and `/sidebar/upload`), using the session cwd/path passed by ui-all. The host `/spreadjs/api/config` endpoint supplies only the license key.
+| `.xlsx` / `.xlsm` | Excel workbook |
+| `.csv` | CSV text |
+| `.sjs` | SpreadJS native workbook format |
+| `.ssjson` | SpreadJS JSON workbook |
 
 ### License
 
-MIT for this plugin's code. SpreadJS is a commercial product by GrapeCity; see `cordis.patch.yml` / `/spreadjs/api/config` for where to set a real deployment license key.
+MIT for the plugin code. SpreadJS is a commercial product by GrapeCity; configure a real license key for deployment.
+
+### Maintainers
+
+Before a new release, sync all GrapeCity dependencies to the latest version:
+
+```sh
+npm run grapecity:update -- --latest
+```
