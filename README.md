@@ -55,7 +55,7 @@ npx --yes @deepseek-ai/dsh@latest web
 
 DeepSeek Harness CLI 是 `@deepseek-ai/dsh`，不要使用同名包 `dsh`。
 
-如果直接使用 npm 而不是 pnpm，`npm install` 会自动完成构建。
+对 DSH 用户来说，上面的 `dsh plugin --profile web add` 就是安装插件的命令，它已经通过 pnpm 完成依赖安装和自动构建，不需要再单独运行 `npm install`。只有在普通 Node 项目中通过 npm 直接引入这个包时，`npm install` 才会自动触发同样的构建。
 
 ### 从源码安装
 
@@ -139,7 +139,7 @@ npx --yes @deepseek-ai/dsh@latest web
 
 Use `@deepseek-ai/dsh`, not the unrelated npm package `dsh`.
 
-If you use npm directly, `npm install` completes the build automatically.
+For DSH users, `dsh plugin --profile web add` is the install command; it installs dependencies through pnpm and runs the automatic build, so no separate `npm install` is needed. The npm note only applies if you add this package directly to a normal Node project, where `npm install` triggers the same build automatically.
 
 ### Install from GitHub
 
