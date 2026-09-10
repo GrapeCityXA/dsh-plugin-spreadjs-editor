@@ -1,5 +1,10 @@
 # Release Notes / 版本记录
 
+## 0.1.3
+
+- 精简安装、配置和版本说明，方便查阅；内置 SpreadJS 仍为 19.1.4。
+- Simplify installation, configuration, and release documentation. Bundled SpreadJS remains at 19.1.4.
+
 ## 0.1.2
 
 ### 中文
