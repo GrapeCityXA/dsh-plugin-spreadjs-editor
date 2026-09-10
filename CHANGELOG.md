@@ -4,7 +4,7 @@
 
 ### 中文
 
-- 在 README 和编辑器顶部显示内置 SpreadJS/Designer 19.1.4，并提示旧版文件兼容性及备份、另存副本要求。
+- 在 README 记录内置 SpreadJS/Designer 19.1.4 和文件兼容性说明；编辑器底部仅显示 SpreadJS 版本号。
 - 修复客户端模块注册 ID，使其与 npm 包名 `@grapecity-software/dsh-spreadjs-editor` 一致。
 - 修复插件 YAML 配置中带 scope 包名缺少引号导致的解析错误。
 - 改为发布预构建的 SpreadJS 和 Designer 客户端，安装时不再编译，也无需为本插件配置安装脚本白名单。
@@ -18,7 +18,7 @@
 
 ### English
 
-- Show bundled SpreadJS/Designer 19.1.4 in the README and editor, with older-version compatibility and backup/save-a-copy guidance.
+- Document bundled SpreadJS/Designer 19.1.4 and file compatibility in the README; show only the SpreadJS version in the editor status bar.
 - Fix the client module registration ID to match the scoped npm package name.
 - Quote the scoped package name in the YAML plugin patch to fix parsing.
 - Ship prebuilt SpreadJS and Designer client code; installation no longer compiles the plugin or requires an install-script allow-list entry.

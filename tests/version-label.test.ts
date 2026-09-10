@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs'
 import { Children, isValidElement, type ReactNode } from 'react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import manifest from '../package.json'
-import { CompatibilityNotice, bundledVersions } from '../src/client/CompatibilityNotice.tsx'
+import { VersionLabel, bundledVersions } from '../src/client/VersionLabel.tsx'
 
 function textContent(node: ReactNode): string {
   return Children.toArray(node).map(child => {
@@ -11,19 +11,9 @@ function textContent(node: ReactNode): string {
   }).join('')
 }
 
-afterEach(() => vi.unstubAllGlobals())
-
-describe('bundled version and file compatibility notice', () => {
-  it.each([
-    ['zh-CN', '保留原文件', '低版本 SpreadJS'],
-    ['en-US', 'Keep the original', 'older SpreadJS'],
-  ])('keeps both versions and the data-loss warning visible for %s', (language, backup, compatibility) => {
-    vi.stubGlobal('navigator', { language })
-    const text = textContent(CompatibilityNotice())
-    expect(text).toContain(`SpreadJS ${bundledVersions.spreadjs}`)
-    expect(text).toContain(`Designer ${bundledVersions.designer}`)
-    expect(text).toContain(backup)
-    expect(text).toContain(compatibility)
+describe('bundled version label', () => {
+  it('shows only the SpreadJS version', () => {
+    expect(textContent(VersionLabel())).toBe(`SpreadJS ${bundledVersions.spreadjs}`)
   })
 
   it('keeps installed versions, dependency pins, and README version tables aligned', () => {

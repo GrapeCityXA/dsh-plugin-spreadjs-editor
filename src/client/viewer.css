@@ -24,29 +24,6 @@
   min-width: 0;
 }
 
-.dsh-spreadjs-compatibility {
-  flex: 0 0 auto;
-  min-width: 0;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--dsw-border, #d5d8de);
-  background: var(--dsw-bg-subtle, #f7f8fa);
-  color: var(--dsw-fg, #1f2329);
-  font-size: 12px;
-  line-height: 1.5;
-  overflow-wrap: anywhere;
-}
-
-.dsh-spreadjs-versions {
-  display: flex;
-  flex-wrap: wrap;
-  column-gap: 16px;
-  font-weight: 600;
-}
-
-.dsh-spreadjs-compatibility p {
-  margin: 3px 0 0;
-}
-
 .dsh-spreadjs-title {
   font-size: 14px;
   font-weight: 600;
@@ -178,6 +155,22 @@
   color: #c0392b;
 }
 
+.dsh-spreadjs-status-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dsh-spreadjs-version {
+  flex: 0 0 auto;
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
 .dsh-spreadjs-status-busy {
   color: #1a56db;
 }
@@ -186,11 +179,6 @@
    GC.Spread.Sheets.Designer.setTheme(); these rules are a fallback for the
    Designer container and the spreadsheet canvas so it stays readable in dark. */
 @media (prefers-color-scheme: dark) {
-  .dsh-spreadjs-compatibility {
-    background: #1e2227;
-    color: #e8eaed;
-    border-color: #343a42;
-  }
   .dsh-spreadjs-panel {
     color-scheme: dark;
   }
