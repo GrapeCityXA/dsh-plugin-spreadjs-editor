@@ -17,9 +17,8 @@ A DeepSeek Harness Web UI plugin that opens, views, and edits Excel / SpreadJS f
 ### 功能
 
 - 支持 `.xlsx`、`.xlsm`、`.csv`、`.sjs`、`.ssjson` 文件。
-- 基于 GrapeCity 官方 SpreadJS 和 SpreadJS Designer，提供完整的表格编辑能力。
-- 与 ui-all 文件树集成，打开文件后立即进入编辑界面，不需要单独的编辑器页面。
-- Designer 界面自动跟随系统 light/dark 偏好。
+- 从文件树打开工作簿，使用 SpreadJS Designer 编辑表格。
+- 编辑器跟随系统切换浅色和深色主题。
 
 ### 内置版本与文件兼容性
 
@@ -28,15 +27,13 @@ A DeepSeek Harness Web UI plugin that opens, views, and edits Excel / SpreadJS f
 | SpreadJS | 19.1.4 |
 | SpreadJS Designer | 19.1.4 |
 
-编辑器底部状态栏右侧显示实际打包的 SpreadJS 版本号。保存或导出由该版本执行，不保证保留源文件的旧版格式兼容性；尤其是 `.sjs`、`.ssjson`，低版本 SpreadJS 可能无法打开高版本保存的文件。Excel 文件中的功能也可能因目标软件或版本不同而变化。
-
-请先备份原文件或另存副本，再用目标版本验证打开结果，确认后再替换原文件。本插件不会自动备份、降级文件格式或保证无损往返转换。
+编辑器底部显示 SpreadJS 版本号。低版本 SpreadJS 可能无法打开本版本保存的 `.sjs` 或 `.ssjson` 文件；与旧版系统交换文件时，建议保留原文件并确认兼容性。
 
 ### 安装
 
-要求 DSH `>=0.1.2-rc.1`，并已安装提供 `dsh-better-sidebar` 的 `@linxin666/dsh-web-all`（ui-all）。不再需要 `dsh-plugin-web-editors`。
+需要 DSH `>=0.1.2-rc.1`，并已安装 `@linxin666/dsh-web-all`（ui-all）。
 
-npm 包自带预构建的 SpreadJS 和 Designer 客户端，无需放行安装脚本或本地编译。安装插件并启动：
+插件内置 SpreadJS 和 Designer，无需编译。使用已安装的 DSH CLI 安装并启动：
 
 ```sh
 dsh plugin --profile web add @grapecity-software/dsh-spreadjs-editor
@@ -45,36 +42,18 @@ dsh --profile web
 
 启动后，在 Web UI 右侧文件树中打开 `.xlsx`、`.xlsm`、`.csv`、`.sjs` 或 `.ssjson` 文件即可。
 
-安装直接使用包内的客户端文件，不会运行构建脚本。
-
-如果使用 npx 运行 DSH，使用同样的命令：
+也可以通过 npx 安装并启动：
 
 ```sh
 npx --yes @deepseek-ai/dsh@latest plugin --profile web add @grapecity-software/dsh-spreadjs-editor
 npx --yes @deepseek-ai/dsh@latest --profile web
 ```
 
-DeepSeek Harness CLI 是 `@deepseek-ai/dsh`，不要使用同名 npm 包 `dsh`。
-
-从旧版本升级后，不再需要本插件的 `onlyBuiltDependencies` 放行项。
-
-### 常见问题
-
-**我已经有 ui-all，还需要额外安装什么吗？**
-
-不需要。ui-all 自带 `dsh-better-sidebar`，本插件会直接注册到它。
-
-**安装完还需要手动构建吗？**
-
-不需要。发布包已包含构建产物，只有从源码开发时才需要构建。
-
-**SpreadJS 会跟随每次安装自动升级吗？**
-
-不会自动跨版本升级。所有 GrapeCity 官方包在 `package.json` 中锁定为同一版本；维护者会在发布新版时统一同步。
+旧版本用户请参阅[升级说明](CHANGELOG.md)。
 
 ### 配置
 
-正式部署时，在 profile 的 `cordis.patch.yml` 中配置 license key：
+如已获得许可证，在 web profile 的 `cordis.patch.yml` 中添加以下配置：
 
 | Key | 默认值 | 说明 |
 | --- | --- | --- |
@@ -88,48 +67,13 @@ DeepSeek Harness CLI 是 `@deepseek-ai/dsh`，不要使用同名 npm 包 `dsh`�
     designerLicenseKey: 'YOUR_DESIGNER_KEY'
 ```
 
-现有 `licenseKey` 配置仍用于 SpreadJS，不会再赋给 Designer。配置从服务端下发到浏览器，用于客户端激活；修改后请重启 DSH 并刷新网页。
-
-### 支持的文件
-
-| 文件 | 说明 |
-| --- | --- |
-| `.xlsx` / `.xlsm` | Excel 工作簿 |
-| `.csv` | CSV 文本 |
-| `.sjs` | SpreadJS 原生工作簿格式 |
-| `.ssjson` | SpreadJS JSON 工作簿 |
-
-### 从源码安装
-
-如果你需要从源码运行或参与开发：
-
-```sh
-git clone https://github.com/GrapeCityXA/dsh-plugin-spreadjs-editor.git
-
-cd dsh-plugin-spreadjs-editor
-npm install
-npm run build
-
-dsh plugin --profile web add ../dsh-plugin-spreadjs-editor
-```
+修改后重启 DSH 并刷新网页。
 
 ### 许可
 
-插件代码免费提供，采用 MIT 许可证。预构建包包含的 SpreadJS 和 Designer 属于葡萄城商业产品，不适用插件的 MIT 许可证；未配置授权时可在相应试用条款下体验带水印的界面，不代表免费商业授权。
+插件代码免费提供，采用 [MIT 许可证](LICENSE)。内置的 SpreadJS 和 Designer 是葡萄城商业产品，未配置许可证时可按其试用条款体验；插件免费不包含这两个产品的商业授权。
 
-可将 DSH 与插件部署为 SaaS 服务，表格仍在浏览器端运行。部署者应根据服务场景获取适用的 SpreadJS 和 Designer 授权，分别配置许可证。身份认证、租户与文件隔离由宿主服务负责，本插件不提供这些能力。
-
-### 维护者
-
-每次发布前更新 `CHANGELOG.md` 中对应版本的变更、兼容性和升级说明。当前版本尚未发布时，继续归并到同一版本条目；实际发布后再填写发布日期。
-
-发布前执行 `npm run prepublishOnly`。该检查包含类型检查、单元测试、构建、smoke 测试，以及在临时目录离线安装 tarball，验证预构建客户端注册和许可证配置接口。它不代替浏览器中实际打开、编辑和保存工作簿的验证。
-
-发布新版前，统一把所有 GrapeCity 依赖同步到最新版本：
-
-```sh
-npm run grapecity:update -- --latest
-```
+如用于正式部署或 SaaS 服务，请根据使用场景获取适用的 SpreadJS 和 Designer 授权。
 
 ---
 
@@ -138,9 +82,8 @@ npm run grapecity:update -- --latest
 ### Features
 
 - Opens `.xlsx`, `.xlsm`, `.csv`, `.sjs`, and `.ssjson` files.
-- Built on GrapeCity's official SpreadJS and SpreadJS Designer for full spreadsheet editing.
-- Integrated with the ui-all file tree: open a file and start editing immediately, with no separate editor page.
-- The Designer follows the OS light/dark preference.
+- Open workbooks from the file tree and edit them with SpreadJS Designer.
+- Follows the system's light or dark theme.
 
 ### Bundled Versions and File Compatibility
 
@@ -149,15 +92,13 @@ npm run grapecity:update -- --latest
 | SpreadJS | 19.1.4 |
 | SpreadJS Designer | 19.1.4 |
 
-The bottom-right status bar displays the bundled SpreadJS version. Saving and exporting use those versions and do not guarantee compatibility with the original file's older format. In particular, older SpreadJS versions may not open `.sjs` or `.ssjson` files saved by newer versions. Excel features can also vary across target applications and versions.
-
-Keep a backup or save a copy, and verify it in the target version before replacing the original. This plugin does not automatically back up files, downgrade formats, or guarantee lossless round trips.
+The editor status bar shows the SpreadJS version. Older SpreadJS versions may not open `.sjs` or `.ssjson` files saved by this version. When exchanging files with older systems, keep the original files and check compatibility.
 
 ### Installation
 
-Requires DSH `>=0.1.2-rc.1` and `@linxin666/dsh-web-all` (ui-all), which provides `dsh-better-sidebar`. The former `dsh-plugin-web-editors` prerequisite is no longer needed.
+Requires DSH `>=0.1.2-rc.1` with `@linxin666/dsh-web-all` (ui-all) installed.
 
-The npm package includes prebuilt SpreadJS and Designer client code. No install-script allow-list or local compilation is required. Install the plugin and start DSH:
+The plugin includes SpreadJS and Designer, with no build step required. With the DSH CLI installed:
 
 ```sh
 dsh plugin --profile web add @grapecity-software/dsh-spreadjs-editor
@@ -166,36 +107,18 @@ dsh --profile web
 
 After startup, open `.xlsx`, `.xlsm`, `.csv`, `.sjs`, or `.ssjson` from the right-side file tree.
 
-Installation uses the packaged client files without running a build script.
-
-If you run DSH through npx, use the same commands:
+Alternatively, install and start through npx:
 
 ```sh
 npx --yes @deepseek-ai/dsh@latest plugin --profile web add @grapecity-software/dsh-spreadjs-editor
 npx --yes @deepseek-ai/dsh@latest --profile web
 ```
 
-Use `@deepseek-ai/dsh`; the unrelated npm package `dsh` is not the DeepSeek Harness CLI.
-
-After upgrading, this plugin no longer needs an `onlyBuiltDependencies` allow-list entry.
-
-### FAQ
-
-**I already have ui-all. Do I need to install anything else?**
-
-No. ui-all bundles `dsh-better-sidebar`, and this plugin registers directly with it.
-
-**Do I need to build manually after installation?**
-
-No. The package includes built artifacts. Building is only required when developing from source.
-
-**Will SpreadJS upgrade automatically with every install?**
-
-No. All GrapeCity packages are pinned to the same version in `package.json`; maintainers sync them together before a new release.
+For upgrades, see the [release notes](CHANGELOG.md).
 
 ### Configuration
 
-For production use, set the license key in the profile's `cordis.patch.yml`:
+If you have licenses, add the following to the web profile's `cordis.patch.yml`:
 
 | Key | Default | Description |
 | --- | --- | --- |
@@ -209,45 +132,10 @@ For production use, set the license key in the profile's `cordis.patch.yml`:
     designerLicenseKey: 'YOUR_DESIGNER_KEY'
 ```
 
-Existing `licenseKey` settings continue to configure SpreadJS and are no longer assigned to Designer. The server delivers these keys to the browser for client activation. Restart DSH and refresh the page after changing them.
-
-### Supported files
-
-| File | Description |
-| --- | --- |
-| `.xlsx` / `.xlsm` | Excel workbook |
-| `.csv` | CSV text |
-| `.sjs` | SpreadJS native workbook format |
-| `.ssjson` | SpreadJS JSON workbook |
-
-### Install from source
-
-To run from source or contribute:
-
-```sh
-git clone https://github.com/GrapeCityXA/dsh-plugin-spreadjs-editor.git
-
-cd dsh-plugin-spreadjs-editor
-npm install
-npm run build
-
-dsh plugin --profile web add ../dsh-plugin-spreadjs-editor
-```
+Restart DSH and refresh the browser after changing the configuration.
 
 ### License
 
-The plugin code is free and MIT-licensed. Bundled SpreadJS and Designer are GrapeCity commercial products and are not covered by the plugin's MIT license. Without keys, users can try the watermarked interface under the applicable evaluation terms; this does not grant free commercial usage.
+The plugin code is free under the [MIT license](LICENSE). Bundled SpreadJS and Designer are GrapeCity commercial products available for evaluation under their trial terms without license keys. The free plugin does not include commercial licenses for these products.
 
-DSH and the plugin can be hosted as a SaaS service, with spreadsheets still running in the browser. Operators should obtain licenses appropriate to their deployment and configure SpreadJS and Designer keys separately. Authentication, tenant isolation, and file isolation are responsibilities of the host service.
-
-### Maintainers
-
-Before each release, update its `CHANGELOG.md` entry with changes, compatibility requirements, and upgrade notes. Keep changes under the same version while it is unpublished; add the release date only after publishing.
-
-Run `npm run prepublishOnly` before releasing. It checks types, unit tests, builds, smoke tests, and a fresh offline tarball installation with client registration and license-config checks. It does not replace opening, editing, and saving workbooks in a real browser.
-
-Before a new release, sync all GrapeCity dependencies to the latest version:
-
-```sh
-npm run grapecity:update -- --latest
-```
+For production or SaaS deployments, obtain SpreadJS and Designer licenses appropriate to your use.
