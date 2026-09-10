@@ -10,13 +10,12 @@
 # service); a headless profile should not mount this bundle. The browser half
 # has no hard client dependency: it waits for `dsh-better-sidebar`, which is
 # bundled by @linxin666/dsh-web-all (ui-all).
-
 - insert:
-    - id: spreadjs-editor
-      name: @grapecity-software/dsh-spreadjs-editor
-      inject: [webServer]
-      config:
-        # Optional: your SpreadJS license key. Empty (default) runs the
-        # evaluation watermark build. Keep it out of the patch if you prefer
-        # to configure it per-deployment.
-        licenseKey: ''
+  - id: spreadjs-editor
+    name: '@grapecity-software/dsh-spreadjs-editor'
+    inject: [webServer]
+    config:
+      # Optional: your SpreadJS license key. Empty (default) runs the
+      # evaluation watermark build. Keep it out of the patch if you prefer
+      # to configure it per-deployment.
+      licenseKey: ''

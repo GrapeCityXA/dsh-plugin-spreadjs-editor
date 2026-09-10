@@ -1,6 +1,6 @@
-# @grapecity-software/dsh-spreadjs-editor
+# SpreadJS Editor for DeepSeek Harness
 
-[GitHub](https://github.com/GrapeCityXA/dsh-plugin-spreadjs-editor)
+[GitHub](https://github.com/GrapeCityXA/dsh-plugin-spreadjs-editor) · npm: `@grapecity-software/dsh-spreadjs-editor`
 
 在 DeepSeek Harness Web UI 里，直接在右侧文件树中打开、查看和编辑 Excel / SpreadJS 文件。
 
@@ -21,7 +21,9 @@ A DeepSeek Harness Web UI plugin that opens, views, and edits Excel / SpreadJS f
 
 ### 快速开始
 
-DSH 的 Web profile 使用 pnpm 10，而 pnpm 10 默认会拦截依赖包的生命周期脚本。安装前先把本包加入放行列表。
+要求 DSH `>=0.1.2-rc.1`，并已安装提供 `dsh-better-sidebar` 的 `@linxin666/dsh-web-all`（ui-all）。不再需要 `dsh-plugin-web-editors`。
+
+使用 pnpm 10 管理 Web profile 时，默认会拦截依赖包的生命周期脚本。安装前先把本包加入放行列表。
 
 编辑 Web profile 的 `pnpm-workspace.yaml`，通常位于：
 
@@ -33,14 +35,14 @@ DSH 的 Web profile 使用 pnpm 10，而 pnpm 10 默认会拦截依赖包的生�
 
 ```yaml
 onlyBuiltDependencies:
-  - @grapecity-software/dsh-spreadjs-editor
+  - '@grapecity-software/dsh-spreadjs-editor'
 ```
 
 然后安装插件并启动：
 
 ```sh
 dsh plugin --profile web add @grapecity-software/dsh-spreadjs-editor
-dsh web
+dsh --profile web
 ```
 
 启动后，在 Web UI 右侧文件树中打开 `.xlsx`、`.xlsm`、`.csv`、`.sjs` 或 `.ssjson` 文件即可。
@@ -51,7 +53,7 @@ dsh web
 
 ```sh
 npx --yes @deepseek-ai/dsh@latest plugin --profile web add @grapecity-software/dsh-spreadjs-editor
-npx --yes @deepseek-ai/dsh@latest web
+npx --yes @deepseek-ai/dsh@latest --profile web
 ```
 
 DeepSeek Harness CLI 是 `@deepseek-ai/dsh`，不要使用同名 npm 包 `dsh`。
@@ -132,7 +134,9 @@ npm run grapecity:update -- --latest
 
 ### Quick Start
 
-DSH's Web profile uses pnpm 10, which blocks dependency lifecycle scripts by default. Allow this package before installing.
+Requires DSH `>=0.1.2-rc.1` and `@linxin666/dsh-web-all` (ui-all), which provides `dsh-better-sidebar`. The former `dsh-plugin-web-editors` prerequisite is no longer needed.
+
+When managing the Web profile with pnpm 10, dependency lifecycle scripts are blocked by default. Allow this package before installing.
 
 Edit the Web profile's `pnpm-workspace.yaml`, usually:
 
@@ -144,14 +148,14 @@ Add:
 
 ```yaml
 onlyBuiltDependencies:
-  - @grapecity-software/dsh-spreadjs-editor
+  - '@grapecity-software/dsh-spreadjs-editor'
 ```
 
 Then install the plugin and start DSH:
 
 ```sh
 dsh plugin --profile web add @grapecity-software/dsh-spreadjs-editor
-dsh web
+dsh --profile web
 ```
 
 After startup, open `.xlsx`, `.xlsm`, `.csv`, `.sjs`, or `.ssjson` from the right-side file tree.
@@ -162,7 +166,7 @@ If you run DSH through npx, use the same commands:
 
 ```sh
 npx --yes @deepseek-ai/dsh@latest plugin --profile web add @grapecity-software/dsh-spreadjs-editor
-npx --yes @deepseek-ai/dsh@latest web
+npx --yes @deepseek-ai/dsh@latest --profile web
 ```
 
 Use `@deepseek-ai/dsh`; the unrelated npm package `dsh` is not the DeepSeek Harness CLI.

@@ -32,7 +32,7 @@ const EXTERNALS = [
   'react/jsx-runtime',
 ]
 
-check('loader wrapper opens with plugin id', /window\.__ModuleLoader__\.load\(\{\s*id: "dsh-spreadjs-editor"/.test(code))
+check('loader wrapper opens with plugin id', /window\.__ModuleLoader__\.load\(\{\s*id: "@grapecity-software\/dsh-spreadjs-editor"/.test(code))
 check('loader factory signature', /factory: \(require\) =>/.test(code))
 check('closure return (module.exports)', /return module\.exports;/.test(code))
 for (const ext of EXTERNALS) {

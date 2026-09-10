@@ -13,7 +13,8 @@
 import { readFile } from 'node:fs/promises'
 import type { UserConfig } from 'tsdown'
 
-const PKG_ID = 'dsh-spreadjs-editor'
+// The loader key must exactly match the published npm package name.
+const PKG_ID = '@grapecity-software/dsh-spreadjs-editor'
 
 /** Module-table specifiers the browser bundle resolves at runtime. */
 const CLIENT_EXTERNALS = new Set([

@@ -1,6 +1,6 @@
 {
   "name": "@grapecity-software/dsh-spreadjs-editor",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "DeepSeek Harness Web UI plugin: SpreadJS viewer registered through dsh-better-sidebar (ui-all).",
   "keywords": [
     "deepseek-harness",
@@ -22,6 +22,7 @@
     "./package.json": "./package.json"
   },
   "files": [
+    "lib",
     "cordis.patch.yml",
     "README.md",
     "LICENSE",
@@ -35,10 +36,11 @@
     "grapecity:update": "node scripts/update-grapecity.mjs",
     "postinstall": "node scripts/build.mjs",
     "prepare": "node scripts/build.mjs",
-    "prepublishOnly": "npm run typecheck && npm test && npm run build",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build && node scripts/smoke-client.mjs && npm run verify:package",
     "rebuild": "node scripts/build.mjs",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "verify:package": "node scripts/verify-package.mjs"
   },
   "engines": {
     "node": ">=20"
@@ -51,6 +53,9 @@
     "url": "https://github.com/GrapeCityXA/dsh-plugin-spreadjs-editor.git"
   },
   "dsh": {
+    "engines": {
+      "dsh": ">=0.1.2-rc.1"
+    },
     "bundle": {
       "patch": "./cordis.patch.yml"
     },
