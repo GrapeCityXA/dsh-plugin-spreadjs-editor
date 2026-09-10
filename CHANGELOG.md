@@ -1,6 +1,6 @@
 # Release Notes / 版本记录
 
-## 0.1.2 (Unreleased / 尚未发布)
+## 0.1.2
 
 ### 中文
 
