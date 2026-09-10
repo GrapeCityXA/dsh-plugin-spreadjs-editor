@@ -21,7 +21,18 @@ A DeepSeek Harness Web UI plugin that opens, views, and edits Excel / SpreadJS f
 - 与 ui-all 文件树集成，打开文件后立即进入编辑界面，不需要单独的编辑器页面。
 - Designer 界面自动跟随系统 light/dark 偏好。
 
-### 快速开始
+### 内置版本与文件兼容性
+
+| 组件 | 内置版本 |
+| --- | --- |
+| SpreadJS | 19.1.4 |
+| SpreadJS Designer | 19.1.4 |
+
+编辑器顶部常驻显示实际打包的组件版本。保存或导出由该版本执行，不保证保留源文件的旧版格式兼容性；尤其是 `.sjs`、`.ssjson`，低版本 SpreadJS 可能无法打开高版本保存的文件。Excel 文件中的功能也可能因目标软件或版本不同而变化。
+
+请先备份原文件或另存副本，再用目标版本验证打开结果，确认后再替换原文件。本插件不会自动备份、降级文件格式或保证无损往返转换。
+
+### 安装
 
 要求 DSH `>=0.1.2-rc.1`，并已安装提供 `dsh-better-sidebar` 的 `@linxin666/dsh-web-all`（ui-all）。不再需要 `dsh-plugin-web-editors`。
 
@@ -131,7 +142,18 @@ npm run grapecity:update -- --latest
 - Integrated with the ui-all file tree: open a file and start editing immediately, with no separate editor page.
 - The Designer follows the OS light/dark preference.
 
-### Quick Start
+### Bundled Versions and File Compatibility
+
+| Component | Bundled version |
+| --- | --- |
+| SpreadJS | 19.1.4 |
+| SpreadJS Designer | 19.1.4 |
+
+The editor always displays the versions bundled into its client. Saving and exporting use those versions and do not guarantee compatibility with the original file's older format. In particular, older SpreadJS versions may not open `.sjs` or `.ssjson` files saved by newer versions. Excel features can also vary across target applications and versions.
+
+Keep a backup or save a copy, and verify it in the target version before replacing the original. This plugin does not automatically back up files, downgrade formats, or guarantee lossless round trips.
+
+### Installation
 
 Requires DSH `>=0.1.2-rc.1` and `@linxin666/dsh-web-all` (ui-all), which provides `dsh-better-sidebar`. The former `dsh-plugin-web-editors` prerequisite is no longer needed.
 

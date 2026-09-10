@@ -7,6 +7,7 @@
  * inside the active session's workspace without the generic web editor plugin.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { CompatibilityNotice } from './CompatibilityNotice.tsx'
 import { SpreadsheetHost, type SpreadsheetFileAccess, type StatusTone } from './SpreadsheetHost.tsx'
 import {
   sidebarFileUrl,
@@ -76,6 +77,7 @@ export function SpreadsheetViewer(props: SidebarFileViewerProps): React.JSX.Elem
 
   return (
     <div className="dsh-spreadjs-panel" role="region" aria-label={`SpreadJS: ${basename(path)}`}>
+      <CompatibilityNotice />
       <div className="dsh-spreadjs-editor">
         <SpreadsheetHost
           filePath={path}
