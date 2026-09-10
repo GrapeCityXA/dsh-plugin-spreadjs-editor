@@ -2,6 +2,8 @@
 
 [GitHub](https://github.com/GrapeCityXA/dsh-plugin-spreadjs-editor) · npm: `@grapecity-software/dsh-spreadjs-editor`
 
+[版本记录 / Release Notes](CHANGELOG.md)
+
 在 DeepSeek Harness Web UI 里，直接在右侧文件树中打开、查看和编辑 Excel / SpreadJS 文件。
 
 A DeepSeek Harness Web UI plugin that opens, views, and edits Excel / SpreadJS files directly from the right-side file tree.
@@ -107,6 +109,8 @@ dsh plugin --profile web add ../dsh-plugin-spreadjs-editor
 可将 DSH 与插件部署为 SaaS 服务，表格仍在浏览器端运行。部署者应根据服务场景获取适用的 SpreadJS 和 Designer 授权，分别配置许可证。身份认证、租户与文件隔离由宿主服务负责，本插件不提供这些能力。
 
 ### 维护者
+
+每次发布前更新 `CHANGELOG.md` 中对应版本的变更、兼容性和升级说明。当前版本尚未发布时，继续归并到同一版本条目；实际发布后再填写发布日期。
 
 发布前执行 `npm run prepublishOnly`。该检查包含类型检查、单元测试、构建、smoke 测试，以及在临时目录离线安装 tarball，验证预构建客户端注册和许可证配置接口。它不代替浏览器中实际打开、编辑和保存工作簿的验证。
 
@@ -215,6 +219,8 @@ The plugin code is free and MIT-licensed. Bundled SpreadJS and Designer are Grap
 DSH and the plugin can be hosted as a SaaS service, with spreadsheets still running in the browser. Operators should obtain licenses appropriate to their deployment and configure SpreadJS and Designer keys separately. Authentication, tenant isolation, and file isolation are responsibilities of the host service.
 
 ### Maintainers
+
+Before each release, update its `CHANGELOG.md` entry with changes, compatibility requirements, and upgrade notes. Keep changes under the same version while it is unpublished; add the release date only after publishing.
 
 Run `npm run prepublishOnly` before releasing. It checks types, unit tests, builds, smoke tests, and a fresh offline tarball installation with client registration and license-config checks. It does not replace opening, editing, and saving workbooks in a real browser.
 

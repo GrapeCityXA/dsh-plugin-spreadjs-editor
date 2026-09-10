@@ -23,6 +23,7 @@ try {
     'package/lib/index.js',
     'package/cordis.patch.yml',
     'package/package.json',
+    'package/CHANGELOG.md',
   ]
   const missing = required.filter(file => !files.has(file))
   if (missing.length > 0) {

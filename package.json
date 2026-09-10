@@ -1,6 +1,6 @@
 {
   "name": "@grapecity-software/dsh-spreadjs-editor",
-  "version": "0.1.3",
+  "version": "0.1.2",
   "description": "DeepSeek Harness Web UI plugin: SpreadJS viewer registered through dsh-better-sidebar (ui-all).",
   "keywords": [
     "deepseek-harness",
@@ -26,6 +26,7 @@
     "lib/licenses",
     "cordis.patch.yml",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE",
     "THIRD_PARTY_NOTICES.md"
   ],
