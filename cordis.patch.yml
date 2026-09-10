@@ -19,3 +19,4 @@
       # evaluation watermark build. Keep it out of the patch if you prefer
       # to configure it per-deployment.
       licenseKey: ''
+      designerLicenseKey: ''

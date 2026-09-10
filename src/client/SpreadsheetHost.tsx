@@ -52,6 +52,8 @@ export interface SpreadsheetHostProps {
   filePath: string | undefined
   /** SpreadJS license key from /spreadjs/api/config. */
   licenseKey: string
+  /** Separate Designer key from /spreadjs/api/config. */
+  designerLicenseKey?: string
   /** Whether the host config fetch has completed. */
   ready: boolean
   /** Concrete read/write access chosen by the active adapter. */
@@ -253,7 +255,7 @@ function workbookBlob(spread: any, path: string, format?: ExportFormat): Promise
 }
 
 export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHostProps>(
-  function SpreadsheetHost({ filePath, licenseKey, ready, fileAccess, onStatus, onLoadingChange, onNewWorkbook }, ref) {
+  function SpreadsheetHost({ filePath, licenseKey, designerLicenseKey = '', ready, fileAccess, onStatus, onLoadingChange, onNewWorkbook }, ref) {
     const hostRef = useRef<HTMLDivElement | null>(null)
     const designerRef = useRef<DesignerLike | null>(null)
     const loadSeqRef = useRef(0)
@@ -265,12 +267,12 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
     // SpreadJS and Designer require separate license keys and both must be set
     // before the designer is constructed.
     useEffect(() => {
-      if (!ready || licenseKey === '') return
+      if (!ready) return
       const sheets = (GC as any).Spread?.Sheets
-      if (sheets !== undefined) sheets.LicenseKey = licenseKey
+      if (sheets !== undefined && licenseKey !== '') sheets.LicenseKey = licenseKey
       const ns = designerNamespace()
-      if (ns !== undefined) ns.LicenseKey = licenseKey
-    }, [licenseKey, ready])
+      if (ns !== undefined && designerLicenseKey !== '') ns.LicenseKey = designerLicenseKey
+    }, [licenseKey, designerLicenseKey, ready])
 
     // Follow the OS light/dark preference for the Designer chrome. This runs
     // before the Designer is constructed so the instance starts on the right

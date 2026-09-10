@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { Writable } from 'node:stream'
-import { apply, inject, name } from '../src/index.ts'
+import { apply, inject, name, type Config } from '../src/index.ts'
 import type { Context } from '@deepseek-ai/cordis'
 
 interface MockResponse {
@@ -44,7 +44,7 @@ function makeRes(onFinish: () => void): MockResponse & { writeHead: (s: number, 
 }
 
 /** Build a harness-like ctx around a captured /spreadjs handler. */
-function harness(config?: Record<string, string>) {
+function harness(config?: Config) {
   let capturedHandler: (req: any, res: any) => void = () => {}
   const disposers: Array<() => void> = []
   const ctx = {
@@ -107,13 +107,23 @@ describe('api endpoints', () => {
   it('GET /spreadjs/api/config returns the license key', async () => {
     const { request } = harness({ licenseKey: 'abc123' })
     const res = await request('/spreadjs/api/config')
-    expect(JSON.parse(res.body)).toEqual({ licenseKey: 'abc123' })
+    expect(JSON.parse(res.body)).toEqual({ licenseKey: 'abc123', designerLicenseKey: '' })
   })
 
   it('GET /spreadjs/api/config defaults to empty key', async () => {
     const { request } = harness()
     const res = await request('/spreadjs/api/config')
-    expect(JSON.parse(res.body)).toEqual({ licenseKey: '' })
+    expect(JSON.parse(res.body)).toEqual({ licenseKey: '', designerLicenseKey: '' })
+  })
+
+  it.each([
+    { licenseKey: 'SHEETS-KEY', designerLicenseKey: 'DESIGNER-KEY' },
+    { designerLicenseKey: 'DESIGNER-ONLY' },
+  ])('returns independent keys for %j', async config => {
+    const { request } = harness(config)
+    const res = await request('/spreadjs/api/config')
+    expect(JSON.parse(res.body)).toEqual({ licenseKey: '', ...config })
+    expect(res.headers['Cache-Control']).toBe('no-store')
   })
 
   it('unknown endpoints return 404', async () => {

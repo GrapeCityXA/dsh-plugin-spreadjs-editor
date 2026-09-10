@@ -16,6 +16,7 @@ import {
 
 interface ConfigResponse {
   licenseKey: string
+  designerLicenseKey?: string
 }
 
 function basename(path: string): string {
@@ -25,6 +26,7 @@ function basename(path: string): string {
 export function SpreadsheetViewer(props: SidebarFileViewerProps): React.JSX.Element {
   const { scope, path } = props
   const [licenseKey, setLicenseKey] = useState('')
+  const [designerLicenseKey, setDesignerLicenseKey] = useState('')
   const [configReady, setConfigReady] = useState(false)
   const [status, setStatus] = useState('')
   const [statusTone, setStatusTone] = useState<StatusTone>('idle')
@@ -39,6 +41,7 @@ export function SpreadsheetViewer(props: SidebarFileViewerProps): React.JSX.Elem
       .then(config => {
         if (!alive) return
         setLicenseKey(config.licenseKey ?? '')
+        setDesignerLicenseKey(config.designerLicenseKey ?? '')
         setConfigReady(true)
       })
       .catch(() => {
@@ -77,6 +80,7 @@ export function SpreadsheetViewer(props: SidebarFileViewerProps): React.JSX.Elem
         <SpreadsheetHost
           filePath={path}
           licenseKey={licenseKey}
+          designerLicenseKey={designerLicenseKey}
           ready={configReady}
           fileAccess={fileAccess}
           onStatus={handleStatus}

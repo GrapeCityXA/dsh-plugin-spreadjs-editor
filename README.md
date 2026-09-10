@@ -23,22 +23,7 @@ A DeepSeek Harness Web UI plugin that opens, views, and edits Excel / SpreadJS f
 
 要求 DSH `>=0.1.2-rc.1`，并已安装提供 `dsh-better-sidebar` 的 `@linxin666/dsh-web-all`（ui-all）。不再需要 `dsh-plugin-web-editors`。
 
-使用 pnpm 10 管理 Web profile 时，默认会拦截依赖包的生命周期脚本。安装前先把本包加入放行列表。
-
-编辑 Web profile 的 `pnpm-workspace.yaml`，通常位于：
-
-```text
-~/.dsh/profiles/web/pnpm-workspace.yaml
-```
-
-加入以下内容：
-
-```yaml
-onlyBuiltDependencies:
-  - '@grapecity-software/dsh-spreadjs-editor'
-```
-
-然后安装插件并启动：
+npm 包自带预构建的 SpreadJS 和 Designer 客户端，无需放行安装脚本或本地编译。安装插件并启动：
 
 ```sh
 dsh plugin --profile web add @grapecity-software/dsh-spreadjs-editor
@@ -47,7 +32,7 @@ dsh --profile web
 
 启动后，在 Web UI 右侧文件树中打开 `.xlsx`、`.xlsm`、`.csv`、`.sjs` 或 `.ssjson` 文件即可。
 
-安装阶段会自动生成 SpreadJS 客户端，不需要再执行 `npm install` 或 `npm run build`。
+安装直接使用包内的客户端文件，不会运行构建脚本。
 
 如果使用 npx 运行 DSH，使用同样的命令：
 
@@ -58,11 +43,7 @@ npx --yes @deepseek-ai/dsh@latest --profile web
 
 DeepSeek Harness CLI 是 `@deepseek-ai/dsh`，不要使用同名 npm 包 `dsh`。
 
-如果插件已经装好、之后才补放行配置，补一次构建即可：
-
-```sh
-pnpm --dir ~/.dsh/profiles/web rebuild @grapecity-software/dsh-spreadjs-editor
-```
+从旧版本升级后，不再需要本插件的 `onlyBuiltDependencies` 放行项。
 
 ### 常见问题
 
@@ -72,7 +53,7 @@ pnpm --dir ~/.dsh/profiles/web rebuild @grapecity-software/dsh-spreadjs-editor
 
 **安装完还需要手动构建吗？**
 
-不需要。只要安装前放行过 `onlyBuiltDependencies`，`dsh plugin add` 会同时完成安装和构建。
+不需要。发布包已包含构建产物，只有从源码开发时才需要构建。
 
 **SpreadJS 会跟随每次安装自动升级吗？**
 
@@ -84,7 +65,17 @@ pnpm --dir ~/.dsh/profiles/web rebuild @grapecity-software/dsh-spreadjs-editor
 
 | Key | 默认值 | 说明 |
 | --- | --- | --- |
-| `licenseKey` | `''` | SpreadJS + Designer 部署 license key。留空时使用 evaluation 构建。 |
+| `licenseKey` | `''` | SpreadJS 部署许可证。留空以带水印的试用模式运行。 |
+| `designerLicenseKey` | `''` | 独立的 SpreadJS Designer 部署许可证。留空保持 Designer 试用状态。 |
+
+```yaml
+- id: spreadjs-editor
+  config:
+    licenseKey: 'YOUR_SPREADJS_KEY'
+    designerLicenseKey: 'YOUR_DESIGNER_KEY'
+```
+
+现有 `licenseKey` 配置仍用于 SpreadJS，不会再赋给 Designer。配置从服务端下发到浏览器，用于客户端激活；修改后请重启 DSH 并刷新网页。
 
 ### 支持的文件
 
@@ -111,9 +102,13 @@ dsh plugin --profile web add ../dsh-plugin-spreadjs-editor
 
 ### 许可
 
-插件代码使用 MIT。SpreadJS 是 GrapeCity 的商业产品，正式部署时请配置真实 license key。
+插件代码免费提供，采用 MIT 许可证。预构建包包含的 SpreadJS 和 Designer 属于葡萄城商业产品，不适用插件的 MIT 许可证；未配置授权时可在相应试用条款下体验带水印的界面，不代表免费商业授权。
+
+可将 DSH 与插件部署为 SaaS 服务，表格仍在浏览器端运行。部署者应根据服务场景获取适用的 SpreadJS 和 Designer 授权，分别配置许可证。身份认证、租户与文件隔离由宿主服务负责，本插件不提供这些能力。
 
 ### 维护者
+
+发布前执行 `npm run prepublishOnly`。该检查包含类型检查、单元测试、构建、smoke 测试，以及在临时目录离线安装 tarball，验证预构建客户端注册和许可证配置接口。它不代替浏览器中实际打开、编辑和保存工作簿的验证。
 
 发布新版前，统一把所有 GrapeCity 依赖同步到最新版本：
 
@@ -136,22 +131,7 @@ npm run grapecity:update -- --latest
 
 Requires DSH `>=0.1.2-rc.1` and `@linxin666/dsh-web-all` (ui-all), which provides `dsh-better-sidebar`. The former `dsh-plugin-web-editors` prerequisite is no longer needed.
 
-When managing the Web profile with pnpm 10, dependency lifecycle scripts are blocked by default. Allow this package before installing.
-
-Edit the Web profile's `pnpm-workspace.yaml`, usually:
-
-```text
-~/.dsh/profiles/web/pnpm-workspace.yaml
-```
-
-Add:
-
-```yaml
-onlyBuiltDependencies:
-  - '@grapecity-software/dsh-spreadjs-editor'
-```
-
-Then install the plugin and start DSH:
+The npm package includes prebuilt SpreadJS and Designer client code. No install-script allow-list or local compilation is required. Install the plugin and start DSH:
 
 ```sh
 dsh plugin --profile web add @grapecity-software/dsh-spreadjs-editor
@@ -160,7 +140,7 @@ dsh --profile web
 
 After startup, open `.xlsx`, `.xlsm`, `.csv`, `.sjs`, or `.ssjson` from the right-side file tree.
 
-The SpreadJS client is generated automatically during install. There is no need to run `npm install` or `npm run build` separately.
+Installation uses the packaged client files without running a build script.
 
 If you run DSH through npx, use the same commands:
 
@@ -171,11 +151,7 @@ npx --yes @deepseek-ai/dsh@latest --profile web
 
 Use `@deepseek-ai/dsh`; the unrelated npm package `dsh` is not the DeepSeek Harness CLI.
 
-If the plugin was already installed before the allow-list entry was added, run the build once:
-
-```sh
-pnpm --dir ~/.dsh/profiles/web rebuild @grapecity-software/dsh-spreadjs-editor
-```
+After upgrading, this plugin no longer needs an `onlyBuiltDependencies` allow-list entry.
 
 ### FAQ
 
@@ -185,7 +161,7 @@ No. ui-all bundles `dsh-better-sidebar`, and this plugin registers directly with
 
 **Do I need to build manually after installation?**
 
-No. If `onlyBuiltDependencies` is configured before installing, `dsh plugin add` installs and builds in one step.
+No. The package includes built artifacts. Building is only required when developing from source.
 
 **Will SpreadJS upgrade automatically with every install?**
 
@@ -197,7 +173,17 @@ For production use, set the license key in the profile's `cordis.patch.yml`:
 
 | Key | Default | Description |
 | --- | --- | --- |
-| `licenseKey` | `''` | SpreadJS + Designer deployment license key. Empty runs the evaluation build. |
+| `licenseKey` | `''` | SpreadJS deployment key. Empty runs in evaluation mode with a watermark. |
+| `designerLicenseKey` | `''` | Separate SpreadJS Designer deployment key. Empty keeps Designer in evaluation mode. |
+
+```yaml
+- id: spreadjs-editor
+  config:
+    licenseKey: 'YOUR_SPREADJS_KEY'
+    designerLicenseKey: 'YOUR_DESIGNER_KEY'
+```
+
+Existing `licenseKey` settings continue to configure SpreadJS and are no longer assigned to Designer. The server delivers these keys to the browser for client activation. Restart DSH and refresh the page after changing them.
 
 ### Supported files
 
@@ -224,9 +210,13 @@ dsh plugin --profile web add ../dsh-plugin-spreadjs-editor
 
 ### License
 
-MIT for the plugin code. SpreadJS is a commercial product by GrapeCity; configure a real license key for production use.
+The plugin code is free and MIT-licensed. Bundled SpreadJS and Designer are GrapeCity commercial products and are not covered by the plugin's MIT license. Without keys, users can try the watermarked interface under the applicable evaluation terms; this does not grant free commercial usage.
+
+DSH and the plugin can be hosted as a SaaS service, with spreadsheets still running in the browser. Operators should obtain licenses appropriate to their deployment and configure SpreadJS and Designer keys separately. Authentication, tenant isolation, and file isolation are responsibilities of the host service.
 
 ### Maintainers
+
+Run `npm run prepublishOnly` before releasing. It checks types, unit tests, builds, smoke tests, and a fresh offline tarball installation with client registration and license-config checks. It does not replace opening, editing, and saving workbooks in a real browser.
 
 Before a new release, sync all GrapeCity dependencies to the latest version:
 

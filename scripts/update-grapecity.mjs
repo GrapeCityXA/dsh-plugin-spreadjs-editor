@@ -19,9 +19,9 @@ if (!version) {
 }
 
 let changed = 0
-for (const [name, spec] of Object.entries(pkg.dependencies ?? {})) {
+for (const [name, spec] of Object.entries(pkg.devDependencies ?? {})) {
   if (name.startsWith('@grapecity-software/') && spec !== version) {
-    pkg.dependencies[name] = version
+    pkg.devDependencies[name] = version
     changed += 1
   }
 }

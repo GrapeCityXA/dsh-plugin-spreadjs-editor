@@ -2,10 +2,7 @@
 // harness loader would and drive the /spreadjs config/health handler with mock
 // req/res.
 import { Writable } from 'node:stream'
-import { createRequire } from 'node:module'
-
-const require = createRequire(import.meta.url)
-const pkg = require('../lib/index.js')
+import * as pkg from '../lib/index.js'
 
 let pass = 0
 let fail = 0
@@ -36,7 +33,7 @@ const ctx = {
   },
 }
 
-pkg.apply(ctx, { licenseKey: 'SMOKE-KEY' })
+pkg.apply(ctx, { licenseKey: 'SMOKE-KEY', designerLicenseKey: 'DESIGNER-SMOKE-KEY' })
 check('registers /spreadjs route', handler !== undefined)
 check('registers effect disposers', disposers.length === 2)
 
@@ -80,6 +77,7 @@ check('health body', r.body === JSON.stringify({ ok: true }), r.body)
 
 r = await req('/spreadjs/api/config')
 check('config -> licenseKey', JSON.parse(r.body).licenseKey === 'SMOKE-KEY', r.body)
+check('config -> designerLicenseKey', JSON.parse(r.body).designerLicenseKey === 'DESIGNER-SMOKE-KEY', r.body)
 
 r = await req('/spreadjs/api/unknown')
 check('unknown -> 404', r.status === 404, `got ${r.status}`)

@@ -21,6 +21,8 @@ export const inject = ['webServer']
 export interface Config {
   /** SpreadJS license key; empty runs the evaluation build. @default '' */
   licenseKey?: string
+  /** Separate SpreadJS Designer key; empty keeps Designer in evaluation mode. */
+  designerLicenseKey?: string
 }
 
 function sendJson(res: ServerResponse, status: number, body: unknown): void {
@@ -51,7 +53,10 @@ export function apply(ctx: Context, config: Config = {}): void {
           return
         }
         if (pathname === '/spreadjs/api/config') {
-          sendJson(res, 200, { licenseKey: config.licenseKey ?? '' })
+          sendJson(res, 200, {
+            licenseKey: config.licenseKey ?? '',
+            designerLicenseKey: config.designerLicenseKey ?? '',
+          })
           return
         }
         sendJson(res, 404, { error: 'unknown endpoint' })

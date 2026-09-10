@@ -59,7 +59,7 @@ const nodeHalf: UserConfig = {
   fixedExtension: false,
   dts: false,
   clean: true,
-  sourcemap: true,
+  sourcemap: false,
   deps: {
     // Relative sources inline; node: builtins stay external; nothing else
     // (the node half imports no bare runtime deps — dsh services are injected).
@@ -78,7 +78,7 @@ const clientHalf: UserConfig = {
   fixedExtension: false,
   dts: false,
   clean: false,
-  sourcemap: true,
+  sourcemap: false,
   deps: {
     // Requested module-table rows stay imports; everything else inlines.
     neverBundle: specifier => CLIENT_EXTERNALS.has(specifier),
