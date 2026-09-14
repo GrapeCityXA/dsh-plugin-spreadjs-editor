@@ -1,5 +1,17 @@
 # Release Notes / 版本记录
 
+## 0.1.4
+
+### 中文
+
+- 移除安装期 `prepare` 钩子。npm 包继续以预构建方式分发，发布打包改用 `prepack`，用户安装时不会执行任何脚本。
+- 打包校验新增检查：禁止 `preinstall`、`install`、`postinstall`、`prepare` 等安装期钩子。
+
+### English
+
+- Remove the `prepare` install hook. The npm package stays prebuilt; release packing now uses `prepack`, so no script runs during user installation.
+- Add a package check that rejects `preinstall`, `install`, `postinstall`, or `prepare` hooks.
+
 ## 0.1.3
 
 - 精简安装、配置和版本说明，方便查阅。

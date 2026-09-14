@@ -45,8 +45,9 @@ try {
   assert(realpathSync(installed).startsWith(realpathSync(consumer)), 'must install a copy, not a source link')
   const manifest = JSON.parse(readFileSync(join(installed, 'package.json'), 'utf8'))
   assert.equal(manifest.version, result.version)
-  assert.equal(manifest.scripts?.postinstall, undefined)
-  assert.equal(manifest.scripts?.install, undefined)
+  for (const hook of ['preinstall', 'install', 'postinstall', 'prepare']) {
+    assert.equal(manifest.scripts?.[hook], undefined, `package must not use install-time hook ${hook}`)
+  }
   assert.equal(Object.keys(manifest.dependencies ?? {}).length, 0)
 
   // Execute the installed wrapper without invoking its DOM-dependent factory.
