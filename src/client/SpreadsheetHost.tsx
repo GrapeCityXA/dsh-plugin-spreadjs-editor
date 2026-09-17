@@ -36,6 +36,14 @@ export interface SpreadsheetHostHandle {
   save: () => Promise<void>
   exportAs: (format: ExportFormat) => Promise<void>
   newWorkbook: () => void
+  /**
+   * The live workbook this panel is editing, or undefined before the designer
+   * exists. Handed to the spreadjs bridge so an agent can operate on the very
+   * document on screen (see src/client/bridge.ts).
+   */
+  getWorkbook: () => unknown | undefined
+  /** The SpreadJS namespace, so bridge-injected code can reach enums. */
+  getNamespace: () => unknown
 }
 
 /** Result of one write-back operation. */
@@ -406,7 +414,17 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
       onStatus('New workbook', 'idle')
     }
 
-    useImperativeHandle(ref, () => ({ save, exportAs, newWorkbook }), [onLoadingChange, onNewWorkbook, onStatus])
+    useImperativeHandle(
+      ref,
+      () => ({
+        save,
+        exportAs,
+        newWorkbook,
+        getWorkbook: () => designerRef.current?.getWorkbook(),
+        getNamespace: () => GC,
+      }),
+      [onLoadingChange, onNewWorkbook, onStatus],
+    )
 
     return (
       <div className="dsh-spreadjs-host">

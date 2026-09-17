@@ -9,6 +9,7 @@
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 import { SpreadsheetViewer } from './SpreadsheetViewer.tsx'
 import type { SidebarService } from './better-sidebar.ts'
+import { attachToBridge } from './bridge.ts'
 import { injectStyles } from './styles.ts'
 
 export const name = 'dsh-spreadjs-editor'
@@ -47,4 +48,9 @@ export function apply(ctx: ClientContext): void {
       try { fiber.dispose() } catch { /* already disposed */ }
     }
   }, 'dsh-spreadjs-editor: betterSidebar adapter')
+
+  // Offer the live Designer to dsh-spreadjs-excel, when that plugin is present.
+  // Nothing here depends on it: without a bridge this is a no-op and the editor
+  // is unchanged.
+  ctx.effect(() => attachToBridge(ctx), 'dsh-spreadjs-editor: spreadjs bridge adapter')
 }

@@ -6,10 +6,12 @@
  * media route and written back through `/sidebar/upload`, so the viewer works
  * inside the active session's workspace without the generic web editor plugin.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { VersionLabel } from './VersionLabel.tsx'
-import { SpreadsheetHost, type SpreadsheetFileAccess, type StatusTone } from './SpreadsheetHost.tsx'
+import { SpreadsheetHost, type SpreadsheetHostHandle, type SpreadsheetFileAccess, type StatusTone } from './SpreadsheetHost.tsx'
+import { PROVIDER_ID, publishWorkbook } from './bridge.ts'
 import {
+  sidebarAbsolutePath,
   sidebarFileUrl,
   sidebarUploadUrl,
   type SidebarFileViewerProps,
@@ -26,6 +28,7 @@ function basename(path: string): string {
 
 export function SpreadsheetViewer(props: SidebarFileViewerProps): React.JSX.Element {
   const { scope, path } = props
+  const hostRef = useRef<SpreadsheetHostHandle | null>(null)
   const [licenseKey, setLicenseKey] = useState('')
   const [designerLicenseKey, setDesignerLicenseKey] = useState('')
   const [configReady, setConfigReady] = useState(false)
@@ -53,6 +56,20 @@ export function SpreadsheetViewer(props: SidebarFileViewerProps): React.JSX.Elem
     }
   }, [])
 
+  // Offer the workbook on screen to dsh-spreadjs-excel. The panel mounts and
+  // unmounts with the selected file, so the slot is republished on each path
+  // change and cleared on unmount; the bridge itself is never re-attached.
+  const absolutePath = sidebarAbsolutePath(path, scope.cwd)
+  useEffect(() => publishWorkbook({
+    id: PROVIDER_ID,
+    getWorkbook: () => hostRef.current?.getWorkbook(),
+    getNamespace: () => hostRef.current?.getNamespace(),
+    getActivePath: () => absolutePath,
+    save: async () => {
+      await hostRef.current?.save()
+    },
+  }), [absolutePath])
+
   const fileAccess = useMemo<SpreadsheetFileAccess>(() => ({
     fileUrl: (target) => sidebarFileUrl(scope, target),
     save: async (blob, target) => {
@@ -79,6 +96,7 @@ export function SpreadsheetViewer(props: SidebarFileViewerProps): React.JSX.Elem
     <div className="dsh-spreadjs-panel" role="region" aria-label={`SpreadJS: ${basename(path)}`}>
       <div className="dsh-spreadjs-editor">
         <SpreadsheetHost
+          ref={hostRef}
           filePath={path}
           licenseKey={licenseKey}
           designerLicenseKey={designerLicenseKey}
