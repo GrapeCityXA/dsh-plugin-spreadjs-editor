@@ -51,6 +51,21 @@ npx --yes @deepseek-ai/dsh@latest --profile web
 
 旧版本用户请参阅[升级说明](CHANGELOG.md)。
 
+### 配合 AI 使用：让 Agent 改你正在看的表
+
+再装上 [`@grapecity-software/dsh-spreadjs-driver`](https://www.npmjs.com/package/@grapecity-software/dsh-spreadjs-driver)，就可以直接对 Agent 说"把金额列改成红色"——改动**立刻出现在你正看着的这张表上**。
+
+```sh
+dsh plugin --profile web add @grapecity-software/dsh-spreadjs-driver
+```
+
+- **改的是同一个对象，不是文件副本。** 编辑器把当前工作簿交给该插件的 `spreadjsHostBridge` 服务；两个插件的浏览器半跑在同一个页面里，所以改动直接落在 Designer 正在渲染的那份文档上——**不会覆盖你尚未保存的编辑**（这一点是按文件走的路子给不了的）。
+- **磁盘上的文件不动。** 改动只活在编辑器里，除非你明确要求保存——所以你有机会先看清楚，再决定要不要落盘。
+- **只有它拿得到。** 工作簿是编辑器**主动交出去**的，不存在"查找别人的工作簿"这类入口，同页面上的其他插件够不到。
+- 该插件本身还带一整套表格工具（新建、导入、导出 `.xlsx` / `.csv` / `.pdf`、截图），**不装编辑器也能单独使用**。
+
+> 需要本插件 **0.1.5 或更高版本**——更早的版本里没有这个桥，装上 driver 也不会有联动。
+
 ### 配置
 
 如已获得许可证，在 web profile 的 `cordis.patch.yml` 中添加以下配置：
@@ -115,6 +130,21 @@ npx --yes @deepseek-ai/dsh@latest --profile web
 ```
 
 For upgrades, see the [release notes](CHANGELOG.md).
+
+### Let the agent edit the sheet you are looking at
+
+Install [`@grapecity-software/dsh-spreadjs-driver`](https://www.npmjs.com/package/@grapecity-software/dsh-spreadjs-driver) alongside this plugin, and you can simply ask the agent — "make the amount column red" — and **watch the change land on the sheet you have open**.
+
+```sh
+dsh plugin --profile web add @grapecity-software/dsh-spreadjs-driver
+```
+
+- **It edits the same object, not a copy of the file.** The editor hands its current workbook to that plugin's `spreadjsHostBridge` service. Both plugins' browser halves run in the same page, so the change lands on the very document the Designer is rendering — and it **does not clobber edits you have not saved**, which a file-based route cannot promise.
+- **The file on disk is not touched.** The change lives in the editor until you explicitly ask for a save, so you get to look before deciding.
+- **Only that plugin can reach it.** The workbook is handed over *by the editor*; there is no way to go looking for somebody else's workbook, so other plugins on the page cannot touch it.
+- That plugin also brings a full set of spreadsheet tools of its own (create, import, export `.xlsx` / `.csv` / `.pdf`, screenshot) and **works on its own without the editor**.
+
+> Requires this plugin **0.1.5 or later** — earlier versions have no bridge, so installing the driver alongside them changes nothing.
 
 ### Configuration
 
