@@ -49,7 +49,7 @@ export function apply(ctx: ClientContext): void {
     }
   }, 'dsh-spreadjs-editor: betterSidebar adapter')
 
-  // Offer the live Designer to dsh-spreadjs-excel, when that plugin is present.
+  // Offer the live Designer to dsh-plugin-spreadjs-driver, when that plugin is present.
   // Nothing here depends on it: without a bridge this is a no-op and the editor
   // is unchanged.
   ctx.effect(() => attachToBridge(ctx), 'dsh-spreadjs-editor: spreadjs bridge adapter')
