@@ -56,7 +56,7 @@ export function SpreadsheetViewer(props: SidebarFileViewerProps): React.JSX.Elem
     }
   }, [])
 
-  // Offer the workbook on screen to dsh-spreadjs-excel. The panel mounts and
+  // Offer the workbook on screen to dsh-spreadjs-driver. The panel mounts and
   // unmounts with the selected file, so the slot is republished on each path
   // change and cleared on unmount; the bridge itself is never re-attached.
   const absolutePath = sidebarAbsolutePath(path, scope.cwd)

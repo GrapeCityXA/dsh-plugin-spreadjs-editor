@@ -2,12 +2,12 @@
  * Offer this plugin's live Designer to the spreadjs bridge.
  *
  * This plugin *owns* the workbook, so it decides who may operate on it: it
- * offers the document to `dsh-plugin-spreadjs-driver`'s `spreadjsHostBridge` service and
+ * offers the document to `dsh-spreadjs-driver`'s `spreadjsHostBridge` service and
  * to nobody else. The workbook never leaves the page and is never serialized —
  * the bridge receives a live reference, which is exactly why a style written
  * through it appears in the Designer the moment it lands.
  *
- * The bridge is optional. With dsh-plugin-spreadjs-driver absent, or with a bridge that
+ * The bridge is optional. With dsh-spreadjs-driver absent, or with a bridge that
  * cannot attach, this file does nothing and the editor behaves as before.
  */
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
@@ -25,13 +25,13 @@ export interface SpreadjsWorkbookProvider {
   save?(): Promise<void>
 }
 
-/** The `spreadjsHostBridge` client service published by dsh-plugin-spreadjs-driver. */
+/** The `spreadjsHostBridge` client service published by dsh-spreadjs-driver. */
 export interface SpreadjsHostBridge {
   attach(provider: SpreadjsWorkbookProvider): () => void
   list?(): readonly string[]
 }
 
-/** Service name owned by dsh-plugin-spreadjs-driver; this file only names it. */
+/** Service name owned by dsh-spreadjs-driver; this file only names it. */
 export const BRIDGE_SERVICE = 'spreadjsHostBridge'
 
 /** The provider id the bridge will see. */
