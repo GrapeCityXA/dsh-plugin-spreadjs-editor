@@ -1,5 +1,19 @@
 # Release Notes / 版本记录
 
+## 0.1.5
+
+### 中文
+
+- 新增 `spreadjsHostBridge` 桥：把当前正在编辑的工作簿（活对象，不是文件副本）交给配套的 `@grapecity-software/dsh-spreadjs-driver`，装上它即可让 Agent 通过对话直接修改你眼前这张表。
+- 该桥为可选依赖：未安装 driver 时插件行为与之前完全一致。
+- README 新增「配合 AI 使用：让 Agent 改你正在看的表」一节。
+
+### English
+
+- Add the `spreadjsHostBridge` bridge: it hands the workbook you are editing (a live object, not a file copy) to the companion `@grapecity-software/dsh-spreadjs-driver`, so an agent can edit the sheet on screen.
+- The bridge is optional: with the driver absent, the plugin behaves exactly as before.
+- Add a "Let the agent edit the sheet you are looking at" section to the README.
+
 ## 0.1.4
 
 ### 中文
