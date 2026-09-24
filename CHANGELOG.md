@@ -2,6 +2,8 @@
 
 ## 0.2.0
 
+> 从 `0.1.4` 升级属于破坏性变更。仓库里准备过的 `0.1.5` 从未发布，其内容已并入本版。
+
 ### 中文
 
 - **改用 DSH 自带的右侧栏**：不再依赖第三方 `dsh-better-sidebar`（`@linxin666/dsh-web-all`），改为注册到官方文档扩展点（`ctx.documentPreviews` + `sidebar.right.tab.document` 插槽）。安装本插件不再需要任何第三方侧边栏插件。
@@ -16,6 +18,7 @@
   - 不弹二次确认——按下保存即用户意图。
 - **为什么保存由本插件提供**：DSH 的文件系统接口能读二进制、却只能写文本（`ctx.fs` 仅提供 `writeText` / `editText`），因此平台和 Agent 都无法写回工作簿。写入逻辑已收敛为可替换的内部实现，官方将来提供二进制写入后可直接切换。
 - **要求 DSH `>=0.1.5-rc.3`**。客户端契约同步升级：不再使用已停止发布的 `@deepseek-ai/dsh-client-runtime`，改用 `@deepseek-ai/cordis` + `@deepseek-ai/dsh-client-ui-slots`。
+- 新增 `spreadjsHostBridge` 桥：把当前正在编辑的工作簿（活对象，不是文件副本）交给配套的 `@grapecity-software/dsh-spreadjs-driver`，装上它即可让 Agent 通过对话直接修改你眼前这张表；未安装 driver 时插件行为与之前完全一致。
 - 桥接契约变化：`getActivePath()` 返回 DSH 资源地址（`dsh-resource://file/session/…`）而非绝对路径，该地址同时携带会话与路径，保存接口亦以它定位文件。
 - 新增配置项 `maxSaveBytes`（默认 64 MB）与 `trustedHosts`。
 - 新增 `npm run probe:live` 运行时探针：对着**正在运行的** DSH 真实验证整条保存链路（真实 `ctx.fs` 的解析与落盘、冲突守卫、工作区越界拒绝），无需浏览器。
@@ -31,23 +34,10 @@
   - The target is confined to the session workspace, a content-hash conflict guard refuses to clobber a file changed since it was opened, and a same-directory temporary file is renamed over the target so no reader sees half a workbook. No second confirmation — pressing Save is the user's intent.
 - **Why this plugin carries the write**: the harness filesystem seam reads bytes but writes text only, so neither the harness nor an agent can write a workbook. The write sits behind an internal seam so it can switch to a platform byte write later.
 - **Requires DSH `>=0.1.5-rc.3`**. The client contract moves off the discontinued `@deepseek-ai/dsh-client-runtime` to `@deepseek-ai/cordis` + `@deepseek-ai/dsh-client-ui-slots`.
+- Add the `spreadjsHostBridge` bridge: it hands the workbook you are editing (a live object, not a file copy) to the companion `@grapecity-software/dsh-spreadjs-driver`, so an agent can edit the sheet on screen; with the driver absent the plugin behaves exactly as before.
 - Bridge contract change: `getActivePath()` now returns the DSH resource address (`dsh-resource://file/session/…`) rather than an absolute path; the address carries both session and path, and the save endpoint resolves it that way.
 - New configuration: `maxSaveBytes` (default 64 MB) and `trustedHosts`.
 - Add `npm run probe:live`, a runtime probe that verifies the whole save path against a **running** DSH (real `ctx.fs` resolution and write, the conflict guard, the workspace-escape refusal) with no browser involved.
-
-## 0.1.5
-
-### 中文
-
-- 新增 `spreadjsHostBridge` 桥：把当前正在编辑的工作簿（活对象，不是文件副本）交给配套的 `@grapecity-software/dsh-spreadjs-driver`，装上它即可让 Agent 通过对话直接修改你眼前这张表。
-- 该桥为可选依赖：未安装 driver 时插件行为与之前完全一致。
-- README 新增「配合 AI 使用：让 Agent 改你正在看的表」一节。
-
-### English
-
-- Add the `spreadjsHostBridge` bridge: it hands the workbook you are editing (a live object, not a file copy) to the companion `@grapecity-software/dsh-spreadjs-driver`, so an agent can edit the sheet on screen.
-- The bridge is optional: with the driver absent, the plugin behaves exactly as before.
-- Add a "Let the agent edit the sheet you are looking at" section to the README.
 
 ## 0.1.4
 

@@ -76,7 +76,7 @@ dsh plugin --profile web add @grapecity-software/dsh-spreadjs-driver
 - **只有它拿得到。** 工作簿是编辑器**主动交出去**的，不存在"查找别人的工作簿"这类入口，同页面上的其他插件够不到。
 - 该插件本身还带一整套表格工具（新建、导入、导出 `.xlsx` / `.csv` / `.pdf`、截图），**不装编辑器也能单独使用**。
 
-> 需要本插件 **0.1.5 或更高版本**——更早的版本里没有这个桥，装上 driver 也不会有联动。
+> 需要本插件 **0.2.0 或更高版本**——更早的版本里没有这个桥，装上 driver 也不会有联动。
 
 ### 配置
 
@@ -181,7 +181,7 @@ dsh plugin --profile web add @grapecity-software/dsh-spreadjs-driver
 - **Only that plugin can reach it.** The workbook is handed over *by the editor*; there is no way to go looking for somebody else's workbook, so other plugins on the page cannot touch it.
 - That plugin also brings a full set of spreadsheet tools of its own (create, import, export `.xlsx` / `.csv` / `.pdf`, screenshot) and **works on its own without the editor**.
 
-> Requires this plugin **0.1.5 or later** — earlier versions have no bridge, so installing the driver alongside them changes nothing.
+> Requires this plugin **0.2.0 or later** — earlier versions have no bridge, so installing the driver alongside them changes nothing.
 
 ### Configuration
 
