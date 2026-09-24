@@ -1,6 +1,7 @@
 /**
- * SpreadJS Designer host: mounts the full designer into the generic editor
- * panel and loads workspace files through the /spreadjs file bridge.
+ * SpreadJS Designer host: mounts the full designer for one workbook handed over
+ * by the Sidebar's document owner, and writes the edited workbook back through
+ * this plugin's own /spreadjs host route.
  *
  * The browser bundle imports the current @grapecity-software 19.x plugin set:
  * core sheets + IO, Chinese resources, charts/shapes/slicers/sparklines,
@@ -28,6 +29,13 @@ import '@grapecity-software/spread-sheets-reportsheet-addon'
 import '@grapecity-software/spread-sheets-languagepackages'
 import '@grapecity-software/spread-sheets-designer-resources-cn'
 import * as GCDesigner from '@grapecity-software/spread-sheets-designer'
+import {
+  redirectDesignerSave,
+  registerDesignerSaveTarget,
+  type DesignerConfigLike,
+  type DesignerNamespaceLike,
+} from './designer-save-command.ts'
+import { installDesignerFileMenu, type DesignerFileMenuNamespace } from './designer-file-menu.ts'
 
 export type ExportFormat = 'xlsx' | 'sjs' | 'ssjson' | 'csv'
 export type StatusTone = 'idle' | 'busy' | 'error'
@@ -49,15 +57,24 @@ export interface SpreadsheetHostHandle {
 /** Result of one write-back operation. */
 export type SpreadsheetSaveResult = 'saved' | 'download'
 
-/** File access seam: the host panel may use /spreadjs or /sidebar routes. */
+/** One workbook handed over by the document owner: bytes plus their identity. */
+export interface SpreadsheetSource {
+  /** Basename, used for extension detection and status text. */
+  readonly name: string
+  /** Path inside the session, exactly as the file address carried it. */
+  readonly path?: string
+  /** The complete file, already read by the document owner. */
+  readonly bytes: Uint8Array<ArrayBuffer>
+}
+
+/** Write-back seam: where an edited workbook goes. */
 export interface SpreadsheetFileAccess {
-  fileUrl(path: string): string
-  save(blob: Blob, path: string): Promise<SpreadsheetSaveResult>
+  save(blob: Blob, source: SpreadsheetSource): Promise<SpreadsheetSaveResult>
 }
 
 export interface SpreadsheetHostProps {
-  /** Absolute path of the file to open (undefined = nothing). */
-  filePath: string | undefined
+  /** Workbook to display (undefined = the Sidebar has nothing selected). */
+  source: SpreadsheetSource | undefined
   /** SpreadJS license key from /spreadjs/api/config. */
   licenseKey: string
   /** Separate Designer key from /spreadjs/api/config. */
@@ -79,7 +96,7 @@ interface DesignerLike {
   destroy?(): void
 }
 
-interface DesignerNamespace {
+interface DesignerNamespace extends DesignerNamespaceLike, DesignerFileMenuNamespace {
   Designer?: new (host: HTMLDivElement, config?: unknown, spread?: unknown, spreadOptions?: unknown) => DesignerLike
   DefaultConfig?: unknown
   LicenseKey?: string
@@ -118,11 +135,17 @@ function designerNamespace(): DesignerNamespace | undefined {
   return gc.Spread?.Sheets?.Designer
 }
 
-function cloneDefaultDesignerConfig(): unknown {
+/**
+ * A per-instance copy of the Designer's default config, so customising it never
+ * edits the shared singleton. The copy goes through JSON, which cannot carry
+ * functions: any command behaviour has to be installed as a live command object
+ * afterwards (see the Save redirect in the creation effect).
+ */
+function cloneDefaultDesignerConfig(): DesignerConfigLike | undefined {
   const ns = designerNamespace()
   if (ns?.DefaultConfig === undefined) return undefined
   try {
-    return JSON.parse(JSON.stringify(ns.DefaultConfig))
+    return JSON.parse(JSON.stringify(ns.DefaultConfig)) as DesignerConfigLike
   } catch {
     return undefined
   }
@@ -263,14 +286,25 @@ function workbookBlob(spread: any, path: string, format?: ExportFormat): Promise
 }
 
 export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHostProps>(
-  function SpreadsheetHost({ filePath, licenseKey, designerLicenseKey = '', ready, fileAccess, onStatus, onLoadingChange, onNewWorkbook }, ref) {
+  function SpreadsheetHost({ source, licenseKey, designerLicenseKey = '', ready, fileAccess, onStatus, onLoadingChange, onNewWorkbook }, ref) {
     const hostRef = useRef<HTMLDivElement | null>(null)
     const designerRef = useRef<DesignerLike | null>(null)
     const loadSeqRef = useRef(0)
-    const pathRef = useRef(filePath)
+    const sourceRef = useRef(source)
+    /**
+     * The newest write-back. The Designer's own Save command and the driver
+     * bridge both hold this panel at arm's length and outlive a render, so they
+     * must call through a ref rather than capture one closure forever.
+     */
+    const saveRef = useRef<(() => Promise<void>) | undefined>(undefined)
+    /** A load is in flight; saving now would export a workbook with no content. */
+    const loadInFlightRef = useRef(false)
+    /** One write-back at a time. */
+    const saveInFlightRef = useRef(false)
     const [status, setStatus] = useState<LoadStatus>({ kind: 'idle' })
 
-    pathRef.current = filePath
+    sourceRef.current = source
+    saveRef.current = save
 
     // SpreadJS and Designer require separate license keys and both must be set
     // before the designer is constructed.
@@ -298,12 +332,45 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
       }
     }, [])
 
+    // Offer this panel to the Designer's Save command for as long as it is
+    // mounted. The command registry is shared, so the redirect resolves the
+    // panel from the workbook the command was launched on rather than capturing
+    // one; an unmounted panel must stop being a candidate.
+    useEffect(() => registerDesignerSaveTarget({
+      workbook: () => designerRef.current?.getWorkbook(),
+      canWriteBack: () => sourceRef.current !== undefined,
+      save: () => { void saveRef.current?.() },
+    }), [])
+
     // Create / destroy the designer with the host element.
     useEffect(() => {
       const el = hostRef.current
       const ns = designerNamespace()
       if (!ready || el === null || ns?.Designer === undefined) return
-      const designer = new ns.Designer(el, cloneDefaultDesignerConfig())
+      const config = cloneDefaultDesignerConfig()
+      // The Designer's own Save — ribbon button, File menu, Ctrl+S — downloads a
+      // copy by default, which is the wrong meaning inside this panel: the open
+      // document already has a file in the session workspace, so Save must write
+      // it. Re-point the command before the Designer exists; Export and Save As
+      // keep their default behaviour, because those do mean "write a copy".
+      const steered = redirectDesignerSave(ns, config)
+      if (!steered) {
+        console.warn('[dsh-spreadjs-editor] the Designer Save command was not redirected; use the panel Save button')
+      }
+      // The File tab dispatches through its own handler rather than the command
+      // table, so the redirect above does not reach its Save row. Rebind that row
+      // in the menu template — and drop the rows that contradict a document tab —
+      // before the Designer instance is built from it.
+      const menu = installDesignerFileMenu(ns)
+      console.info(
+        `[dsh-spreadjs-editor] file menu installed=${menu.installed} handler=${menu.handler}`
+        + ` navKept=${menu.navKept} navAdded=${menu.navAdded} actionsReplaced=${menu.actionsReplaced}`
+        + ` navDropped=[${menu.navDropped.join(',')}] panelsDropped=[${menu.panelsDropped.join(',')}]`,
+      )
+      if (menu.summary.length > 0) {
+        console.info(`[dsh-spreadjs-editor] file menu rows this build did not recognise:\n${menu.summary.join('\n')}`)
+      }
+      const designer = new ns.Designer(el, config)
       const spread = designer.getWorkbook()
       if (spread !== undefined) {
         spread.options.tabStripVisible = true
@@ -323,28 +390,25 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
     // runs only after the host config fetch completes.
     useEffect(() => {
       const designer = designerRef.current
-      if (!ready || designer === null || filePath === undefined || filePath === '') {
-        if (filePath === undefined || filePath === '') setStatus({ kind: 'idle' })
+      if (!ready || designer === null || source === undefined) {
+        if (source === undefined) setStatus({ kind: 'idle' })
+        loadInFlightRef.current = false
         return
       }
       const seq = ++loadSeqRef.current
+      loadInFlightRef.current = true
       setStatus({ kind: 'loading' })
       onLoadingChange(true)
-      onStatus(`Loading ${basename(filePath)}…`, 'busy')
+      onStatus(`Loading ${source.name}…`, 'busy')
       void (async () => {
-        const response = await fetch(fileAccess.fileUrl(filePath))
-        if (!response.ok) {
-          const body = await response.json().catch(() => null) as { error?: string } | null
-          throw new Error(body?.error ?? `HTTP ${response.status}`)
-        }
-        const buffer = await response.arrayBuffer()
-        const name = basename(filePath)
-        const file = new File([buffer], name, { type: response.headers.get('content-type') ?? 'application/octet-stream' })
+        // The document owner already read the file, so there is nothing to
+        // fetch: the bytes on hand are the workbook.
+        const file = new File([source.bytes], source.name, { type: 'application/octet-stream' })
         const spread = designer.getWorkbook()
         if (spread === undefined) throw new Error('Designer workbook is not available')
         spread.suspendPaint()
         try {
-          await loadIntoWorkbook(spread, file, filePath)
+          await loadIntoWorkbook(spread, file, source.name)
         } finally {
           spread.resumePaint()
         }
@@ -352,35 +416,46 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
         spread.refresh?.()
       })().then(() => {
         if (seq !== loadSeqRef.current) return
+        loadInFlightRef.current = false
         setStatus({ kind: 'idle' })
         onLoadingChange(false)
-        onStatus(`Loaded ${basename(filePath)}`, 'idle')
+        onStatus(`Loaded ${source.name}`, 'idle')
       }).catch((error: unknown) => {
         if (seq !== loadSeqRef.current) return
+        loadInFlightRef.current = false
         const message = error instanceof Error ? error.message : String(error)
         setStatus({ kind: 'error', message })
         onLoadingChange(false)
         onStatus(`Load failed: ${message}`, 'error')
       })
-    }, [fileAccess, filePath, ready, onLoadingChange, onStatus])
+    }, [source, ready, onLoadingChange, onStatus])
 
     async function save(): Promise<void> {
       const designer = designerRef.current
-      const path = pathRef.current
-      if (designer === null || path === undefined || path === '') return
+      const current = sourceRef.current
+      if (designer === null || current === undefined) return
+      // A workbook that is still loading has no content yet, so exporting it now
+      // would overwrite the file on disk with an empty book.
+      if (loadInFlightRef.current) {
+        onStatus(`Still loading ${current.name}; nothing was saved`, 'busy')
+        return
+      }
+      if (saveInFlightRef.current) return
+      saveInFlightRef.current = true
       onLoadingChange(true)
-      onStatus(`Saving ${basename(path)}…`, 'busy')
+      onStatus(`Saving ${current.name}…`, 'busy')
       try {
-        const blob = await workbookBlob(designer.getWorkbook(), path)
-        const result = await fileAccess.save(blob, path)
+        const blob = await workbookBlob(designer.getWorkbook(), current.name)
+        const result = await fileAccess.save(blob, current)
         onStatus(
-          result === 'download' ? `Saved ${basename(path)} as download` : `Saved ${basename(path)}`,
+          result === 'download' ? `Saved ${current.name} as download` : `Saved ${current.name}`,
           'idle',
         )
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         onStatus(`Save failed: ${message}`, 'error')
       } finally {
+        saveInFlightRef.current = false
         onLoadingChange(false)
       }
     }
@@ -388,7 +463,7 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
     async function exportAs(format: ExportFormat): Promise<void> {
       const designer = designerRef.current
       if (designer === null) return
-      const path = pathRef.current ?? 'workbook.sjs'
+      const path = sourceRef.current?.name ?? 'workbook.sjs'
       const name = replaceExt(path, format)
       onLoadingChange(true)
       onStatus(`Exporting ${name}…`, 'busy')
@@ -429,7 +504,7 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
     return (
       <div className="dsh-spreadjs-host">
         <div ref={hostRef} />
-        {filePath === undefined || filePath === '' ? (
+        {source === undefined ? (
           <div className="dsh-spreadjs-empty">New workbook ready. Use Export to save a copy.</div>
         ) : null}
         {status.kind === 'loading' ? <div className="dsh-spreadjs-loading">Loading…</div> : null}

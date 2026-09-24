@@ -1,6 +1,6 @@
 // Structural smoke check for the BUILT browser half (lib/client.js).
 //
-// A full runtime load (factory → apply → betterSidebar registration) requires a real
+// A full runtime load (factory → apply → document registration) requires a real
 // browser: SpreadJS touches DOM + canvas at module init, which jsdom cannot
 // satisfy without the native `canvas` package. That end-to-end load is left to
 // the harness browser (see README "Verification"). What we CAN assert here
@@ -25,8 +25,8 @@ function check(label, cond, detail = '') {
   }
 }
 
-// The only non-SpreadJS runtime externals are React and its jsx-runtime.
-// @deepseek-ai/dsh-client-runtime/client is consumed type-only and erased.
+// The only runtime externals are React and its jsx-runtime. Every
+// @deepseek-ai import in the browser half is type-only and erased.
 const EXTERNALS = [
   'react',
   'react/jsx-runtime',

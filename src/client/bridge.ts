@@ -10,7 +10,7 @@
  * The bridge is optional. With dsh-spreadjs-driver absent, or with a bridge that
  * cannot attach, this file does nothing and the editor behaves as before.
  */
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+import type { Context } from '@deepseek-ai/cordis'
 
 /** A live workbook offered to the bridge, plus the few facts it needs. */
 export interface SpreadjsWorkbookProvider {
@@ -74,7 +74,7 @@ const DESIGNER: SpreadjsWorkbookProvider = {
  * Publish the live Designer to the bridge when one is installed. Returns a
  * disposer; calling it when nothing was attached is a no-op.
  */
-export function attachToBridge(ctx: ClientContext): () => void {
+export function attachToBridge(ctx: Context): () => void {
   const fiber = ctx.inject([BRIDGE_SERVICE], (child) => {
     child.effect(() => {
       const bridge = child.get(BRIDGE_SERVICE) as SpreadjsHostBridge | undefined

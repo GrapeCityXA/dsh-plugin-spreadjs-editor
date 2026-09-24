@@ -5,7 +5,16 @@
   flex-direction: column;
   width: 100%;
   height: 100%;
-  min-height: 0;
+  /* The Sidebar document body is a text-oriented block: it sets a monospace
+     font and `white-space: pre` for the text it was built to show. Claim this
+     panel's own presentation instead of inheriting it, exactly as the product's
+     own PDF body does. */
+  font-family: var(--dsw-font-family, system-ui, sans-serif);
+  white-space: normal;
+  /* `height: 100%` resolves against that block's flexed height, which is
+     definite. The floor is insurance: if a future host gives us an indefinite
+     height, a short editor beats a collapsed one that looks like a blank tab. */
+  min-height: 220px;
   overflow: hidden;
   background: var(--dsw-bg, #ffffff);
   color: var(--dsw-fg, #1f2329);
