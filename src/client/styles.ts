@@ -10,8 +10,8 @@
  * the Designer's `--sjs-*` variables, which reaches neither the workbook nor the
  * product's icons (each preset bakes its own SVG data URIs, and the two presets
  * rely on an `invert()` filter whose sense depends on that preset's background).
- * So the presets live in their own tags and are replaced in place, while
- * `setTheme` stays for this plugin's palette.
+ * So the presets live in their own tags and are replaced in place, and nothing
+ * is layered over them: the preset *is* the theme.
  */
 import runtimeLightCss from '@grapecity-software/spread-sheets/styles/gc.spread.sheets.excel2013white.css'
 import runtimeDarkCss from '@grapecity-software/spread-sheets/styles/gc.spread.sheets.excel2016black.css'

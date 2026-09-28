@@ -102,7 +102,6 @@ interface DesignerNamespace extends DesignerNamespaceLike, DesignerFileMenuNames
   Designer?: new (host: HTMLDivElement, config?: unknown, spread?: unknown, spreadOptions?: unknown) => DesignerLike
   DefaultConfig?: unknown
   LicenseKey?: string
-  setTheme?(theme: Record<string, string | undefined> | null): void
 }
 
 function basename(path: string): string {
@@ -153,32 +152,6 @@ function cloneDefaultDesignerConfig(): DesignerConfigLike | undefined {
   }
 }
 
-/** Dark palette for the Designer chrome (ribbon, tabs, dialogs, panels). */
-const DARK_THEME: Record<string, string | undefined> = {
-  colorForeground: '#e8eaed',
-  colorForegroundDisabled: '#7a808a',
-  colorBackground: '#1e2227',
-  colorBackgroundHover: '#2a2f36',
-  colorBackgroundSelected: '#33383f',
-  colorBackgroundDisabled: '#262a30',
-  colorBackground2: '#171a1f',
-  colorBackground2Hover: '#23272d',
-  colorBackground2Selected: '#2c3138',
-  colorBrandForeground: '#ffffff',
-  colorBrandBackground: '#3b6ef6',
-  colorBrandBackgroundHover: '#2f5ce0',
-  colorBrandBackgroundSelected: '#2748b8',
-  colorStroke: '#3a414a',
-  colorStrokeHover: '#4b5563',
-  colorStrokeSelected: '#5a6470',
-  colorStrokeDisabled: '#2c3036',
-  borderRadiusM: '4px',
-  borderRadiusL: '6px',
-  borderRadiusXL: '8px',
-  shadow4: '0 1px 2px rgba(0, 0, 0, 0.55)',
-  shadow8: '0 2px 6px rgba(0, 0, 0, 0.5)',
-}
-
 function prefersDark(): boolean {
   return typeof window !== 'undefined'
     && typeof window.matchMedia === 'function'
@@ -188,21 +161,15 @@ function prefersDark(): boolean {
 /**
  * Follow the OS light/dark preference for both halves of the editor: the
  * workbook's own stylesheet and the Designer's chrome preset are swapped, and
- * the caller repaints the workbook to apply that half. `setTheme` is layered on
- * top, because it only recolours the Designer's variables — it reaches neither
- * the workbook nor the product's icon assets, which is exactly the bug the
- * preset swap fixes.
+ * the caller repaints the workbook to apply that half.
+ *
+ * Nothing is layered on top. `setTheme()` recolours only the Designer's own
+ * `--sjs-*` variables — it reaches neither the workbook nor the product's icon
+ * assets — so overriding them would put this plugin's colours in front of the
+ * product's dark preset for no gain. The preset is the theme.
  */
 function applyEditorTheme(): void {
-  const dark = prefersDark()
-  setEditorTheme(dark)
-  const ns = designerNamespace()
-  if (ns?.setTheme === undefined) return
-  try {
-    ns.setTheme(dark ? DARK_THEME : null)
-  } catch {
-    // Theming is cosmetic; never block the editor for a palette failure.
-  }
+  setEditorTheme(prefersDark())
 }
 
 export function workbookFileType(path: string): GC.Spread.Sheets.FileType {
