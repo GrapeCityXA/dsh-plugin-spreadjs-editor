@@ -19,7 +19,7 @@ A DeepSeek Harness Web UI plugin that opens, views, and edits Excel / SpreadJS f
 - 支持 `.xlsx`、`.xlsm`、`.csv`、`.sjs`、`.ssjson` 文件。
 - 从文件树打开工作簿，使用 SpreadJS Designer 编辑表格。
 - 编辑后可直接保存回原文件：原子写入、限制在会话工作区内、带冲突检测。
-- 编辑器跟随系统切换浅色和深色主题：Designer 换深色预设样式表，工作簿换它自己的 Excel 深色样式表，两边一起换。
+- 编辑器跟随系统切换浅色和深色主题，工具栏与工作表区域一起变。
 - 「设置」标签里有「关于」按钮：内置版本、授权状态与版权信息在弹窗里。
 
 ### 内置版本与文件兼容性
@@ -57,7 +57,7 @@ npx --yes @deepseek-ai/dsh@latest --profile web
 
 保存只有一处入口：Designer「文件」菜单里的「保存到工作区」，就在原本内置"另存为 .sjs"那颗按钮的位置上。改动写回你打开的那个文件，不会再问你"要不要保存"，因为按下保存本身就是你的意图。
 
-- **「文件」菜单只剩一个保存动作。** Designer 默认的保存是"弹框下载到本地"（文件菜单里那套「SpreadJS 文件 + 文件名 + .sjs」就是它的另存操作）。插件在构造设计器前改写文件菜单模板：左侧只保留「保存」一项，右侧该面板只保留标题和我们的「保存到工作区」按钮（按内置按钮的尺寸重建，不会被挤到边框上折行），其余分类（新建/打开/导入/导出/打印/信息）与分隔线整类移除。需要一份副本时，用 DSH 自己的文件下载即可。
+- **「文件」菜单只剩一个保存动作。** Designer 原本的保存是「弹框下载到本地」；本插件把它换成写回你打开的那个文件，菜单里只保留这一个动作，新建、打开、导入、导出、打印、信息等分类一并移除。需要一份副本时，用 DSH 自己的文件下载即可。
 - **工作簿还没载入完时不让保存。** 载入中的工作簿是空的，此时保存会用空表覆盖原文件；载入完成前保存命令会拒绝并说明。
 - **不会冲掉别人的修改。** 打开文件时插件记下其内容哈希；保存前重新比对，若磁盘上的文件在此期间被改过（Agent 改过、你在别处存过），保存会被拒绝并说明原因，而不是覆盖掉那些改动。
 - **不会写出半个文件。** 同目录临时文件写完后 rename 覆盖，其他程序任何时候读到的都是完整文件。
@@ -125,7 +125,7 @@ dsh plugin --profile web add @grapecity-software/dsh-spreadjs-driver
 - Opens `.xlsx`, `.xlsm`, `.csv`, `.sjs`, and `.ssjson` files.
 - Open workbooks from the file tree and edit them with SpreadJS Designer.
 - Save edits straight back to the file: atomic, confined to the session workspace, with conflict detection.
-- Follows the system's light or dark theme: the Designer swaps to its dark preset stylesheet and the workbook swaps to its own Excel dark one, together.
+- Follows the system's light or dark theme, toolbars and worksheet alike.
 - An **About** button in the settings tab reports the bundled versions, the licence state and the copyright.
 
 ### Bundled Versions and File Compatibility
@@ -163,7 +163,7 @@ For upgrades, see the [release notes](CHANGELOG.md).
 
 Save has a single entry point: the **保存到工作区** button in the Designer's File tab, in the place the built-in "save as .sjs" button used to occupy. It writes your changes back to the file you opened, and there is no second prompt, because pressing Save *is* the intent.
 
-- **The File tab is reduced to one Save action.** The Designer's default Save is a dialog that downloads a file — in the File tab that is the "SpreadJS file, filename, .sjs" form. Before building the Designer the plugin rewrites the menu template: the nav keeps only Save, that panel keeps its heading plus our button (rebuilt at the built-in button's own size), and the other categories (new, open, import, export, print, info) and their separators are removed outright. A copy is what the harness's own file download is for.
+- **The File tab is reduced to one Save action.** The Designer's own Save is a dialog that downloads a file; this plugin replaces it with a write-back to the file you opened, and the File tab keeps only that one action — new, open, import, export, print and info are removed outright. A copy is what the harness's own file download is for.
 - **A workbook that is still loading cannot be saved.** It has no content yet, so saving would overwrite the file with an empty book; the save command refuses, with an explanation, until the load finishes.
 - **It will not clobber someone else's edit.** The plugin records the file's content hash when it opens it and re-checks before writing; if the file changed in the meantime (an agent edited it, you saved it elsewhere), the save is refused with an explanation instead of overwriting those changes.
 - **It never leaves half a file.** A same-directory temporary file is renamed over the target, so any other reader always sees a complete workbook.
