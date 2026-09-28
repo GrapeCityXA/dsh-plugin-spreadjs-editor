@@ -35,7 +35,9 @@ import {
   type DesignerConfigLike,
   type DesignerNamespaceLike,
 } from './designer-save-command.ts'
+import { installDesignerAbout } from './about.ts'
 import { installDesignerFileMenu, type DesignerFileMenuNamespace } from './designer-file-menu.ts'
+import { setEditorTheme } from './styles.ts'
 
 export type ExportFormat = 'xlsx' | 'sjs' | 'ssjson' | 'csv'
 export type StatusTone = 'idle' | 'busy' | 'error'
@@ -177,12 +179,25 @@ const DARK_THEME: Record<string, string | undefined> = {
   shadow8: '0 2px 6px rgba(0, 0, 0, 0.5)',
 }
 
-function applyDesignerTheme(): void {
-  const ns = designerNamespace()
-  if (ns?.setTheme === undefined) return
-  const dark = typeof window !== 'undefined'
+function prefersDark(): boolean {
+  return typeof window !== 'undefined'
     && typeof window.matchMedia === 'function'
     && window.matchMedia('(prefers-color-scheme: dark)').matches === true
+}
+
+/**
+ * Follow the OS light/dark preference for both halves of the editor: the
+ * workbook's own stylesheet and the Designer's chrome preset are swapped, and
+ * the caller repaints the workbook to apply that half. `setTheme` is layered on
+ * top, because it only recolours the Designer's variables — it reaches neither
+ * the workbook nor the product's icon assets, which is exactly the bug the
+ * preset swap fixes.
+ */
+function applyEditorTheme(): void {
+  const dark = prefersDark()
+  setEditorTheme(dark)
+  const ns = designerNamespace()
+  if (ns?.setTheme === undefined) return
   try {
     ns.setTheme(dark ? DARK_THEME : null)
   } catch {
@@ -316,19 +331,24 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
       if (ns !== undefined && designerLicenseKey !== '') ns.LicenseKey = designerLicenseKey
     }, [licenseKey, designerLicenseKey, ready])
 
-    // Follow the OS light/dark preference for the Designer chrome. This runs
-    // before the Designer is constructed so the instance starts on the right
-    // palette, and keeps listening for live system theme changes.
+    // Follow the OS light/dark preference for both halves of the editor. This
+    // runs before the Designer is constructed, so it starts on the right palette
+    // and on the matching runtime stylesheet, and keeps listening for live
+    // system theme changes. The workbook is repainted because a theme change is
+    // applied by swapping that stylesheet, not by a Designer setting.
     useEffect(() => {
       if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
       const mq = window.matchMedia('(prefers-color-scheme: dark)')
-      applyDesignerTheme()
-      const onChange = (): void => applyDesignerTheme()
-      if (typeof mq.addEventListener === 'function') mq.addEventListener('change', onChange)
-      else if (typeof mq.addListener === 'function') (mq as MediaQueryList & { addListener(cb: () => void): void }).addListener(onChange)
+      const apply = (): void => {
+        applyEditorTheme()
+        designerRef.current?.getWorkbook()?.refresh()
+      }
+      apply()
+      if (typeof mq.addEventListener === 'function') mq.addEventListener('change', apply)
+      else if (typeof mq.addListener === 'function') (mq as MediaQueryList & { addListener(cb: () => void): void }).addListener(apply)
       return () => {
-        if (typeof mq.removeEventListener === 'function') mq.removeEventListener('change', onChange)
-        else if (typeof mq.removeListener === 'function') (mq as MediaQueryList & { removeListener(cb: () => void): void }).removeListener(onChange)
+        if (typeof mq.removeEventListener === 'function') mq.removeEventListener('change', apply)
+        else if (typeof mq.removeListener === 'function') (mq as MediaQueryList & { removeListener(cb: () => void): void }).removeListener(apply)
       }
     }, [])
 
@@ -370,6 +390,18 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
       if (menu.summary.length > 0) {
         console.info(`[dsh-spreadjs-editor] file menu rows this build did not recognise:\n${menu.summary.join('\n')}`)
       }
+      // The panel used to describe itself in a status bar; that information — the
+      // plugin and SpreadJS versions, and the licence state — lives in an About
+      // dialog now, opened from a button in the Designer's own ribbon.
+      const about = installDesignerAbout(ns, config, {
+        runtimeLicensed: licenseKey !== '',
+        designerLicensed: designerLicenseKey !== '',
+      })
+      console.info(
+        `[dsh-spreadjs-editor] about button installed=${about.installed} tab=${about.tab ?? '-'}`
+        + ` registered=${about.registered} command=${about.command} ribbonGroup=${about.ribbonGroup}`
+        + (about.reason === undefined ? '' : ` reason=${about.reason}`),
+      )
       const designer = new ns.Designer(el, config)
       const spread = designer.getWorkbook()
       if (spread !== undefined) {

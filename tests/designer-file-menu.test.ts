@@ -60,7 +60,7 @@ function panel(category: string, title: string): FileMenuNode {
           children: [
             { type: 'TextBlock', text: 'SpreadJS 文件' },
             { type: 'TextEditor', bindingPath: 'saveFileName' },
-            { type: 'Button', text: title, bindingPath: 'button_save_sjs' },
+            { type: 'Button', margin: '10px 50px', text: title, width: 70, height: 30, bindingPath: 'button_save_sjs' },
           ],
         }],
       },
@@ -188,8 +188,23 @@ describe('installDesignerFileMenu', () => {
     // The panel keeps its own heading, so the tab still reads as Save.
     expect(children).toHaveLength(2)
     expect(children[0]?.text).toBe('保存')
-    const button = ((children[1]?.children as FileMenuNode[])[0]?.children as FileMenuNode[])[0]
-    expect(button).toMatchObject({ type: 'Button', text: SAVE_LABEL, bindingPath: SAVE_TO_WORKSPACE })
+    // The action keeps the built-in block's geometry — the same inset and the
+    // same 500px setting column — and sizes its button, because an unsized
+    // Designer button collapses onto its label, which then wraps and touches
+    // the border.
+    const actions = children[1] as FileMenuNode
+    expect(actions.margin).toBe('20px 0 0 50px')
+    const settings = ((actions.children as FileMenuNode[])[0]?.children as FileMenuNode[])[0]
+    expect(settings?.className).toBe('file-menu-setting-container')
+    const button = (settings?.children as FileMenuNode[])[0]
+    expect(button).toMatchObject({
+      type: 'Button',
+      margin: '10px 50px',
+      text: SAVE_LABEL,
+      width: 140,
+      height: 30,
+      bindingPath: SAVE_TO_WORKSPACE,
+    })
     // The built-in filename box and its download button are gone.
     expect(JSON.stringify(kept)).not.toContain('button_save_sjs')
     expect(JSON.stringify(kept)).not.toContain('saveFileName')

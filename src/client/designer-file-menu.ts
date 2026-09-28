@@ -180,14 +180,32 @@ function valuesOf(items: unknown): string[] {
   return out
 }
 
-/** The action this plugin installs, shaped like the button the Designer uses. */
+/**
+ * The action this plugin installs, rebuilt from the block it replaces: the same
+ * `ColumnSet` inset, the same 500px `file-menu-setting-container`, and the
+ * built-in row's own `margin`/`height`. A Designer button has no intrinsic
+ * width — without them the label is unsized, so it wraps and touches the
+ * border. (The built-in button next to it is `margin:'10px 50px', width:70,
+ * height:30` for a two-character label; this one needs room for six.)
+ */
 function ourAction(): FileMenuNode {
   return {
     type: 'ColumnSet',
     margin: '20px 0 0 50px',
     children: [{
       type: 'Column',
-      children: [{ type: 'Button', text: SAVE_LABEL, bindingPath: SAVE_TO_WORKSPACE }],
+      children: [{
+        type: 'Container',
+        className: 'file-menu-setting-container',
+        children: [{
+          type: 'Button',
+          margin: '10px 50px',
+          text: SAVE_LABEL,
+          width: 140,
+          height: 30,
+          bindingPath: SAVE_TO_WORKSPACE,
+        }],
+      }],
     }],
   }
 }

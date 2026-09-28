@@ -16,7 +16,6 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { DocumentContent, DocumentPreviewProps } from '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/client'
-import { VersionLabel } from './VersionLabel.tsx'
 import {
   SpreadsheetHost,
   type SpreadsheetFileAccess,
@@ -57,6 +56,8 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
   const hostRef = useRef<SpreadsheetHostHandle | null>(null)
   /** Hash of the bytes currently on disk, as this panel last saw them. */
   const baselineRef = useRef<string | undefined>(undefined)
+  /** The pending "this message fades" timer, if one is running. */
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [licenseKey, setLicenseKey] = useState('')
   const [designerLicenseKey, setDesignerLicenseKey] = useState('')
   const [configReady, setConfigReady] = useState(false)
@@ -64,7 +65,6 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
   const [statusTone, setStatusTone] = useState<StatusTone>('idle')
   /** The workbook is being read into the Designer; Save must wait for it. */
   const [loading, setLoading] = useState(false)
-  const [saving, setSaving] = useState(false)
 
   // Record the freshness token of what was opened. A save compares it with the
   // file on disk, so an edit made elsewhere between opening and saving surfaces
@@ -147,18 +147,11 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
   const handleStatus = useCallback((next: string, tone: StatusTone = 'idle') => {
     setStatus(next)
     setStatusTone(tone)
-  }, [])
-
-  // The panel's own Save. It calls the same write-back the Designer's Save
-  // command was re-pointed at, so both paths write the workspace file and there
-  // is no second, download-shaped meaning of "save" to fall into.
-  const handleSave = useCallback(async () => {
-    setSaving(true)
-    try {
-      await hostRef.current?.save()
-    } finally {
-      setSaving(false)
-    }
+    if (hideTimerRef.current !== null) clearTimeout(hideTimerRef.current)
+    // An in-flight operation and a failure hold their message until something
+    // replaces them; "Loaded x" or "Saved x" is transient.
+    if (next === '' || tone === 'busy' || tone === 'error') return
+    hideTimerRef.current = setTimeout(() => { setStatus('') }, 4000)
   }, [])
 
   const noop = useCallback(() => {}, [])
@@ -177,20 +170,7 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
   }
 
   return (
-    <div className="dsh-spreadjs-panel" role="region" aria-label={`SpreadJS: ${source.name}`}>
-      <div className="dsh-spreadjs-header">
-        <span className="dsh-spreadjs-title" title={address?.path ?? source.name}>{source.name}</span>
-        <span className="dsh-spreadjs-spacer" />
-        <button
-          type="button"
-          className="dsh-spreadjs-btn dsh-spreadjs-btn-primary"
-          onClick={() => { void handleSave() }}
-          disabled={!configReady || loading || saving}
-          title={`Write the workspace file (Ctrl+S): ${address?.path ?? source.name}`}
-        >
-          {saving ? 'Saving…' : 'Save'}
-        </button>
-      </div>
+    <div className="dsh-spreadjs-panel" role="region" aria-busy={loading} aria-label={`SpreadJS: ${source.name}`}>
       <div className="dsh-spreadjs-editor">
         <SpreadsheetHost
           ref={hostRef}
@@ -204,10 +184,9 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
           onNewWorkbook={noop}
         />
       </div>
-      <div className="dsh-spreadjs-statusbar">
-        <span className={`dsh-spreadjs-status-text dsh-spreadjs-status-${statusTone}`}>{status}</span>
-        <VersionLabel />
-      </div>
+      {status === ''
+        ? null
+        : <div className={`dsh-spreadjs-toast dsh-spreadjs-toast-${statusTone}`} role="status">{status}</div>}
     </div>
   )
 }

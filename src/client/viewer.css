@@ -5,6 +5,8 @@
   flex-direction: column;
   width: 100%;
   height: 100%;
+  /* Anchors the floating status message. */
+  position: relative;
   /* The Sidebar document body is a text-oriented block: it sets a monospace
      font and `white-space: pre` for the text it was built to show. Claim this
      panel's own presentation instead of inheriting it, exactly as the product's
@@ -20,73 +22,6 @@
   color: var(--dsw-fg, #1f2329);
 }
 
-.dsh-spreadjs-header {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  row-gap: 8px;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--dsw-border, #d5d8de);
-  background: var(--dsw-bg-subtle, #f7f8fa);
-  flex: 0 0 auto;
-  min-width: 0;
-}
-
-.dsh-spreadjs-title {
-  font-size: 14px;
-  font-weight: 600;
-  margin: 0;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.dsh-spreadjs-spacer {
-  flex: 1 1 auto;
-}
-
-.dsh-spreadjs-btn {
-  appearance: none;
-  border: 1px solid var(--dsw-border, #c9cdd4);
-  background: var(--dsw-bg, #ffffff);
-  color: inherit;
-  border-radius: 6px;
-  padding: 5px 12px;
-  font-size: 12px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.dsh-spreadjs-btn:hover:not(:disabled) {
-  background: var(--dsw-bg-hover, #eef0f3);
-}
-
-.dsh-spreadjs-btn:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
-
-.dsh-spreadjs-btn-primary {
-  background: #3b6ef6;
-  border-color: #3b6ef6;
-  color: #fff;
-}
-
-.dsh-spreadjs-btn-primary:hover:not(:disabled) {
-  background: #2f5ce0;
-}
-
-.dsh-spreadjs-export-select {
-  max-width: 110px;
-  padding: 4px 6px;
-  font-size: 12px;
-  border: 1px solid var(--dsw-border, #c9cdd4);
-  border-radius: 6px;
-  background: var(--dsw-bg, #ffffff);
-  color: inherit;
-}
 
 .dsh-spreadjs-editor {
   flex: 1 1 auto;
@@ -147,70 +82,59 @@
   background: var(--dsw-bg, #ffffff);
 }
 
-.dsh-spreadjs-statusbar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 28px;
-  padding: 4px 12px;
-  border-top: 1px solid var(--dsw-border, #d5d8de);
-  background: var(--dsw-bg-subtle, #fafbfc);
-  color: var(--dsw-fg-muted, #6b7280);
+/* Status feedback floats over the editor instead of holding a bar of its own:
+   the panel is a document view, and the Designer already owns a status area.
+   What must stay visible is a failure (a refused save is the important one), so
+   busy and error messages persist and the rest fade in the component. */
+.dsh-spreadjs-toast {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 20;
+  max-width: min(70%, 420px);
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--dsw-border, #d5d8de);
+  background: var(--dsw-bg, #ffffff);
+  color: var(--dsw-fg-muted, #4b5563);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   font-size: 12px;
-  flex: 0 0 auto;
+  line-height: 1.4;
+  pointer-events: none;
 }
 
-.dsh-spreadjs-status-error {
+.dsh-spreadjs-toast-error {
+  border-color: #e0b4ae;
   color: #c0392b;
 }
 
-.dsh-spreadjs-status-text {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.dsh-spreadjs-version {
-  flex: 0 0 auto;
-  margin-left: auto;
-  font-size: 11px;
-  font-weight: 400;
-  white-space: nowrap;
-}
-
-.dsh-spreadjs-status-busy {
+.dsh-spreadjs-toast-busy {
   color: #1a56db;
 }
 
-/* Follow the OS light/dark preference. The Designer chrome is themed through
-   GC.Spread.Sheets.Designer.setTheme(); these rules are a fallback for the
-   Designer container and the spreadsheet canvas so it stays readable in dark. */
+/* Follow the OS light/dark preference. The Designer chrome and the workbook are
+   themed by their own stylesheets (see styles.ts), so these rules cover the
+   panel's own chrome only — they must not fight the product's theme inside the
+   host. */
 @media (prefers-color-scheme: dark) {
   .dsh-spreadjs-panel {
     color-scheme: dark;
   }
 
-  .dsh-spreadjs-header {
-    background: #1e2227;
+  .dsh-spreadjs-toast {
     border-color: #343a42;
+    background: #1e2227;
+    color: #c7ccd3;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
   }
 
-  .dsh-spreadjs-btn {
-    background: #262b32;
-    border-color: #3a414a;
-    color: #e8eaed;
+  .dsh-spreadjs-toast-error {
+    border-color: #6b3a34;
+    color: #f0a0a0;
   }
 
-  .dsh-spreadjs-btn:hover:not(:disabled) {
-    background: #2c3138;
-  }
-
-  .dsh-spreadjs-export-select {
-    background: #262b32;
-    border-color: #3a414a;
-    color: #e8eaed;
+  .dsh-spreadjs-toast-busy {
+    color: #8ab4ff;
   }
 
   .dsh-spreadjs-loading {
@@ -221,17 +145,5 @@
   .dsh-spreadjs-error {
     background: #171a1f;
     color: #f0a0a0;
-  }
-
-  .dsh-spreadjs-host,
-  .dsh-spreadjs-host .gc-designer-container,
-  .dsh-spreadjs-host .spread-sheets,
-  .dsh-spreadjs-host .sheet-container,
-  .dsh-spreadjs-host .rowHeader,
-  .dsh-spreadjs-host .colHeader,
-  .dsh-spreadjs-host .hscrollbar,
-  .dsh-spreadjs-host .vscrollbar {
-    background-color: #1e2227;
-    color: #e8eaed;
   }
 }
