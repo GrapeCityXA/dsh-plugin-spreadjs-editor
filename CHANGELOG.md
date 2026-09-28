@@ -2,39 +2,25 @@
 
 ## 0.2.0
 
-> 从 `0.1.4` 升级属于破坏性变更。仓库里准备过的 `0.1.5` 从未发布，其内容已并入本版。
+> 破坏性变更：本版要求 DSH `>=0.1.5-rc.3`，并改用 DSH 自带的右侧栏，不再需要任何第三方侧边栏插件；升级前请先升级 DSH。仓库里准备过的 `0.1.5` 从未发布，其内容已并入本版。
 
 ### 中文
 
-- **保存**：编辑器可把改动直接写回你打开的那个文件，入口只有一处——Designer「文件」菜单里的「保存到工作区」。
-  - 「文件」菜单里只保留这一个动作，新建、打开、导入、导出、打印、信息等分类与分隔线一并移除；需要副本时用 DSH 自己的文件下载。
-  - 写回是原子的（同目录替换），限定在会话工作区内，并带冲突检测：文件在打开后被外部改过会拒绝覆盖并说明原因。
-  - 按下保存即写入，不再二次确认；工作簿尚未载入完成时会拒绝保存，避免用空表覆盖原文件。
-  - DSH 的文件系统接口目前只能写文本，写回工作簿因此由本插件自己完成。
-- **改用 DSH 自带的右侧栏**：不再依赖第三方侧边栏插件，文件内容也交由 DSH 读取。
-- **深浅色主题完整跟随系统**：此前只有 Designer 的工具栏与面板变深、表格区域仍是白底，现在工作表一起切换；并修复了深色下文件菜单返回箭头等图标颜色不对的问题。
-- **界面更简洁**：去掉面板顶部只显示文件名的标题栏（DSH 标签页已有）和底部状态栏；保存、冲突等提示改为编辑器右下角浮层（进行中与失败常驻，成功类数秒后淡出）。
-- **新增「关于」**：Designer「设置」标签中的「关于」按钮可查看插件版本、内置 SpreadJS 与 Designer 版本、授权是否已配置以及版权信息。
-- **内置 SpreadJS 升级到 19.2.0**（Designer、IO、中文资源等 20 个相关包同步升级）。
-- **要求 DSH `>=0.1.5-rc.3`**，客户端契约改用 `@deepseek-ai/cordis` + `@deepseek-ai/dsh-client-ui-slots`（原 `@deepseek-ai/dsh-client-runtime` 已停止发布）。
-- 新增 `spreadjsHostBridge` 桥接：把当前编辑中的工作簿（活对象，不是文件副本）交给配套的 `@grapecity-software/dsh-spreadjs-driver`，装上它即可让 Agent 通过对话直接修改这张表；未安装 driver 时插件行为不变。桥接契约变化：`getActivePath()` 返回 DSH 资源地址（同时携带会话与路径），保存接口以它定位文件。
-- 新增配置项 `maxSaveBytes`（默认 64 MB）与 `trustedHosts`；另加维护者自检脚本 `npm run probe:live`（对正在运行的 DSH 验证保存链路，无需浏览器）。
+- **编辑后可以直接保存回原文件**：Designer「文件」菜单里点「保存到工作区」即可。写回限定在会话工作区内，带冲突检测（文件被外部改过会拒绝并说明原因），按下即写入、不再二次确认。「文件」菜单里只保留这一个动作，其余分类（新建、打开、导入、导出、打印、信息）已移除，需要副本时用 DSH 自己的文件下载。
+- **浅色/深色完整跟随系统**：此前只有工具栏和面板变深、工作表区域仍是白底，现在一起切换。
+- **界面更干净**：去掉面板顶部的文件名标题栏（DSH 标签页已有）和底部状态栏，保存与冲突提示改为右下角浮层。
+- **新增「关于」**：Designer「设置」标签里可查看插件版本、内置 SpreadJS 与 Designer 版本、授权状态和版权信息。
+- **可以让 AI 直接改你正在编辑的表**：另装配套的 `@grapecity-software/dsh-spreadjs-driver` 后，可通过对话让 Agent 修改当前工作簿；未安装时插件行为不变。
+- 内置 SpreadJS 升级到 19.2.0；新增配置项 `maxSaveBytes`（默认 64 MB）与 `trustedHosts`。
 
 ### English
 
-- **Saving**: the editor writes your changes straight back to the file you opened, with a single entry point — `保存到工作区` (save to workspace) in the Designer's File tab.
-  - The File tab keeps only that action; new, open, import, export, print and info are removed outright. A copy is what the harness's own file download is for.
-  - The write is atomic (a same-directory replacement), confined to the session workspace, and guarded against conflicts: a file changed on disk since it was opened is refused, with an explanation.
-  - Pressing Save writes immediately, with no second prompt; a workbook that is still loading refuses to save rather than overwrite the file with an empty book.
-  - The harness filesystem interface writes text only, so writing a workbook back is done by this plugin itself.
-- **Uses the harness's own right Sidebar**: no third-party sidebar plugin required, and the harness reads the file contents.
-- **Light/dark now follows the system all the way**: previously only the Designer's toolbars and panels darkened while the sheet stayed white — the worksheet switches too now, and the wrong icon colours in dark mode (the File-menu back arrow among them) are fixed.
-- **A simpler panel**: the title bar (the harness tab already names the file) and the status bar are gone; save and conflict messages appear as a floating notice in the corner — in-flight and failed messages persist, success messages fade after a few seconds.
-- **New About dialog**: a button in the Designer's settings tab reports the plugin version, the bundled SpreadJS and Designer versions, the licence state and the copyright.
-- **Bundled SpreadJS moved to 19.2.0** (the Designer, IO, the Chinese resources — 20 packages in all).
-- **Requires DSH `>=0.1.5-rc.3`**; the client contract moves to `@deepseek-ai/cordis` + `@deepseek-ai/dsh-client-ui-slots` (`@deepseek-ai/dsh-client-runtime` is discontinued).
-- Add the `spreadjsHostBridge` bridge: it hands the workbook you are editing (a live object, not a file copy) to the companion `@grapecity-software/dsh-spreadjs-driver`, so an agent can edit the sheet on screen; without the driver the plugin behaves exactly as before. Contract change: `getActivePath()` returns the DSH resource address (session and path together) and the save endpoint resolves the file from it.
-- New configuration: `maxSaveBytes` (default 64 MB) and `trustedHosts`; plus `npm run probe:live` for maintainers, which verifies the save path against a running DSH with no browser involved.
+- **Save your edits straight back to the file you opened**: press `保存到工作区` (save to workspace) in the Designer's File tab. The write stays inside the session workspace and is guarded against conflicts (a file changed on disk is refused, with a reason), and it writes immediately with no second prompt. That is now the File tab's only action — new, open, import, export, print and info are gone, so use the harness's own file download for a copy.
+- **Light and dark follow the system all the way**: previously only the toolbars and panels darkened while the sheet stayed white.
+- **A cleaner panel**: the file-name title bar (the harness tab already shows it) and the status bar are gone, and save or conflict messages appear as a floating notice in the corner.
+- **A new About dialog**: the Designer's settings tab shows the plugin and bundled versions, the licence state and the copyright.
+- **Let an agent edit the sheet you are looking at**: with the companion `@grapecity-software/dsh-spreadjs-driver` installed, you can ask an agent to change the open workbook in conversation; without it the plugin behaves as before.
+- Bundled SpreadJS moved to 19.2.0; new configuration `maxSaveBytes` (default 64 MB) and `trustedHosts`.
 
 ## 0.1.4
 
