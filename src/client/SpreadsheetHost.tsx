@@ -35,8 +35,7 @@ import {
   type DesignerConfigLike,
   type DesignerNamespaceLike,
 } from './designer-save-command.ts'
-import { installDesignerAbout } from './about.ts'
-import { installDesignerFileMenu, type DesignerFileMenuNamespace } from './designer-file-menu.ts'
+import { installDesignerAbout, type DesignerAboutNamespace } from './about.ts'
 import { editorText } from './locales.ts'
 import { setEditorTheme } from './styles.ts'
 import { harnessThemeIsDark, onHarnessThemeChange } from './ds-theme.ts'
@@ -149,7 +148,7 @@ interface DesignerLike {
   destroy?(): void
 }
 
-interface DesignerNamespace extends DesignerNamespaceLike, DesignerFileMenuNamespace {
+interface DesignerNamespace extends DesignerNamespaceLike, DesignerAboutNamespace {
   Designer?: new (host: HTMLDivElement, config?: unknown, spread?: unknown, spreadOptions?: unknown) => DesignerLike
   DefaultConfig?: unknown
   LicenseKey?: string
@@ -423,19 +422,14 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
       if (!steered) {
         console.warn('[dsh-spreadjs-editor] the Designer Save command was not redirected; use Save in the document header')
       }
-      // The File tab dispatches through its own handler rather than the command
-      // table, so the redirect above does not reach its Save row. Rebind that row
-      // in the menu template — and drop the rows that contradict a document tab —
-      // before the Designer instance is built from it.
-      const menu = installDesignerFileMenu(ns)
-      console.info(
-        `[dsh-spreadjs-editor] file menu installed=${menu.installed} handler=${menu.handler}`
-        + ` navKept=${menu.navKept} navAdded=${menu.navAdded} actionsReplaced=${menu.actionsReplaced}`
-        + ` navDropped=[${menu.navDropped.join(',')}] panelsDropped=[${menu.panelsDropped.join(',')}]`,
-      )
-      if (menu.summary.length > 0) {
-        console.info(`[dsh-spreadjs-editor] file menu rows this build did not recognise:\n${menu.summary.join('\n')}`)
-      }
+      // The Designer's File tab is deliberately left exactly as it ships. Its rows
+      // dispatch through the menu's own handler rather than the command table, so
+      // steering it means rewriting a private template — and nothing needs that any
+      // more: the editor's Save is the published document-header action
+      // (SpreadsheetActions.tsx), with Ctrl+S on the same redirect above. What the
+      // File tab keeps is a copy: File → Save downloads a workbook, which is what
+      // that row has always meant to a Designer that does not own a session file.
+      //
       // The panel used to describe itself in a status bar; that information — the
       // plugin and SpreadJS versions, and the licence state — lives in an About
       // dialog now, opened from a button in the Designer's own ribbon.

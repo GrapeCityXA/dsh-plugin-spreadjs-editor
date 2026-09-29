@@ -95,58 +95,59 @@
   background: var(--dsw-alias-bg-base);
 }
 
-/* The panel's own state line: a real row above the Designer, never a floating hint.
+/* Unsaved work floats as a pill over the sheet instead of holding a row of the
+ * panel's own column.
  *
- * It is always present while a file is open — it reports "已保存" too — because a row
- * that appeared only while something was dirty would resize the editor under whoever
- * is typing in it. Its text and its actions change in place; its height never does.
- * Transient feedback (loading, saved, a failure) stays a toast instead: it floats in
- * the editor's corner and leaves on its own. */
-.dsh-spreadjs-statusbar {
-  flex: 0 0 auto;
+ * A row would keep height away from the Designer for the whole session to report
+ * something that is usually "everything is saved" — and where the platform publishes
+ * the header actions slot (DSH 0.1.7+) the Save button already carries that mark. The
+ * pill costs no layout, appears only while it has something to say, and keeps its
+ * actions inside it: the restore/discard decision belongs next to the state it
+ * explains, and it has to be clickable although the rest of this column ignores the
+ * pointer. */
+.dsh-spreadjs-chip {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 24px;
-  padding: 2px 4px 2px 12px;
-  border-bottom: 1px solid var(--dsw-alias-border-l3);
+  max-width: min(85%, 460px);
+  padding: 3px 4px 3px 10px;
+  border: 1px solid var(--dsw-alias-border-l3);
+  border-radius: 999px;
   background: var(--dsw-alias-bg-layer-2);
-  color: var(--dsw-alias-label-secondary);
-  font-size: 12px;
-  line-height: 1.6;
+  /* The harness's "attention, not error" tone: unsaved work is the only thing this
+     pill ever reports, so it has no muted variant to switch to. */
+  color: var(--dsw-alias-state-business-primary);
+  box-shadow: var(--dsw-elevation-soft);
+  font-size: 11px;
+  line-height: 1.4;
+  pointer-events: auto;
 }
 
-.dsh-spreadjs-statusbar-text {
+.dsh-spreadjs-chip-text {
   flex: 1 1 auto;
   min-width: 0;
 }
 
-/* The harness's own "attention, not error" tone for unsaved work; a saved file keeps
-   the muted label colour, so it reads as background information rather than a state
-   the user has to act on. */
-.dsh-spreadjs-statusbar-text[data-tone='dirty'] {
-  color: var(--dsw-alias-state-business-primary);
-}
-
-.dsh-spreadjs-statusbar-action {
+.dsh-spreadjs-chip-action {
   flex: 0 0 auto;
   padding: 2px 10px;
   border: 1px solid var(--dsw-alias-border-l3);
-  border-radius: 4px;
+  border-radius: 999px;
   background: var(--dsw-alias-bg-base);
   color: var(--dsw-alias-label-primary);
   font: inherit;
   cursor: pointer;
 }
 
-.dsh-spreadjs-statusbar-action:hover {
-  background: var(--dsw-alias-bg-layer-2);
+.dsh-spreadjs-chip-action:hover {
+  background: var(--dsw-alias-bg-layer-3);
 }
 
 /* Status feedback floats over the editor instead of holding a row of its own: the
    panel is a document view, and the Designer already owns a status area. What must
    stay visible is a failure (a refused save is the important one), so busy and error
-   messages persist and the rest fade in the component. */
+   messages persist and the rest fade in the component.
+   The unsaved pill shares this anchored column, so the two never overlap. */
 .dsh-spreadjs-overlay {
   position: absolute;
   right: 12px;

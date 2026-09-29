@@ -40,7 +40,7 @@ A DeepSeek Harness Web UI plugin that opens, views, and edits Excel / SpreadJS f
 | --- | --- | --- |
 | `0.1.7-rc.2` | ✅ 构建与验收基线 | `typecheck`、164 项单测、两个 smoke、`verify:package`、`probe:live` 全部通过（`probe:live` 的版本核对需要先重启 DSH，见下文） |
 | `0.1.6.x` | ⚪ 未验证 | 没有核对过这个区间的平台：既未逐项跑验收，也不确定它是否已提供下表中的能力 |
-| `0.1.5-rc.3` | ✅ 上一版验收基线 | 插件最初就是对着它构建并验收的；它会忽略「二进制后缀」声明，查看方式列表里仍可能出现纯文本一项；文档头部没有动作槽，因此只有 Designer 内的保存入口与面板顶部那一行 |
+| `0.1.5-rc.3` | ✅ 上一版验收基线 | 插件最初就是对着它构建并验收的；它会忽略「二进制后缀」声明，查看方式列表里仍可能出现纯文本一项；文档头部没有动作槽，因此保存入口只有 `Ctrl+S`，未保存状态靠面板右下角的浮动胶囊 |
 
 `0.1.7` 起平台提供了三样本插件会用到的能力：文档定义里的**二进制后缀**声明（决定是否还提供纯文本查看方式）、内置的只读 Excel 预览（会与本插件并列出现在查看方式列表里），以及文档头部**官方动作槽** `sidebar.right.tab.document.actions`（「保存 / 另存为」就注册在这里）。插件在 `0.1.5-rc.3` 上照常工作，只是拿不到这三点中的前两点，工具栏上的这两个按钮也不出现。
 
@@ -66,7 +66,7 @@ npx --yes @deepseek-ai/dsh@latest --profile web
 
 保存的正式入口是 **DSH 文档头部自己的工具栏**（打开工作簿后，文件名旁边那颗「保存」）。它注册在 DSH `0.1.7` 起的官方动作槽 `sidebar.right.tab.document.actions` 里，与其它查看器的控件排在一起；有未保存改动时，「保存」前会多一个标记点，像 Excel 标题栏的 `*`。改动写回你打开的那个文件，不会再问你"要不要保存"，因为按下保存本身就是你的意图。
 
-同一份写回也挂在 **`Ctrl+S` 和 Designer 自己的保存按钮**上：插件把 Designer 的 Save 命令重定向到写回，所以这几处按下都不会再弹出下载框。
+同一份写回也挂在 **`Ctrl+S` 和 Designer 工具栏上的保存按钮**上：插件把 Designer 的 Save 命令重定向到写回，所以这两处按下都不会再弹出下载框。（「文件」标签页里的那一行不在其中，见本节末尾。）
 
 这两颗头部按钮并不引用 DSH 的按钮组件——第三方客户端插件不能假定内部的 `@deepseek-ai/*` 包在运行时一定可解析，解析失败会连编辑器一起挂掉——而是照抄了邻居的规格：28px 高、`padding: 0 6px`、12px 字号、常态 `--dsw-alias-label-secondary`，悬停转 `--dsw-alias-label-primary` 并给 `--dsw-alias-interactive-bg-hover` 底色，禁用转 `--dsw-alias-label-tertiary` 且不再响应。也就是头部「查看器名称」与图标按钮的那一套；有一条单测钉住这些数值，避免以后悄悄漂移。
 
@@ -74,7 +74,7 @@ npx --yes @deepseek-ai/dsh@latest --profile web
 
 顺序上它们排在「用本地应用打开」**之前**。槽位是 list，条目按公开的 `order` 排序（先 `priority`，再 `order`，最后才轮到注册顺序），插件注册在 `-10` —— 而这正是 DSH 自己给「头部动作里排第一」用的值（`dsh-client-ui-agent-preset` 注册会话头部标签时就是 `order: -10`）。这样「先保存、再考虑外部打开」是确定的阅读顺序，也不再受插件加载顺序影响；未保存的标记点也因此落在这一组的第一项上，一眼就能看到。
 
-Designer「文件」菜单里的「保存到工作区」仍然保留——那段代码改的是 Designer 的**私有**菜单模板，属于"尽力而为"的一致性补丁，不是保存的必要条件：即便模板结构变了、补丁失效，上面的工具栏与 `Ctrl+S` 照样写回文件。
+Designer「文件」标签页保持原样，插件不再改写它的私有菜单模板。那段改写曾经把这一页收敛成一颗「保存到工作区」，代价是依赖 Designer 的内部模板结构；现在没有必要了——保存的正式入口已经搬到文档头部，`Ctrl+S` 也照样写回，而「文件」页里的保存就按 Designer 的本义下载一份副本。少一处私有结构依赖，这条路径上唯一的代价是：从这里点保存得到的是副本，而不是写回。
 
 - **工作簿还没载入完时不让保存。** 载入中的工作簿是空的，此时保存会用空表覆盖原文件；载入完成前保存命令会拒绝并说明。
 - **不会冲掉别人的修改。** 打开文件时插件记下其内容哈希；保存前重新比对，若磁盘上的文件在此期间被改过（Agent 改过、你在别处存过），保存会被拒绝并说明原因，而不是覆盖掉那些改动。
@@ -98,9 +98,9 @@ Designer「文件」菜单里的「保存到工作区」仍然保留——那段
 DSH 在标签页被切走时会卸载文档主体，平台也没有可供拦下的关闭钩子（关闭是同步的，文档定义里既无生命周期也没有否决点），所以这里**不做「确认离开」的拦截**，而是保证不丢：
 
 - **切走再切回不丢。** 有未保存改动的工作簿会在主体卸载前留成一份快照，切回同一个标签页时原样恢复，不需要重新读盘。
-- **关掉标签页也不丢。** 快照同时按文件路径保留；重新打开同一个文件时，只要磁盘上的文件仍是快照写下的那一版，就自动恢复，并在面板顶部说明来源。
-- **文件被外部改过时不默默套用。** 若磁盘上的文件已经变了（Agent 改过、你在别处存过），面板顶部会提示「存在未保存的改动缓存，但文件已在磁盘上被修改」，由你选择**恢复**（用缓存继续，之后保存即写入磁盘）或**丢弃**（重新读盘）。
-- **看得见，而且有两处。** 头部工具栏的「保存」在有未保存改动时带一个标记点（像 Excel 标题栏的 `*`），这是 DSH `0.1.7` 及以上才有的位置；面板顶部另有一行常驻状态：有未保存改动时显示「未保存的改动」并提供「丢弃」，保存成功后回到「已保存」。那行始终占位，所以开始编辑的那一刻不会把编辑器顶动——它在 `0.1.5/0.1.6` 上还是唯一的状态提示，也因此保留。
+- **关掉标签页也不丢。** 快照同时按文件路径保留；重新打开同一个文件时，只要磁盘上的文件仍是快照写下的那一版，就自动恢复，并在面板右下角的胶囊里说明来源。
+- **文件被外部改过时不默默套用。** 若磁盘上的文件已经变了（Agent 改过、你在别处存过），面板右下角会浮出一个胶囊提示「存在未保存的改动缓存，但文件已在磁盘上被修改」，由你选择**恢复**（用缓存继续，之后保存即写入磁盘）或**丢弃**（重新读盘）。
+- **看得见，而且有两处。** 头部工具栏的「保存」在有未保存改动时带一个标记点（像 Excel 标题栏的 `*`），这是 DSH `0.1.7` 及以上才有的位置；面板右下角另有一个浮动胶囊：有未保存改动时显示「未保存的改动」并带一颗「丢弃」，保存成功后自己消失。它悬浮在表格上方、不占任何布局高度——这是它从「面板顶部常驻一行」改回来的原因——而 `0.1.5/0.1.6` 上文档头部还没有动作槽，这个胶囊就是唯一的状态提示，所以它必须留着。改动只会替换胶囊里的文字与按钮，且它只在有话说时出现。
 - **整页关闭会提示。** 刷新或关闭页面时，只要还有未保存的改动（含已留存的缓存），浏览器会弹出一次自己的离开确认。
 - **保存即清空。** 保存成功后，该文件的快照全部清除。
 
@@ -128,7 +128,7 @@ DSH 在标签页被切走时会卸载文档主体，平台也没有可供拦下�
 
 | 命令 | 验证内容 |
 | --- | --- |
-| `npm run typecheck`、`npm test` | 类型契约，以及 164 个单元测试（保存路由的每条守卫、文件地址解析与地址构造、另存为的目标校验、默认名与失败文案、保存命令重定向的每条分支、编辑器主题桥的每条分支、查看器名称与二进制后缀声明的边界、未保存改动的缓存规则与脏状态跟踪的边界、打开时「用文件还是用缓存」的每个分支、面板状态行的状态与操作矩阵、文档头部动作的发布/订阅/命令路由、按钮的尺寸字号颜色规格、以及「只在表格文件上出现」的判定与注册顺序） |
+| `npm run typecheck`、`npm test` | 类型契约，以及 154 个单元测试（保存路由的每条守卫、文件地址解析与地址构造、另存为的目标校验、默认名与失败文案、保存命令重定向的每条分支、编辑器主题桥的每条分支、查看器名称与二进制后缀声明的边界、未保存改动的缓存规则与脏状态跟踪的边界、打开时「用文件还是用缓存」的每个分支、面板状态胶囊的状态与操作矩阵、文档头部动作的发布/订阅/命令路由、按钮的尺寸字号颜色规格、以及「只在表格文件上出现」的判定与注册顺序） |
 | `node scripts/smoke-client.mjs` | 构建后的浏览器半结构：loader 包装、内联的 SpreadJS 与样式、外部依赖只有 react |
 | `node scripts/smoke-node.mjs` | 构建后的宿主半：路由注册、许可证配置，以及保存路径的真实写盘、冲突与越界拒绝 |
 | `npm run probe:live` | **对着正在运行的 DSH** 跑一遍真实保存：真实 `ctx.fs` 的解析、落盘、冲突守卫、工作区越界；并核对进程里装的是不是本构建（插件版本与内置 SpreadJS 版本） |
@@ -169,9 +169,9 @@ Requires DSH `>=0.1.5-rc.3`. The plugin uses the harness's own right Sidebar and
 
 | DSH version | Status | Notes |
 | --- | --- | --- |
-| `0.1.7-rc.2` | ✅ build and verification baseline | `typecheck`, 164 unit tests, both smokes, `verify:package` and `probe:live` all green (the probe's version check needs DSH restarted first, see below) |
+| `0.1.7-rc.2` | ✅ build and verification baseline | `typecheck`, 154 unit tests, both smokes, `verify:package` and `probe:live` all green (the probe's version check needs DSH restarted first, see below) |
 | `0.1.6.x` | ⚪ not verified | This range was never checked: neither point-by-point acceptance nor whether it already offers the capabilities below |
-| `0.1.5-rc.3` | ✅ previous verification baseline | The release this plugin was originally built and accepted against; it ignores the binary-suffix declaration, so a plain-text entry may still appear among the viewer choices, and its document header has no actions slot — so the only Save entries are inside the Designer plus the panel's own status row |
+| `0.1.5-rc.3` | ✅ previous verification baseline | The release this plugin was originally built and accepted against; it ignores the binary-suffix declaration, so a plain-text entry may still appear among the viewer choices, and its document header has no actions slot — so `Ctrl+S` is the only Save entry and unsaved work shows in the panel's floating pill |
 
 From `0.1.7` the platform offers three things this plugin uses: the **binary-suffix** declaration on a document definition (which is what removes the plain-text viewer choice), its own read-only Excel preview (which is listed beside this plugin), and the document header's **actions slot** `sidebar.right.tab.document.actions`, where Save and Save As are registered. The plugin still works on `0.1.5-rc.3`; it simply does not get the first two, and the two header buttons do not appear.
 
@@ -197,7 +197,7 @@ For upgrades, see the [release notes](CHANGELOG.md).
 
 Save's official entry point is **the harness's own document header** — the Save button beside the file name once a workbook is open. It is registered in the actions slot `sidebar.right.tab.document.actions` that DSH publishes from `0.1.7` on, next to the other viewers' own controls, and it carries a mark while anything is unsaved, like the `*` in Excel's title bar. It writes your changes back to the file you opened, and there is no second prompt, because pressing Save *is* the intent.
 
-The same write-back is also on **`Ctrl+S` and the Designer's own Save button**: the plugin redirects the Designer's Save command, so none of those paths reaches a download dialog any more.
+The same write-back is also on **`Ctrl+S` and the Save button on the Designer's own toolbar**: the plugin redirects the Designer's Save command, so neither of those reaches a download dialog any more. (The row in the File tab is the exception — see the end of this section.)
 
 These two header buttons do not import the harness's button component — a third-party client plugin cannot assume an internal `@deepseek-ai/*` package resolves at runtime, and a failure there would take the whole editor down — so they copy the values from the controls beside them instead: 28px tall, `padding: 0 6px`, 12px text, `--dsw-alias-label-secondary` at rest, `--dsw-alias-label-primary` with the `--dsw-alias-interactive-bg-hover` background on hover, and `--dsw-alias-label-tertiary` with no response when disabled. That is exactly what the header's own viewer-name button and icon buttons do, and a unit test pins those values so they cannot drift unnoticed.
 
@@ -205,7 +205,7 @@ They are drawn **only on the files this plugin handles**. The slot renders for e
 
 They are ordered **before** open-in-app. The slot is a list, and its entries sort by the documented `order` (priority first, then order, then registration sequence), where this plugin registers at `-10` — the very value the harness itself uses for "first in a header actions list" (`dsh-client-ui-agent-preset` registers its session-header label at `order: -10`). That makes "save first, think about opening elsewhere second" a decided reading order rather than a side effect of plugin load order, and it puts the unsaved mark on the first item of the group, where the eye lands.
 
-The Designer's File tab still carries **保存到工作区** — that customisation rewrites the Designer's *private* menu template, so it is a best-effort consistency patch rather than a requirement: if the template changes and the patch stops applying, the header button and `Ctrl+S` still write the file.
+The Designer's File tab is left exactly as it ships: the plugin no longer rewrites its private menu template. That rewrite once collapsed the page to a single **保存到工作区** row, at the price of depending on the Designer's internal template structure; nothing needs it now — Save's official home is the document header and `Ctrl+S` writes back — so the File tab's Save means what it always meant to a Designer that owns no session file: it downloads a copy. One private-structure dependency fewer, and the only cost on that path is that saving from there gives you a copy rather than a write-back.
 
 - **A workbook that is still loading cannot be saved.** It has no content yet, so saving would overwrite the file with an empty book; the save command refuses, with an explanation, until the load finishes.
 - **It will not clobber someone else's edit.** The plugin records the file's content hash when it opens it and re-checks before writing; if the file changed in the meantime (an agent edited it, you saved it elsewhere), the save is refused with an explanation instead of overwriting those changes.
@@ -229,9 +229,9 @@ The Designer's File tab still carries **保存到工作区** — that customisat
 The harness unmounts a document body when its tab is hidden, and the platform offers no close hook to intercept (a close is synchronous, and a document definition has neither a lifecycle nor a veto point). So leaving is never blocked — and nothing is dropped either:
 
 - **Switching away and back keeps the edits.** A dirty workbook is kept as a snapshot just before its body unmounts, and restored as-is when the same tab returns, without re-reading the file.
-- **Closing the tab keeps them too.** The snapshot is also kept under the file's path, so reopening that file restores it — and says so in a banner — as long as the file on disk is still the version the snapshot was written from.
-- **A file changed elsewhere is never silently replaced.** If the file on disk changed since the snapshot (an agent, another editor), the panel offers it instead: **Restore** carries on from the buffer (a later save writes it to disk), **Discard** re-reads the file.
-- **It is visible, in two places.** The header's Save carries a mark while edits are pending (like Excel's title-bar `*`) — a position DSH `0.1.7` and later offer. The panel's own row at the top is still there: `Unsaved changes` with a Discard action while edits are pending, back to `Saved` after a successful save. That row holds its space, so beginning to edit never shifts the editor, and on `0.1.5`/`0.1.6` it is the only state indicator — which is why it stays.
+- **Closing the tab keeps them too.** The snapshot is also kept under the file's path, so reopening that file restores it — and says so in the pill at the panel's bottom-right — as long as the file on disk is still the version the snapshot was written from.
+- **A file changed elsewhere is never silently replaced.** If the file on disk changed since the snapshot (an agent, another editor), the panel offers it instead in that same pill: **Restore** carries on from the buffer (a later save writes it to disk), **Discard** re-reads the file.
+- **It is visible, in two places.** The header's Save carries a mark while edits are pending (like Excel's title-bar `*`) — a position DSH `0.1.7` and later offer. The panel's own floating pill at the bottom-right shows `Unsaved changes` with a Discard action while edits are pending, and disappears once everything is saved. It hovers over the sheet and costs no layout height — which is why it went back from a permanent row at the top of the panel to a pill — and on `0.1.5`/`0.1.6`, where the document header has no actions slot, it is the only state indicator there is. Editing only swaps the text and the buttons inside it, and it appears only when it has something to say.
 - **Closing the page warns.** A reload or close raises the browser's own prompt once, as long as anything is unsaved or still cached.
 - **Saving clears it.** A successful save drops every snapshot for that file, so reopening starts from disk.
 
@@ -259,7 +259,7 @@ Restart DSH and refresh the browser after changing the configuration.
 
 | Command | What it proves |
 | --- | --- |
-| `npm run typecheck`, `npm test` | The type contract, and 164 unit tests: every save guard, file-address parsing and address building, the Save As target rules, suggested name and failure wording, every branch of the Save-command redirect, every branch of the editor theme bridge, the viewer-name and binary-suffix edge cases, the unsaved-buffer and dirty-tracking rules, every branch of the file-versus-buffer decision at open, the panel state line's state/action matrix, and the document header actions' publication, subscription, command routing, button spec, "spreadsheets only" rule and registration order |
+| `npm run typecheck`, `npm test` | The type contract, and 154 unit tests: every save guard, file-address parsing and address building, the Save As target rules, suggested name and failure wording, every branch of the Save-command redirect, every branch of the editor theme bridge, the viewer-name and binary-suffix edge cases, the unsaved-buffer and dirty-tracking rules, every branch of the file-versus-buffer decision at open, the panel state pill's state/action matrix, and the document header actions' publication, subscription, command routing, button spec, "spreadsheets only" rule and registration order |
 | `node scripts/smoke-client.mjs` | The built browser half's structure: loader wrapper, inlined SpreadJS and styles, react as the only runtime external |
 | `node scripts/smoke-node.mjs` | The built host half: route registration, license config, and the save path writing real bytes plus refusing conflicts and escapes |
 | `npm run probe:live` | A real save against a **running DSH**: the actual `ctx.fs` resolving, writing, refusing a stale base hash, and refusing a workspace escape — plus a check that the process carries *this* build (plugin and bundled SpreadJS versions) |

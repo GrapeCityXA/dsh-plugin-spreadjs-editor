@@ -44,7 +44,6 @@ export type EditorTextKey =
   | 'saveAs.suffix'
   | 'saveAs.done'
   | 'saveAs.exists'
-  | 'unsaved.saved'
   | 'unsaved.dirty'
   | 'unsaved.restored'
   | 'unsaved.stale'
@@ -86,7 +85,6 @@ const FALLBACK_TEXT: Record<EditorTextKey, string> = {
   'saveAs.suffix': '副本',
   'saveAs.done': '已另存为 ',
   'saveAs.exists': '目标文件已存在，请换一个名字',
-  'unsaved.saved': '已保存',
   'unsaved.dirty': '未保存的改动',
   'unsaved.restored': '已恢复本会话中未保存的改动。',
   'unsaved.stale': '存在未保存的改动缓存，但文件已在磁盘上被修改。',
@@ -123,7 +121,6 @@ const DICTIONARIES: { zh: Record<string, string>; en: Record<string, string> } =
     'saveAs.suffix': 'copy',
     'saveAs.done': 'Saved as ',
     'saveAs.exists': 'That file already exists; choose another name',
-    'unsaved.saved': 'Saved',
     'unsaved.dirty': 'Unsaved changes',
     'unsaved.restored': 'Restored unsaved changes from this session.',
     'unsaved.stale': 'An unsaved buffer exists, but the file changed on disk.',

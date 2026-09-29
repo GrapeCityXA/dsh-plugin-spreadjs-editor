@@ -502,11 +502,13 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
     : undefined
 
   /**
-   * The panel's own state line, shown whenever a file is open — including when
-   * everything is saved. A row that appeared only while something was dirty would
-   * resize the Designer under whoever is typing in it, which is the one moment that
-   * must not move. What varies is the text and the actions beside it; the matrix is
-   * status-line.ts, where it is unit tested.
+   * The panel's own state pill, shown only while it has something to say.
+   *
+   * It used to be a row of the panel's column, which held height away from the
+   * Designer for the whole session to report a state that is usually "everything is
+   * saved". As a floating pill it costs no layout at all, and it carries its own
+   * actions because the restore/discard decision has to travel with the state it
+   * belongs to. The matrix is status-line.ts, where it is unit tested.
    */
   const statusLine = statusLineFor({
     dirty,
@@ -536,25 +538,6 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
 
   return (
     <div className="dsh-spreadjs-panel" role="region" aria-busy={loading} aria-label={`SpreadJS: ${source.name}`}>
-      <div className="dsh-spreadjs-statusbar">
-        <span className="dsh-spreadjs-statusbar-text" data-tone={statusLine.tone} aria-live="polite">
-          {editorText(statusLine.key)}
-        </span>
-        {statusLine.canRestore
-          ? (
-            <button type="button" className="dsh-spreadjs-statusbar-action" onClick={restoreOffered}>
-              {editorText('unsaved.restore')}
-            </button>
-          )
-          : null}
-        {statusLine.canDiscard
-          ? (
-            <button type="button" className="dsh-spreadjs-statusbar-action" onClick={discardEdits}>
-              {editorText('unsaved.discard')}
-            </button>
-          )
-          : null}
-      </div>
       <div className="dsh-spreadjs-editor">
         <SpreadsheetHost
           ref={hostRef}
@@ -571,11 +554,34 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
           onUnsaved={handleUnsaved}
         />
       </div>
-      {status === ''
+      {statusLine === undefined && status === ''
         ? null
         : (
           <div className="dsh-spreadjs-overlay">
-            <div className={`dsh-spreadjs-toast dsh-spreadjs-toast-${statusTone}`} role="status">{status}</div>
+            {statusLine === undefined
+              ? null
+              : (
+                <div className="dsh-spreadjs-chip" role="status">
+                  <span className="dsh-spreadjs-chip-text">{editorText(statusLine.key)}</span>
+                  {statusLine.canRestore
+                    ? (
+                      <button type="button" className="dsh-spreadjs-chip-action" onClick={restoreOffered}>
+                        {editorText('unsaved.restore')}
+                      </button>
+                    )
+                    : null}
+                  {statusLine.canDiscard
+                    ? (
+                      <button type="button" className="dsh-spreadjs-chip-action" onClick={discardEdits}>
+                        {editorText('unsaved.discard')}
+                      </button>
+                    )
+                    : null}
+                </div>
+              )}
+            {status === ''
+              ? null
+              : <div className={`dsh-spreadjs-toast dsh-spreadjs-toast-${statusTone}`} role="status">{status}</div>}
           </div>
         )}
       {saveAsOpen
