@@ -109,9 +109,18 @@ export function apply(ctx: Context): void {
   // the file rather than by the plugin, so a Save is reachable without knowing
   // anything about SpreadJS. The buttons rout back into the panel on screen through
   // panel-actions.ts, which is where the workbook actually lives.
+  //
+  // `order` is the list slot's documented display order (`KindOptions`: "List display
+  // order"; entries sort by priority, then order, then registration sequence), and
+  // -10 is the harness's own convention for "first in a header actions list" —
+  // `dsh-client-ui-agent-preset` puts its session-header label at exactly -10. Left
+  // unset, this entry and the product's own `open-in-app` both sit at 0, and which
+  // one comes first is decided by plugin load order: an accident, and one that would
+  // also push the unsaved mark away from where the eye lands when a file is opened.
   ctx.effect(() => ctx.slots.inject('sidebar.right.tab.document.actions', () => ctx.slots.register({
     name: 'sidebar.right.tab.document.actions',
     id: 'spreadjs-save',
+    order: -10,
   }, SpreadsheetActions)), 'dsh-spreadjs-editor: document header actions')
 
   // Unsaved work is the body's business (see unsaved.ts): it keeps a dirty

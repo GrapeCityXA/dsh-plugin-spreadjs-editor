@@ -258,11 +258,21 @@ describe('document registration', () => {
     expect(slotInject).toHaveBeenCalledWith('sidebar.right.tab.document.actions', expect.any(Function))
     // The second seat, in registration order: Save is a file action, so it belongs
     // in the header the platform draws above the previewed file.
-    const seat = slotRegister.mock.calls[1]?.[0] as unknown as { name?: unknown; id?: unknown; key?: unknown }
+    const seat = slotRegister.mock.calls[1]?.[0] as unknown as {
+      name?: unknown
+      id?: unknown
+      key?: unknown
+      order?: unknown
+    }
     expect(seat.name).toBe('sidebar.right.tab.document.actions')
     // A list slot identifies a contribution by id; `key` is the keyed-slot form.
     expect(seat.id).toBe('spreadjs-save')
     expect(seat.key).toBeUndefined()
+    // The list slot's documented display order ("List display order"), pinned at the
+    // value the harness itself uses for "first in a header actions list". Left at the
+    // default 0 this entry ties with the product's own `open-in-app` contribution and
+    // plugin load order — an accident — decides which of the two draws first.
+    expect(seat.order).toBe(-10)
     expect(typeof slotRegister.mock.calls[1]?.[1]).toBe('function')
   })
 

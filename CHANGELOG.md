@@ -13,7 +13,8 @@
 - **新增「另存为」，把工作簿（包括重置成空白的新工作簿）写进工作区**：工具栏「另存为…」询问一个相对会话工作区的路径，默认是「同目录 + 同后缀 + 文件名加『副本』」；写成功后就地切换到那个文件继续编辑，不会另开标签页。同名文件不会被覆盖——宿主对没有版本基线的写入一律拒绝，对话框直接说「目标文件已存在，请换一个名字」。只接受本插件能打开的 5 种后缀（`.xlsx / .xlsm / .csv / .sjs / .ssjson`）：写出格式由后缀决定，别的后缀会写出打不开的文件，因此在提交前就拦下。
 - **面板内残留的固定英文提示改走语言表**：新工作簿提示、载入中、缺少完整字节的提示原先固定为英文，现在随 DSH 语言切换。
 - **头部两颗按钮改用 DSH 自己控件的规格**：28px 高、12px 字号、常态用次要色、悬停转主要色并给悬停底色、禁用转三级色——与文档头部自己的「查看器名称」和图标按钮同一套值（照抄数值而不是引用内部 UI 包：第三方客户端插件不能假定内部的 `@deepseek-ai/*` 在运行时一定可解析，解析失败会连编辑器一起挂掉）。有一条单测钉住这些数值。
-- 构建与验收基线升到 DSH `0.1.7-rc.2`（`npm run typecheck`、161 项单测、两个 smoke、`verify:package`、`probe:live` 全部通过）。插件在 `0.1.5-rc.3` 上仍可运行（该版本没有文档头部动作槽，只有 Designer 内的保存入口与面板状态行）。
+- **头部两颗按钮只在表格文件上出现，并排在「用本地应用打开」之前**：动作槽对所有预览文件都渲染，因此按钮现在只在插件自己的编辑器占据屏幕时才画出来（此前打开任意 Markdown、图片也会看到两颗按不动的按钮）；顺序改用槽位公开的 `order`（`-10`，DSH 自己给「头部动作排第一」用的值），不再由插件加载顺序决定，未保存标记点也因此落在这一组的第一项。
+- 构建与验收基线升到 DSH `0.1.7-rc.2`（`npm run typecheck`、164 项单测、两个 smoke、`verify:package`、`probe:live` 全部通过）。插件在 `0.1.5-rc.3` 上仍可运行（该版本没有文档头部动作槽，只有 Designer 内的保存入口与面板状态行）。
 
 ### English
 
@@ -26,7 +27,8 @@
 - **New Save As writes the workbook — including one reset to blank — into the workspace**: the header's **另存为…** asks for a path relative to the session workspace (suggesting the same directory and suffix with a localized "copy" in the name) and, on success, moves this tab onto the file just written instead of opening a second tab. An existing name is never overwritten — the host refuses any write that carries no version baseline — and the dialog says so plainly. Only the five suffixes this plugin opens (`.xlsx / .xlsm / .csv / .sjs / .ssjson`) are accepted, because the written format follows the suffix and anything else would produce a file that cannot be reopened here.
 - **The remaining hard-coded English panel strings now go through the locale table**: the new-workbook notice, the loading notice and the "complete file contents" notice.
 - **The two header buttons now follow the harness's own control spec**: 28px tall, 12px text, secondary colour at rest, turning primary with the hover background on hover, and tertiary when disabled — the same values the document header's own viewer-name button and icon buttons use. The values are copied rather than imported, because a third-party client plugin cannot assume an internal `@deepseek-ai/*` package resolves at runtime and a failure there would take the whole editor down; one unit test pins them.
-- Built and verified against DSH `0.1.7-rc.2` (`npm run typecheck`, 161 unit tests, both smokes, `verify:package`, `probe:live` all green). The plugin still runs on `0.1.5-rc.3`, which has no document-header actions slot — there, Save is inside the Designer plus the panel's status row.
+- **The two header buttons appear on spreadsheets only, and before open-in-app**: the actions slot renders for every previewed file, so the buttons are now drawn only while this plugin's own editor is the body on screen — previously every markdown file and image in the workspace carried two buttons that could not do anything. Their position now uses the slot's documented `order` (`-10`, the value DSH itself uses for "first in a header actions list") instead of plugin load order, which also puts the unsaved mark on the first item of the group.
+- Built and verified against DSH `0.1.7-rc.2` (`npm run typecheck`, 164 unit tests, both smokes, `verify:package`, `probe:live` all green). The plugin still runs on `0.1.5-rc.3`, which has no document-header actions slot — there, Save is inside the Designer plus the panel's status row.
 
 ## 0.2.1
 

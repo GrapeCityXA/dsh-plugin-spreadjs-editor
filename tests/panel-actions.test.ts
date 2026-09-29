@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  actionsVisible,
   panelSnapshot,
   publishPanel,
   refreshPanel,
@@ -103,5 +104,29 @@ describe('what the document header can ask of the panel', () => {
 
     releaseSecond()
     expect(panelSnapshot()).toEqual({ available: false, dirty: false, busy: false })
+  })
+})
+
+describe('whether the header draws this plugin at all', () => {
+  it('draws nothing while no panel is mounted', () => {
+    expect(actionsVisible(panelSnapshot())).toBe(false)
+  })
+
+  it('draws nothing for a panel with no file it could write back to', () => {
+    const { value } = panel({ canSave: false })
+    publishPanel(value)
+    // The document header is drawn for *every* previewed file, so this is the case
+    // that used to put Save and Save As on each markdown file and image in the
+    // workspace, where no workbook is mounted and both buttons are dead.
+    expect(actionsVisible(panelSnapshot())).toBe(false)
+  })
+
+  it('draws exactly while this plugin owns the body on screen', () => {
+    const { value } = panel()
+    const release = publishPanel(value)
+    expect(actionsVisible(panelSnapshot())).toBe(true)
+
+    release()
+    expect(actionsVisible(panelSnapshot())).toBe(false)
   })
 })

@@ -104,6 +104,25 @@ export function panelSnapshot(): PanelSnapshot {
   return snapshot
 }
 
+/**
+ * Whether the document header should draw this plugin's actions at all.
+ *
+ * The slot is a *list* on **every** previewed file, so a contribution that always
+ * renders puts Save and Save As beside every markdown file, image and log in the
+ * workspace — where they can only ever be dead buttons, because no workbook is
+ * mounted. The product's own contribution into this slot behaves the other way:
+ * `FileOpenTarget` settles the desktop query and then returns null when there is no
+ * application to offer, so the header simply has no open button for a file it cannot
+ * hand over. This is the same shape: this plugin's header furniture exists only
+ * while its own body is mounted with a file it can write.
+ *
+ * @param panel - the current snapshot.
+ * @returns true only while the panel on screen is this plugin's, with a target.
+ */
+export function actionsVisible(panel: PanelSnapshot): boolean {
+  return panel.available
+}
+
 /** Save the panel on screen, if there is one and it can be saved. */
 export function saveActivePanel(): void {
   active?.save()

@@ -18,7 +18,7 @@ A DeepSeek Harness Web UI plugin that opens, views, and edits Excel / SpreadJS f
 
 - 支持 `.xlsx`、`.xlsm`、`.csv`、`.sjs`、`.ssjson` 文件。
 - 从文件树打开工作簿，使用 SpreadJS Designer 编辑表格。
-- 编辑后可直接保存回原文件：原子写入、限制在会话工作区内、带冲突检测。保存按钮在 DSH 文档头部自己的工具栏上，未保存时带一个标记点；它与「另存为…」的尺寸、字号、颜色都按 DSH 头部自身控件的规格绘制，看起来就是那一行的成员。
+- 编辑后可直接保存回原文件：原子写入、限制在会话工作区内、带冲突检测。保存按钮在 DSH 文档头部自己的工具栏上，未保存时带一个标记点；它与「另存为…」的尺寸、字号、颜色都按 DSH 头部自身控件的规格绘制，而且**只在表格文件上出现**。
 - 「另存为」可以把当前工作簿（含新建的空白工作簿）写进工作区的另一个路径，成功后就地切换到那个文件；同名文件不会被覆盖。
 - 编辑器跟随 DSH 的浅色/深色主题，工具栏与工作表区域一起变；DSH 偏好设为「跟随系统」时自然跟着系统走。
 - 「设置」标签里有「关于」按钮：内置版本、授权状态与版权信息在弹窗里。
@@ -38,7 +38,7 @@ A DeepSeek Harness Web UI plugin that opens, views, and edits Excel / SpreadJS f
 
 | DSH 版本 | 状态 | 说明 |
 | --- | --- | --- |
-| `0.1.7-rc.2` | ✅ 构建与验收基线 | `typecheck`、161 项单测、两个 smoke、`verify:package`、`probe:live` 全部通过（`probe:live` 的版本核对需要先重启 DSH，见下文） |
+| `0.1.7-rc.2` | ✅ 构建与验收基线 | `typecheck`、164 项单测、两个 smoke、`verify:package`、`probe:live` 全部通过（`probe:live` 的版本核对需要先重启 DSH，见下文） |
 | `0.1.6.x` | ⚪ 未验证 | 没有核对过这个区间的平台：既未逐项跑验收，也不确定它是否已提供下表中的能力 |
 | `0.1.5-rc.3` | ✅ 上一版验收基线 | 插件最初就是对着它构建并验收的；它会忽略「二进制后缀」声明，查看方式列表里仍可能出现纯文本一项；文档头部没有动作槽，因此只有 Designer 内的保存入口与面板顶部那一行 |
 
@@ -69,6 +69,10 @@ npx --yes @deepseek-ai/dsh@latest --profile web
 同一份写回也挂在 **`Ctrl+S` 和 Designer 自己的保存按钮**上：插件把 Designer 的 Save 命令重定向到写回，所以这几处按下都不会再弹出下载框。
 
 这两颗头部按钮并不引用 DSH 的按钮组件——第三方客户端插件不能假定内部的 `@deepseek-ai/*` 包在运行时一定可解析，解析失败会连编辑器一起挂掉——而是照抄了邻居的规格：28px 高、`padding: 0 6px`、12px 字号、常态 `--dsw-alias-label-secondary`，悬停转 `--dsw-alias-label-primary` 并给 `--dsw-alias-interactive-bg-hover` 底色，禁用转 `--dsw-alias-label-tertiary` 且不再响应。也就是头部「查看器名称」与图标按钮的那一套；有一条单测钉住这些数值，避免以后悄悄漂移。
+
+它们**只在本插件负责的文件上画出来**。这个动作槽对每个预览文件都会渲染，所以按钮要在插件自己的编辑器占据屏幕时才出现——否则工作区里每个 Markdown、图片、日志旁边都会多两颗按不动的按钮。产品自己的「用本地应用打开」也是这个形状：没有可打开的应用时就什么都不画。
+
+顺序上它们排在「用本地应用打开」**之前**。槽位是 list，条目按公开的 `order` 排序（先 `priority`，再 `order`，最后才轮到注册顺序），插件注册在 `-10` —— 而这正是 DSH 自己给「头部动作里排第一」用的值（`dsh-client-ui-agent-preset` 注册会话头部标签时就是 `order: -10`）。这样「先保存、再考虑外部打开」是确定的阅读顺序，也不再受插件加载顺序影响；未保存的标记点也因此落在这一组的第一项上，一眼就能看到。
 
 Designer「文件」菜单里的「保存到工作区」仍然保留——那段代码改的是 Designer 的**私有**菜单模板，属于"尽力而为"的一致性补丁，不是保存的必要条件：即便模板结构变了、补丁失效，上面的工具栏与 `Ctrl+S` 照样写回文件。
 
@@ -124,7 +128,7 @@ DSH 在标签页被切走时会卸载文档主体，平台也没有可供拦下�
 
 | 命令 | 验证内容 |
 | --- | --- |
-| `npm run typecheck`、`npm test` | 类型契约，以及 161 个单元测试（保存路由的每条守卫、文件地址解析与地址构造、另存为的目标校验、默认名与失败文案、保存命令重定向的每条分支、编辑器主题桥的每条分支、查看器名称与二进制后缀声明的边界、未保存改动的缓存规则与脏状态跟踪的边界、打开时「用文件还是用缓存」的每个分支、面板状态行的状态与操作矩阵、文档头部动作的发布/订阅/命令路由，以及头部按钮的尺寸字号颜色规格） |
+| `npm run typecheck`、`npm test` | 类型契约，以及 164 个单元测试（保存路由的每条守卫、文件地址解析与地址构造、另存为的目标校验、默认名与失败文案、保存命令重定向的每条分支、编辑器主题桥的每条分支、查看器名称与二进制后缀声明的边界、未保存改动的缓存规则与脏状态跟踪的边界、打开时「用文件还是用缓存」的每个分支、面板状态行的状态与操作矩阵、文档头部动作的发布/订阅/命令路由、按钮的尺寸字号颜色规格、以及「只在表格文件上出现」的判定与注册顺序） |
 | `node scripts/smoke-client.mjs` | 构建后的浏览器半结构：loader 包装、内联的 SpreadJS 与样式、外部依赖只有 react |
 | `node scripts/smoke-node.mjs` | 构建后的宿主半：路由注册、许可证配置，以及保存路径的真实写盘、冲突与越界拒绝 |
 | `npm run probe:live` | **对着正在运行的 DSH** 跑一遍真实保存：真实 `ctx.fs` 的解析、落盘、冲突守卫、工作区越界；并核对进程里装的是不是本构建（插件版本与内置 SpreadJS 版本） |
@@ -146,7 +150,7 @@ DSH 在标签页被切走时会卸载文档主体，平台也没有可供拦下�
 - Opens `.xlsx`, `.xlsm`, `.csv`, `.sjs`, and `.ssjson` files.
 - Open workbooks from the file tree and edit them with SpreadJS Designer.
 - Save edits straight back to the file: atomic, confined to the session workspace, with conflict detection. Save lives in the harness's own document header, with a mark while anything is unsaved.
-- **Save As** writes the workbook — including a new blank one — to another path in the workspace and moves the tab onto it; an existing name is never overwritten. Both header buttons follow the spec of the header's own controls (see Saving below), so they sit in that row rather than beside it.
+- **Save As** writes the workbook — including a new blank one — to another path in the workspace and moves the tab onto it; an existing name is never overwritten. Both header buttons follow the spec of the header's own controls (see Saving below) and appear on this plugin's own files only.
 - Follows the harness's light or dark theme, toolbars and worksheet alike; a harness preference of `system` still tracks the OS.
 - An **About** button in the settings tab reports the bundled versions, the licence state and the copyright.
 
@@ -165,7 +169,7 @@ Requires DSH `>=0.1.5-rc.3`. The plugin uses the harness's own right Sidebar and
 
 | DSH version | Status | Notes |
 | --- | --- | --- |
-| `0.1.7-rc.2` | ✅ build and verification baseline | `typecheck`, 161 unit tests, both smokes, `verify:package` and `probe:live` all green (the probe's version check needs DSH restarted first, see below) |
+| `0.1.7-rc.2` | ✅ build and verification baseline | `typecheck`, 164 unit tests, both smokes, `verify:package` and `probe:live` all green (the probe's version check needs DSH restarted first, see below) |
 | `0.1.6.x` | ⚪ not verified | This range was never checked: neither point-by-point acceptance nor whether it already offers the capabilities below |
 | `0.1.5-rc.3` | ✅ previous verification baseline | The release this plugin was originally built and accepted against; it ignores the binary-suffix declaration, so a plain-text entry may still appear among the viewer choices, and its document header has no actions slot — so the only Save entries are inside the Designer plus the panel's own status row |
 
@@ -196,6 +200,10 @@ Save's official entry point is **the harness's own document header** — the Sav
 The same write-back is also on **`Ctrl+S` and the Designer's own Save button**: the plugin redirects the Designer's Save command, so none of those paths reaches a download dialog any more.
 
 These two header buttons do not import the harness's button component — a third-party client plugin cannot assume an internal `@deepseek-ai/*` package resolves at runtime, and a failure there would take the whole editor down — so they copy the values from the controls beside them instead: 28px tall, `padding: 0 6px`, 12px text, `--dsw-alias-label-secondary` at rest, `--dsw-alias-label-primary` with the `--dsw-alias-interactive-bg-hover` background on hover, and `--dsw-alias-label-tertiary` with no response when disabled. That is exactly what the header's own viewer-name button and icon buttons do, and a unit test pins those values so they cannot drift unnoticed.
+
+They are drawn **only on the files this plugin handles**. The slot renders for every previewed file, so the buttons appear only while this plugin's own editor is the body on screen — otherwise every markdown file, image and log in the workspace would carry two buttons that cannot do anything. The product's own open-in-app control works the same way: it draws nothing when there is no application to offer.
+
+They are ordered **before** open-in-app. The slot is a list, and its entries sort by the documented `order` (priority first, then order, then registration sequence), where this plugin registers at `-10` — the very value the harness itself uses for "first in a header actions list" (`dsh-client-ui-agent-preset` registers its session-header label at `order: -10`). That makes "save first, think about opening elsewhere second" a decided reading order rather than a side effect of plugin load order, and it puts the unsaved mark on the first item of the group, where the eye lands.
 
 The Designer's File tab still carries **保存到工作区** — that customisation rewrites the Designer's *private* menu template, so it is a best-effort consistency patch rather than a requirement: if the template changes and the patch stops applying, the header button and `Ctrl+S` still write the file.
 
@@ -251,7 +259,7 @@ Restart DSH and refresh the browser after changing the configuration.
 
 | Command | What it proves |
 | --- | --- |
-| `npm run typecheck`, `npm test` | The type contract, and 161 unit tests: every save guard, file-address parsing and address building, the Save As target rules, suggested name and failure wording, every branch of the Save-command redirect, every branch of the editor theme bridge, the viewer-name and binary-suffix edge cases, the unsaved-buffer and dirty-tracking rules, every branch of the file-versus-buffer decision at open, the panel state line's state/action matrix, and the document header actions' publication, subscription, command routing and button spec |
+| `npm run typecheck`, `npm test` | The type contract, and 164 unit tests: every save guard, file-address parsing and address building, the Save As target rules, suggested name and failure wording, every branch of the Save-command redirect, every branch of the editor theme bridge, the viewer-name and binary-suffix edge cases, the unsaved-buffer and dirty-tracking rules, every branch of the file-versus-buffer decision at open, the panel state line's state/action matrix, and the document header actions' publication, subscription, command routing, button spec, "spreadsheets only" rule and registration order |
 | `node scripts/smoke-client.mjs` | The built browser half's structure: loader wrapper, inlined SpreadJS and styles, react as the only runtime external |
 | `node scripts/smoke-node.mjs` | The built host half: route registration, license config, and the save path writing real bytes plus refusing conflicts and escapes |
 | `npm run probe:live` | A real save against a **running DSH**: the actual `ctx.fs` resolving, writing, refusing a stale base hash, and refusing a workspace escape — plus a check that the process carries *this* build (plugin and bundled SpreadJS versions) |

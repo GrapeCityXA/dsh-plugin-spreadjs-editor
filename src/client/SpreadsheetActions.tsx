@@ -11,18 +11,32 @@
  * panel currently on screen, which is what actually owns the write-back. The dot on
  * Save reports the same fact the panel's own state row does, in the place a
  * document's dirty state conventionally lives.
+ *
+ * That slot renders for every previewed file, so this component draws nothing at all
+ * unless the panel on screen is this plugin's own (see `actionsVisible`): a Save
+ * beside a markdown file would be furniture rather than an action.
  */
 import { useSyncExternalStore } from 'react'
 import { editorText } from './locales.ts'
-import { panelSnapshot, saveActivePanel, saveAsActivePanel, subscribePanel } from './panel-actions.ts'
+import {
+  actionsVisible,
+  panelSnapshot,
+  saveActivePanel,
+  saveAsActivePanel,
+  subscribePanel,
+} from './panel-actions.ts'
 
-export function SpreadsheetActions(): React.JSX.Element {
+export function SpreadsheetActions(): React.JSX.Element | null {
   const panel = useSyncExternalStore(subscribePanel, panelSnapshot)
 
-  // No panel means no document body is mounted — a header for a hidden docked tab,
-  // or a file this plugin does not render. Both actions would be no-ops, so they
-  // present as unavailable rather than as buttons that quietly do nothing.
-  const unavailable = !panel.available || panel.busy
+  // This slot exists on every previewed file, so the header is only ours to draw in
+  // while this plugin's body is the one on screen; without that, Save and Save As
+  // would appear next to files this plugin has nothing to do with.
+  if (!actionsVisible(panel)) return null
+
+  // A panel is on screen, so the buttons are real: only a load or a save in flight
+  // makes them wait.
+  const unavailable = panel.busy
 
   return (
     <div className="dsh-spreadjs-actions">
