@@ -422,13 +422,12 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
       if (!steered) {
         console.warn('[dsh-spreadjs-editor] the Designer Save command was not redirected; use Save in the document header')
       }
-      // The Designer's File tab is deliberately left exactly as it ships. Its rows
-      // dispatch through the menu's own handler rather than the command table, so
-      // steering it means rewriting a private template — and nothing needs that any
-      // more: the editor's Save is the published document-header action
-      // (SpreadsheetActions.tsx), with Ctrl+S on the same redirect above. What the
-      // File tab keeps is a copy: File → Save downloads a workbook, which is what
-      // that row has always meant to a Designer that does not own a session file.
+      // The Designer's own File tab is hidden, not rewritten: viewer.css takes the
+      // button out of the ribbon, because the File tab's Save downloads a copy while
+      // this panel's Save writes the file back, and two Saves one click apart is how
+      // the wrong one gets pressed. Nothing here depends on the tab's private menu
+      // template any more; the check after construction reports whether the rule
+      // still catches the element the shipped build draws.
       //
       // The panel used to describe itself in a status bar; that information — the
       // plugin and SpreadJS versions, and the licence state — lives in an About
@@ -443,6 +442,14 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
         + (about.reason === undefined ? '' : ` reason=${about.reason}`),
       )
       const designer = new ns.Designer(el, config)
+      // The File tab is hidden with the rule in viewer.css, not by config: a build
+      // that changes either identity would un-hide a download button silently, so say
+      // what actually happened. `matched=0` means the rule is now dead.
+      const fileTab = el.querySelector('[data-command="fileMenuButton"], .gc-designer-fileMenuButton')
+      console.info(
+        `[dsh-spreadjs-editor] Designer File tab hidden: matched=${fileTab === null ? 0 : 1}`
+        + ` display=${fileTab === null ? '-' : getComputedStyle(fileTab).display}`,
+      )
       const spread = designer.getWorkbook()
       if (spread !== undefined) {
         spread.options.tabStripVisible = true

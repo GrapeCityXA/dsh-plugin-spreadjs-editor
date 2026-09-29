@@ -38,6 +38,29 @@
   flex-direction: column;
 }
 
+/* The Designer's own File tab is hidden, and this is the one rule in this file that
+ * reaches into the product's DOM.
+ *
+ * It has to be hidden: the header above this panel is where saving happens, and the
+ * File tab's Save is a different action — it downloads a copy — sitting one click away
+ * from the one that writes the file back. Leaving both is how a workbook gets
+ * downloaded by accident, so the second Save is the one that goes.
+ *
+ * Two identities, because they say different things: `data-command` is the product's
+ * public command name (`CommandNames.FileMenuButton`), the class is what the shipped
+ * template draws. The element is an ordinary flex item of the ribbon's top row
+ * (`.gc-designer-component-container .gc-designer-fileMenuButton` is `position:
+ * relative; display: flex`), so taking it out leaves no gap behind. The scope class is
+ * repeated so this rule's specificity is (0,3,0) — the product's own rule for that
+ * element is (0,2,0) and its stylesheet can be injected after ours, because the theme
+ * swap in styles.ts replaces it at runtime. The creation effect logs whether the
+ * element was found and what `display` it computes to, so a build that renames both is
+ * noticed instead of quietly un-hiding a download button. */
+.dsh-spreadjs-panel .dsh-spreadjs-editor [data-command='fileMenuButton'],
+.dsh-spreadjs-panel .dsh-spreadjs-editor .gc-designer-fileMenuButton {
+  display: none;
+}
+
 .dsh-spreadjs-host {
   flex: 1 1 auto;
   min-height: 0;
