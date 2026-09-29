@@ -183,38 +183,58 @@
 /* Save and Save As in the harness's document header.
  *
  * This block is deliberately not scoped to the panel: the header is the product's
- * own toolbar above it, so the buttons inherit its font and only borrow the tokens
- * that make hover and focus look like the controls beside them. Nothing here may
- * assume the panel's layout. */
+ * own toolbar above it. Every value below is copied from the controls that share
+ * that toolbar, so these buttons read as members of the row instead of guests:
+ * the viewer-name button in the same header is `height: 28px; padding: 0 6px;
+ * font-size: 12px` in `--dsw-alias-label-secondary`, the icon buttons beside it are
+ * the same 28px in the same colour, both lighten to `label-primary` on
+ * `--dsw-alias-interactive-bg-hover`, and a disabled control drops to
+ * `label-tertiary` with the default cursor (`.dhJKeW_tool`, `.dhJKeW_viewerTool`
+ * and `.dhJKeW_more:disabled` in
+ * `@deepseek-ai/dsh-client-ui-sidebar-documentpreview`). The harness's own compact
+ * `Button` agrees on the same 28px/12px pair. Nothing here may assume the panel's
+ * layout. */
 .dsh-spreadjs-actions {
   display: inline-flex;
+  flex: none;
   align-items: center;
   gap: 4px;
 }
 
 .dsh-spreadjs-actions-button {
+  box-sizing: border-box;
   display: inline-flex;
+  flex: none;
   align-items: center;
+  justify-content: center;
   gap: 4px;
-  padding: 2px 8px;
-  border: 1px solid transparent;
-  border-radius: 4px;
+  height: 28px;
+  padding: 0 6px;
+  border: none;
+  border-radius: var(--dsw-radius-sm);
   background: transparent;
-  color: var(--dsw-alias-label-primary);
-  font: inherit;
+  color: var(--dsw-alias-label-secondary);
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
   cursor: pointer;
 }
 
-.dsh-spreadjs-actions-button:hover {
-  background: var(--dsw-alias-bg-layer-2);
+.dsh-spreadjs-actions-button:hover:not(:disabled) {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-interactive-bg-hover);
 }
 
+/* Too busy or not ready looks the way the header's own quiet buttons look: tertiary
+   text, default cursor, and no hover response of its own. */
 .dsh-spreadjs-actions-button:disabled {
+  color: var(--dsw-alias-label-tertiary);
   cursor: default;
-  opacity: 0.45;
 }
 
 .dsh-spreadjs-actions-button:disabled:hover {
+  color: var(--dsw-alias-label-tertiary);
   background: transparent;
 }
 
@@ -223,6 +243,7 @@
    where the hand reaches for Save, and a Save that looks identical whether or not
    anything is pending is the thing that made this mark worth adding. */
 .dsh-spreadjs-actions-dot {
+  flex: none;
   width: 6px;
   height: 6px;
   border-radius: 50%;
