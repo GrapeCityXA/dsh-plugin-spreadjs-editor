@@ -1,5 +1,21 @@
 # Release Notes / 版本记录
 
+## 0.2.2（未发布）
+
+### 中文
+
+- **工作簿不再被当作文本提供查看**：为 `.xlsm`、`.sjs`、`.ssjson` 声明「二进制后缀」（`.xlsx` 一并声明），DSH 因此不会再把它们列进纯文本查看方式——此前打开这类文件，可能选到把工作簿当文本渲染的方式，看到的是一屏乱码。该声明需要 DSH `0.1.7` 及以上才生效；`0.1.5-rc.3` 会忽略这个字段，行为与之前一致，不影响编辑与保存。
+- **查看器名称跟随 DSH 的语言，并与内置的只读预览区分开**：DSH `0.1.7` 起自带了只读的「表格」预览，会与本插件并列出现在同一份查看方式列表里，所以这里的名称由固定的 `SpreadJS` 改为随语言变化的「SpreadJS 编辑器 / SpreadJS Editor」，一眼能看出哪个能编辑。DSH 未提供语言服务时，则用内置的「SpreadJS 编辑器」。
+- **健康接口回报版本**：`/spreadjs/api/health` 现在返回插件版本与内置 SpreadJS 版本，`npm run probe:live` 因此能判断「正在运行的 DSH 里装的是不是这一版」——此前只能靠 404 猜测，进程里跑着旧版宿主半时其余检查都是一样的结果。
+- 构建与验收基线升到 DSH `0.1.7-rc.2`（`npm run typecheck`、89 项单测、两个 smoke、`verify:package`、`probe:live` 全部通过）。插件在 `0.1.5-rc.3` 上仍可运行。
+
+### English
+
+- **Workbooks are no longer offered as text**: `.xlsm`, `.sjs` and `.ssjson` (and `.xlsx`) are now declared as binary suffixes, so the harness stops listing a plain-text view for them — until now that view could render a workbook as a screenful of mojibake. The declaration takes effect on DSH `0.1.7` and later; `0.1.5-rc.3` ignores the field and behaves exactly as before, editing and saving unaffected.
+- **The viewer name follows the harness language and no longer collides with the built-in preview**: from DSH `0.1.7` the product ships its own read-only spreadsheet preview, listed beside this plugin, so the name changes from a fixed `SpreadJS` to a localized "SpreadJS 编辑器 / SpreadJS Editor" that says which one edits. Without a locale service the shipped Chinese name is used.
+- **The health endpoint reports versions**: `/spreadjs/api/health` now returns the plugin and bundled SpreadJS versions, so `npm run probe:live` can tell whether the running DSH carries this build — previously only a 404 distinguished an old host half, and every other check looked the same.
+- Built and verified against DSH `0.1.7-rc.2` (`npm run typecheck`, 89 unit tests, both smokes, `verify:package`, `probe:live` all green). The plugin still runs on `0.1.5-rc.3`.
+
 ## 0.2.1
 
 ### 中文

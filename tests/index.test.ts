@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join, sep } from 'node:path'
 import { Readable } from 'node:stream'
 import { Writable } from 'node:stream'
-import { apply, inject, name, type Config } from '../src/index.ts'
+import { apply, inject, name, PLUGIN_VERSION, SPREADJS_VERSION, type Config } from '../src/index.ts'
 import type { Context } from '@deepseek-ai/cordis'
 
 interface MockResponse {
@@ -143,7 +143,23 @@ describe('api endpoints', () => {
     const { request } = harness()
     const res = await request('/spreadjs/api/health')
     expect(res.status).toBe(200)
-    expect(JSON.parse(res.body)).toEqual({ ok: true })
+    // The version is what makes "restart DSH onto this build" checkable: a stale
+    // process used to answer exactly like a current one.
+    expect(JSON.parse(res.body)).toEqual({
+      ok: true,
+      plugin: { name, version: PLUGIN_VERSION },
+      spreadjs: SPREADJS_VERSION,
+    })
+  })
+
+  it('reads its own version out of the shipped manifest', async () => {
+    const manifest = await readFile(new URL('../package.json', import.meta.url), 'utf8')
+    expect(PLUGIN_VERSION).toBe((JSON.parse(manifest) as { version: string }).version)
+  })
+
+  it('reports the inlined SpreadJS version only when a build substituted it', () => {
+    // `unknown` under a bare run is the honest answer, not a failure.
+    expect(SPREADJS_VERSION === 'unknown' || /^\d+\.\d+\.\d+/u.test(SPREADJS_VERSION)).toBe(true)
   })
 
   it('GET /spreadjs/api/config returns the license key', async () => {

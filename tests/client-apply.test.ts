@@ -31,7 +31,15 @@ vi.mock('@grapecity-software/spread-sheets-ganttsheet', () => ({}))
 vi.mock('@grapecity-software/spread-sheets-reportsheet-addon', () => ({}))
 vi.mock('@grapecity-software/spread-sheets-languagepackages', () => ({}))
 
-import { SPREADSHEET_DOCUMENT_ID, SPREADSHEET_EXTENSIONS, apply, inject, name } from '../src/client/index.ts'
+import {
+  SPREADSHEET_BINARY_EXTENSIONS,
+  SPREADSHEET_DOCUMENT_ID,
+  SPREADSHEET_EXTENSIONS,
+  apply,
+  inject,
+  name,
+} from '../src/client/index.ts'
+import { EDITOR_LOCALE_NAMESPACE, EDITOR_TITLE_FALLBACK } from '../src/client/locales.ts'
 import { exportFileType, workbookFileType } from '../src/client/SpreadsheetHost.tsx'
 
 /** One light snapshot, in the shape `ctx.theme.getTheme()` returns. */
@@ -52,16 +60,26 @@ interface CtxDouble {
   slotRegister: ReturnType<typeof vi.fn>
   themeGet: ReturnType<typeof vi.fn>
   on: ReturnType<typeof vi.fn>
+  inject: ReturnType<typeof vi.fn>
+}
+
+/** Options the double needs to make an optional service present or absent. */
+interface CtxOptions {
+  locale?: unknown
 }
 
 /**
  * A cordis-shaped double carrying everything the plugin reads: the two
- * registries it writes to, the theme service it follows, and the event bus.
+ * registries it writes to, the theme service it follows, the optional locale
+ * service, and the event bus.
  *
  * `ctx.effect` runs its callback immediately and records the returned disposer,
- * which is how the real client runtime applies a plugin body.
+ * which is how the real client runtime applies a plugin body. `ctx.inject` runs
+ * its callback in a child scope when the requested services exist; a requested
+ * `locale` that the caller did not supply leaves the callback unrun, exactly as
+ * the real injection does, which is what makes the fallback name testable.
  */
-function makeCtx(): CtxDouble {
+function makeCtx(options: CtxOptions = {}): CtxDouble {
   const disposers: Array<() => unknown> = []
   const previewDispose = vi.fn()
   const previewRegister = vi.fn((_definition: unknown) => previewDispose)
@@ -71,21 +89,55 @@ function makeCtx(): CtxDouble {
   const themeGet = vi.fn(() => themeSnapshot)
   const on = vi.fn(() => () => {})
 
+  const effect = vi.fn((execute: unknown) => {
+    const result = (execute as () => unknown)()
+    if (typeof result === 'function') disposers.push(result as () => unknown)
+    return result
+  })
+
+  const child = {
+    effect,
+    get: () => undefined,
+    locale: options.locale,
+  }
+  const inject = vi.fn((deps: readonly string[], callback: (scope: unknown) => unknown) => {
+    if (deps.includes('locale') && options.locale === undefined) return { dispose: () => {} }
+    callback(child)
+    return { dispose: () => {} }
+  })
+
   const ctx = {
-    effect: vi.fn((execute: unknown) => {
-      const result = (execute as () => unknown)()
-      if (typeof result === 'function') disposers.push(result as () => unknown)
-      return result
-    }),
+    effect,
     documentPreviews: { register: previewRegister },
     slots: { inject: slotInject, register: slotRegister },
     theme: { getTheme: themeGet },
     on,
-    inject: vi.fn(() => ({ dispose: () => {} })),
+    inject,
   }
   apply(ctx as never)
 
-  return { ctx, disposers, previewRegister, previewDispose, slotInject, slotRegister, themeGet, on }
+  return { ctx, disposers, previewRegister, previewDispose, slotInject, slotRegister, themeGet, on, inject }
+}
+
+/**
+ * A locale service double: dictionaries are registered all at once and the bound
+ * translator reads the active language at call time, so a switch must be visible
+ * without re-registering anything.
+ */
+function makeLocale(active = 'zh') {
+  const dictionaries = new Map<string, Record<string, Record<string, string>>>()
+  let language = active
+  const register = vi.fn((namespace: string, dicts: Record<string, Record<string, string>>) => {
+    dictionaries.set(namespace, dicts)
+    return vi.fn()
+  })
+  const bind = vi.fn((namespace: string) => (key: string) => dictionaries.get(namespace)?.[language]?.[key] ?? key)
+  return {
+    locale: { register, bind },
+    register,
+    bind,
+    switchTo: (next: string) => { language = next },
+  }
 }
 
 describe('client plugin manifest', () => {
@@ -118,6 +170,38 @@ describe('client plugin manifest', () => {
   })
 })
 
+describe('viewer name', () => {
+  it('falls back to the shipped name when no locale service is composed in', () => {
+    const { previewRegister, disposers } = makeCtx()
+    const definition = previewRegister.mock.calls[0]?.[0] as { title: () => string }
+
+    expect(definition.title()).toBe(EDITOR_TITLE_FALLBACK)
+    for (const dispose of disposers) dispose()
+  })
+
+  it('follows the harness locale, reading it at call time', () => {
+    const { locale, register, bind, switchTo } = makeLocale('zh')
+    const { previewRegister, disposers } = makeCtx({ locale })
+    const definition = previewRegister.mock.calls[0]?.[0] as { title: () => string }
+
+    expect(register).toHaveBeenCalledWith(EDITOR_LOCALE_NAMESPACE, {
+      zh: expect.any(Object),
+      en: expect.any(Object),
+    })
+    expect(bind).toHaveBeenCalledWith(EDITOR_LOCALE_NAMESPACE)
+    // "SpreadJS 编辑器", not "SpreadJS": the product's own Excel preview is
+    // listed as "表格" beside it, so the name has to say which one edits.
+    expect(definition.title()).toBe('SpreadJS 编辑器')
+
+    switchTo('en')
+    expect(definition.title()).toBe('SpreadJS Editor')
+
+    // Releasing the plugin drops the translation rather than keeping a stale one.
+    for (const dispose of disposers) dispose()
+    expect(definition.title()).toBe(EDITOR_TITLE_FALLBACK)
+  })
+})
+
 describe('document registration', () => {
   it('claims the workbook suffixes as an external implementation', () => {
     const { previewRegister } = makeCtx()
@@ -133,12 +217,29 @@ describe('document registration', () => {
     }
     expect(definition.id).toBe(SPREADSHEET_DOCUMENT_ID)
     expect(definition.extensions).toEqual([...SPREADSHEET_EXTENSIONS])
-    // Omitted on purpose: the registry's default `extension` band is what puts
-    // this implementation ahead of the product's own builtins.
+    // Omitted on purpose: the registry's default `extension` band is what keeps
+    // this implementation ahead of the product's own Excel preview — a builtin
+    // that claims `xlsx`/`xls`/`csv`/`tsv` from DSH 0.1.7 on.
     expect(definition.priority).toBeUndefined()
     expect(definition.loading).toBe('bytes-complete')
     expect(definition.wrap).toBe(false)
-    expect((definition.title as () => string)()).toBe('SpreadJS')
+  })
+
+  it('declares the workbook suffixes whose bytes are not text', () => {
+    const { previewRegister } = makeCtx()
+    const definition = previewRegister.mock.calls[0]?.[0] as {
+      extensions: readonly string[]
+      binaryExtensions?: readonly string[]
+    }
+
+    expect(definition.binaryExtensions).toEqual([...SPREADSHEET_BINARY_EXTENSIONS])
+    // A stray suffix is not a warning: the registry throws on it, which would
+    // cost the whole editor rather than one file type.
+    for (const suffix of definition.binaryExtensions ?? []) {
+      expect(definition.extensions).toContain(suffix)
+    }
+    // Text, and the product's own registration splits it the same way.
+    expect(definition.binaryExtensions).not.toContain('csv')
   })
 
   it('binds the body to the same identity in the document slot', () => {

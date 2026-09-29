@@ -31,6 +31,7 @@
  */
 
 import { createHash } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 import { mkdir, rename, rm, writeFile } from 'node:fs/promises'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { dirname, join } from 'node:path'
@@ -62,6 +63,49 @@ export interface Config {
 }
 
 const DEFAULT_MAX_SAVE_BYTES = 64 * 1024 * 1024
+
+/* ------------------------------------------------------------------ *
+ * Build identity
+ *
+ * A running DSH process carries whatever host half it was started with: the
+ * plugin's own `probe:live` used to be able to tell only "the route exists",
+ * and a stale process answered every other question the same way a current one
+ * did. Reporting the version on `/spreadjs/api/health` is what makes "restart
+ * DSH onto this build" checkable.
+ * ------------------------------------------------------------------ */
+
+/**
+ * The SpreadJS version this build inlined, substituted by the build (see the
+ * `define` in `tsdown.config.ts`). It is declared rather than imported because
+ * the *browser* half carries SpreadJS: only the build knows the pair, so the
+ * host half learns it as a literal. A run that skips the substitution — `tsc`
+ * alone, or a unit test importing the source — leaves it undefined, which is
+ * why it is read through `typeof` rather than referenced directly.
+ */
+declare const __DSH_SPREADJS_VERSION__: string
+
+/** The SpreadJS version this build bundled, or `unknown` outside a build. */
+export const SPREADJS_VERSION: string =
+  typeof __DSH_SPREADJS_VERSION__ === 'string' ? __DSH_SPREADJS_VERSION__ : 'unknown'
+
+/**
+ * This package's own version, read from the manifest the module ships beside.
+ * The published layout keeps `lib/index.js` next to `package.json`, so this
+ * relative URL resolves in the repository, in a tarball install, and inside a
+ * profile — no import of a bare `package.json` specifier, which a consumer's
+ * resolver may not be allowed to reach.
+ */
+export const PLUGIN_VERSION: string = (() => {
+  try {
+    const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as {
+      version?: unknown
+    }
+    return typeof manifest.version === 'string' && manifest.version !== '' ? manifest.version : 'unknown'
+  } catch {
+    return 'unknown'
+  }
+})()
+
 
 /** A failure with an HTTP status, so handlers stay flat. */
 class HttpError extends Error {
@@ -325,7 +369,11 @@ export function apply(ctx: Context, config: Config = {}): void {
       }
       try {
         if (pathname === '/spreadjs/api/health') {
-          sendJson(res, 200, { ok: true })
+          sendJson(res, 200, {
+            ok: true,
+            plugin: { name, version: PLUGIN_VERSION },
+            spreadjs: SPREADJS_VERSION,
+          })
           return
         }
         if (pathname === '/spreadjs/api/config') {

@@ -11,10 +11,27 @@
  *    the stylesheets are inlined into the bundle.
  */
 import { readFile } from 'node:fs/promises'
+import { createRequire } from 'node:module'
 import type { UserConfig } from 'tsdown'
 
 // The loader key must exactly match the published npm package name.
 const PKG_ID = '@grapecity-software/dsh-spreadjs-editor'
+
+const require = createRequire(import.meta.url)
+
+/**
+ * The SpreadJS version this build inlines, stamped into the node half. SpreadJS
+ * only ever lands in the *browser* bundle, so the host half cannot discover the
+ * version at runtime; the build is the only place that knows the pair, and it
+ * substitutes the literal below (see `define` on {@link nodeHalf}).
+ */
+const SPREADJS_VERSION: string = (() => {
+  try {
+    return require('@grapecity-software/spread-sheets/package.json').version as string
+  } catch {
+    return 'unknown'
+  }
+})()
 
 /** Module-table specifiers the browser bundle resolves at runtime. */
 const CLIENT_EXTERNALS = new Set([
@@ -60,6 +77,11 @@ const nodeHalf: UserConfig = {
   dts: false,
   clean: true,
   sourcemap: false,
+  define: {
+    // Read back by /spreadjs/api/health, so a probe can tell which build the
+    // running process carries instead of guessing from a 404.
+    __DSH_SPREADJS_VERSION__: JSON.stringify(SPREADJS_VERSION),
+  },
   deps: {
     // Relative sources inline; node: builtins stay external; nothing else
     // (the node half imports no bare runtime deps — dsh services are injected).

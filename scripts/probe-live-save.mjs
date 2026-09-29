@@ -86,8 +86,26 @@ async function readBack(path, body) {
 
 console.log(`probing ${baseUrl} (DSH home: ${dshHome})\n`)
 
-const health = await fetch(`${baseUrl}/spreadjs/api/health`).then(r => r.status).catch(error => error.message)
-check('the plugin host half answers', health === 200, String(health))
+const healthResponse = await fetch(`${baseUrl}/spreadjs/api/health`).catch(error => error.message)
+const healthStatus = healthResponse instanceof Response ? healthResponse.status : healthResponse
+check('the plugin host half answers', healthStatus === 200, String(healthStatus))
+
+// A stale process used to answer exactly like a current one — the route existed
+// and every other check looked the same. The reported version is what turns
+// "restart DSH onto this build" into something this probe can actually state.
+const localPackage = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'))
+const health = healthResponse instanceof Response && healthResponse.ok
+  ? await healthResponse.json().catch(() => undefined)
+  : undefined
+if (typeof health?.plugin?.version === 'string') {
+  check('the running host half is this build', health.plugin.version === localPackage.version,
+    `running ${health.plugin.version}, local ${localPackage.version}`)
+  check('it reports the SpreadJS it inlined', typeof health.spreadjs === 'string' && /^\d+\.\d+\.\d+/u.test(health.spreadjs),
+    String(health.spreadjs))
+  note(`running host half: plugin ${health.plugin.version}, SpreadJS ${health.spreadjs}`)
+} else {
+  note('the running host half predates the version report — restart DSH to check the build it carries')
+}
 
 const probeName = `.dsh-save-probe-${process.pid}-${Date.now()}.bin`
 const payloadA = new Uint8Array(64).map((_, index) => (index * 7 + 3) % 251)

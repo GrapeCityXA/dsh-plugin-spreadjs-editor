@@ -88,7 +88,14 @@ async function req(url, init = {}) {
 // --- drive the endpoints ---------------------------------------------------
 let r = await req('/spreadjs/api/health')
 check('health -> 200', r.status === 200, `got ${r.status}`)
-check('health body', r.body === JSON.stringify({ ok: true }), r.body)
+const health = JSON.parse(r.body)
+check('health -> ok', health.ok === true, r.body)
+check('health -> reports the version of this build', health.plugin?.version === pkg.PLUGIN_VERSION, r.body)
+// The built artifact must carry a substituted version: `unknown` here means the
+// bundler dropped the `define`, and a probe could no longer tell which SpreadJS
+// a running process is serving.
+check('health -> reports the inlined SpreadJS version', pkg.SPREADJS_VERSION !== 'unknown', String(pkg.SPREADJS_VERSION))
+check('health -> agrees with the manifest', health.spreadjs === pkg.SPREADJS_VERSION, r.body)
 
 r = await req('/spreadjs/api/config')
 check('config -> licenseKey', JSON.parse(r.body).licenseKey === 'SMOKE-KEY', r.body)
