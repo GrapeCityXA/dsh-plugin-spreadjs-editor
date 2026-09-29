@@ -25,7 +25,8 @@ export const EDITOR_LOCALE_NAMESPACE = 'dsh.spreadjs-editor'
 /** Every string this plugin shows that is not part of the Designer's own chrome. */
 export type EditorTextKey =
   | 'viewer.title'
-  | 'unsaved.chip'
+  | 'unsaved.saved'
+  | 'unsaved.dirty'
   | 'unsaved.restored'
   | 'unsaved.stale'
   | 'unsaved.restore'
@@ -47,7 +48,8 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
  */
 const FALLBACK_TEXT: Record<EditorTextKey, string> = {
   'viewer.title': 'SpreadJS 编辑器',
-  'unsaved.chip': '未保存的改动',
+  'unsaved.saved': '已保存',
+  'unsaved.dirty': '未保存的改动',
   'unsaved.restored': '已恢复本会话中未保存的改动。',
   'unsaved.stale': '存在未保存的改动缓存，但文件已在磁盘上被修改。',
   'unsaved.restore': '恢复',
@@ -64,7 +66,8 @@ const DICTIONARIES: { zh: Record<string, string>; en: Record<string, string> } =
   zh: FALLBACK_TEXT,
   en: {
     'viewer.title': 'SpreadJS Editor',
-    'unsaved.chip': 'Unsaved changes',
+    'unsaved.saved': 'Saved',
+    'unsaved.dirty': 'Unsaved changes',
     'unsaved.restored': 'Restored unsaved changes from this session.',
     'unsaved.stale': 'An unsaved buffer exists, but the file changed on disk.',
     'unsaved.restore': 'Restore',

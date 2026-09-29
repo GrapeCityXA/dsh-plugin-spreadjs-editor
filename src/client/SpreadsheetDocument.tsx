@@ -36,6 +36,7 @@ import { PROVIDER_ID, publishWorkbook } from './bridge.ts'
 import { HASH_PENDING, HASH_UNAVAILABLE, decideLoad, type HeldBuffer } from './load-decision.ts'
 import { editorText } from './locales.ts'
 import { contentHash, parseSessionFileAddress } from './session-file-address.ts'
+import { statusLineFor } from './status-line.ts'
 import {
   forgetPath,
   forgetTab,
@@ -329,19 +330,24 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
     handleStatus(editorText('unsaved.restored'), 'idle')
   }, [offered, handleStatus])
 
-  /** Throw the buffer away and start from the file on disk again. */
-  const discardHeld = useCallback(() => {
+  /**
+   * Throw the edits away and start from the file on disk again.
+   *
+   * Covers both shapes of unsaved work: a buffer that came back from this session,
+   * and edits made straight into the Designer, which no buffer holds. The second
+   * shape is why the load is always re-issued with a *new* object — the host's load
+   * effect keys on that object's identity, so reusing the current one would clear
+   * the markers and leave the discarded edits on screen.
+   */
+  const discardEdits = useCallback(() => {
     if (address === undefined) return
-    console.info(`[dsh-spreadjs-editor] discarded the unsaved changes kept for ${address.path}`)
+    console.info(`[dsh-spreadjs-editor] discarded unsaved changes for ${address.path}; reloading from disk`)
     forgetPath(address.path)
     setHeld(undefined)
     setOffered(undefined)
     setDirty(false)
     setTabDirty(tabId, false)
-    // Ask the host for the file's bytes again, unless it is already showing them.
-    setDecision(current => current === undefined || current.load.kind === 'file'
-      ? current
-      : { ...current, load: { kind: 'file' } })
+    setDecision(current => current === undefined ? current : { ...current, load: { kind: 'file' } })
     handleStatus(editorText('unsaved.dropped'), 'idle')
   }, [address, tabId, handleStatus])
 
@@ -357,11 +363,18 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
     ? decision.load
     : undefined
 
-  const banner = offered !== undefined
-    ? { key: 'unsaved.stale' as const, canRestore: true }
-    : held === undefined
-      ? undefined
-      : { key: 'unsaved.restored' as const, canRestore: false }
+  /**
+   * The panel's own state line, shown whenever a file is open — including when
+   * everything is saved. A row that appeared only while something was dirty would
+   * resize the Designer under whoever is typing in it, which is the one moment that
+   * must not move. What varies is the text and the actions beside it; the matrix is
+   * status-line.ts, where it is unit tested.
+   */
+  const statusLine = statusLineFor({
+    dirty,
+    hasHeld: held !== undefined,
+    hasOffered: offered !== undefined,
+  })
 
   // `text` content means the owner did not deliver complete bytes, which only
   // happens for a definition that asked for pages. Say so instead of mounting an
@@ -378,23 +391,25 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
 
   return (
     <div className="dsh-spreadjs-panel" role="region" aria-busy={loading} aria-label={`SpreadJS: ${source.name}`}>
-      {banner === undefined
-        ? null
-        : (
-          <div className="dsh-spreadjs-unsaved-bar" role="status">
-            <span>{editorText(banner.key)}</span>
-            {banner.canRestore
-              ? (
-                <button type="button" className="dsh-spreadjs-unsaved-action" onClick={restoreOffered}>
-                  {editorText('unsaved.restore')}
-                </button>
-              )
-              : null}
-            <button type="button" className="dsh-spreadjs-unsaved-action" onClick={discardHeld}>
+      <div className="dsh-spreadjs-statusbar">
+        <span className="dsh-spreadjs-statusbar-text" data-tone={statusLine.tone} aria-live="polite">
+          {editorText(statusLine.key)}
+        </span>
+        {statusLine.canRestore
+          ? (
+            <button type="button" className="dsh-spreadjs-statusbar-action" onClick={restoreOffered}>
+              {editorText('unsaved.restore')}
+            </button>
+          )
+          : null}
+        {statusLine.canDiscard
+          ? (
+            <button type="button" className="dsh-spreadjs-statusbar-action" onClick={discardEdits}>
               {editorText('unsaved.discard')}
             </button>
-          </div>
-        )}
+          )
+          : null}
+      </div>
       <div className="dsh-spreadjs-editor">
         <SpreadsheetHost
           ref={hostRef}
@@ -411,16 +426,11 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
           onUnsaved={handleUnsaved}
         />
       </div>
-      {!dirty && status === ''
+      {status === ''
         ? null
         : (
           <div className="dsh-spreadjs-overlay">
-            {dirty
-              ? <div className="dsh-spreadjs-unsaved-chip">{editorText('unsaved.chip')}</div>
-              : null}
-            {status === ''
-              ? null
-              : <div className={`dsh-spreadjs-toast dsh-spreadjs-toast-${statusTone}`} role="status">{status}</div>}
+            <div className={`dsh-spreadjs-toast dsh-spreadjs-toast-${statusTone}`} role="status">{status}</div>
           </div>
         )}
     </div>
