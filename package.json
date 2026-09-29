@@ -37,6 +37,7 @@
     "prepublishOnly": "npm run typecheck && npm test && npm run build && node scripts/smoke-client.mjs && node scripts/smoke-node.mjs && npm run verify:package",
     "rebuild": "node scripts/build.mjs",
     "probe:live": "node scripts/probe-live-save.mjs",
+    "release": "node scripts/release.mjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "verify:package": "node scripts/verify-package.mjs"
