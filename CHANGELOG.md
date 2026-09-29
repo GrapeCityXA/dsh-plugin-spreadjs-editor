@@ -9,7 +9,10 @@
 - **工作簿不再被当作文本提供查看**：为 `.xlsm`、`.sjs`、`.ssjson` 声明「二进制后缀」（`.xlsx` 一并声明），DSH 因此不会再把它们列进纯文本查看方式——此前打开这类文件，可能选到把工作簿当文本渲染的方式，看到的是一屏乱码。该声明需要 DSH `0.1.7` 及以上才生效；`0.1.5-rc.3` 会忽略这个字段，行为与之前一致，不影响编辑与保存。
 - **查看器名称跟随 DSH 的语言，并与内置的只读预览区分开**：DSH `0.1.7` 起自带了只读的「表格」预览，会与本插件并列出现在同一份查看方式列表里，所以这里的名称由固定的 `SpreadJS` 改为随语言变化的「SpreadJS 编辑器 / SpreadJS Editor」，一眼能看出哪个能编辑。DSH 未提供语言服务时，则用内置的「SpreadJS 编辑器」。
 - **健康接口回报版本**：`/spreadjs/api/health` 现在返回插件版本与内置 SpreadJS 版本，`npm run probe:live` 因此能判断「正在运行的 DSH 里装的是不是这一版」——此前只能靠 404 猜测，进程里跑着旧版宿主半时其余检查都是一样的结果。
-- 构建与验收基线升到 DSH `0.1.7-rc.2`（`npm run typecheck`、119 项单测、两个 smoke、`verify:package`、`probe:live` 全部通过）。插件在 `0.1.5-rc.3` 上仍可运行。
+- **「保存」搬进 DSH 自己的文档工具栏，不再依赖 Designer 私有模板**：DSH `0.1.7` 起，文档预览头部有一个官方动作槽（`sidebar.right.tab.document.actions`），「保存」现在注册在那里——就排在文件名和其它查看器控件之后，有未保存改动时它前面会多一个标记点，像 Excel 标题栏的 `*`。此前只有改写 Designer「文件」菜单的私有模板才点得到保存，模板一变就失效；那处改写现在降级为「尽力而为」的一致性补丁，删掉它保存照样工作。面板顶部那一行保留：它承载必须贴着文件解释的「恢复 / 丢弃」，也是 DSH `0.1.5/0.1.6` 上唯一的状态提示。
+- **新增「另存为」，把工作簿（包括重置成空白的新工作簿）写进工作区**：工具栏「另存为…」询问一个相对会话工作区的路径，默认是「同目录 + 同后缀 + 文件名加『副本』」；写成功后就地切换到那个文件继续编辑，不会另开标签页。同名文件不会被覆盖——宿主对没有版本基线的写入一律拒绝，对话框直接说「目标文件已存在，请换一个名字」。只接受本插件能打开的 5 种后缀（`.xlsx / .xlsm / .csv / .sjs / .ssjson`）：写出格式由后缀决定，别的后缀会写出打不开的文件，因此在提交前就拦下。
+- **面板内残留的固定英文提示改走语言表**：新工作簿提示、载入中、缺少完整字节的提示原先固定为英文，现在随 DSH 语言切换。
+- 构建与验收基线升到 DSH `0.1.7-rc.2`（`npm run typecheck`、157 项单测、两个 smoke、`verify:package`、`probe:live` 全部通过）。插件在 `0.1.5-rc.3` 上仍可运行（该版本没有文档头部动作槽，只有 Designer 内的保存入口与面板状态行）。
 
 ### English
 
@@ -18,7 +21,10 @@
 - **Workbooks are no longer offered as text**: `.xlsm`, `.sjs` and `.ssjson` (and `.xlsx`) are now declared as binary suffixes, so the harness stops listing a plain-text view for them — until now that view could render a workbook as a screenful of mojibake. The declaration takes effect on DSH `0.1.7` and later; `0.1.5-rc.3` ignores the field and behaves exactly as before, editing and saving unaffected.
 - **The viewer name follows the harness language and no longer collides with the built-in preview**: from DSH `0.1.7` the product ships its own read-only spreadsheet preview, listed beside this plugin, so the name changes from a fixed `SpreadJS` to a localized "SpreadJS 编辑器 / SpreadJS Editor" that says which one edits. Without a locale service the shipped Chinese name is used.
 - **The health endpoint reports versions**: `/spreadjs/api/health` now returns the plugin and bundled SpreadJS versions, so `npm run probe:live` can tell whether the running DSH carries this build — previously only a 404 distinguished an old host half, and every other check looked the same.
-- Built and verified against DSH `0.1.7-rc.2` (`npm run typecheck`, 119 unit tests, both smokes, `verify:package`, `probe:live` all green). The plugin still runs on `0.1.5-rc.3`.
+- **Save moved into the harness's own document header, off the Designer's private template**: from DSH `0.1.7` a document header publishes an official actions slot (`sidebar.right.tab.document.actions`), and Save is now registered there — after the file name and the other viewers' controls, carrying a mark while anything is unsaved, like Excel's title-bar `*`. Until now Save was only reachable through a rewrite of the Designer's private File-menu template, which stops working the moment that template changes; the rewrite is now a best-effort consistency patch, and deleting it costs nothing but the menu row. The panel's own top row stays: it carries the Restore/Discard decision that has to be explained next to the file, and on DSH `0.1.5`/`0.1.6` it is the only state indicator.
+- **New Save As writes the workbook — including one reset to blank — into the workspace**: the header's **另存为…** asks for a path relative to the session workspace (suggesting the same directory and suffix with a localized "copy" in the name) and, on success, moves this tab onto the file just written instead of opening a second tab. An existing name is never overwritten — the host refuses any write that carries no version baseline — and the dialog says so plainly. Only the five suffixes this plugin opens (`.xlsx / .xlsm / .csv / .sjs / .ssjson`) are accepted, because the written format follows the suffix and anything else would produce a file that cannot be reopened here.
+- **The remaining hard-coded English panel strings now go through the locale table**: the new-workbook notice, the loading notice and the "complete file contents" notice.
+- Built and verified against DSH `0.1.7-rc.2` (`npm run typecheck`, 157 unit tests, both smokes, `verify:package`, `probe:live` all green). The plugin still runs on `0.1.5-rc.3`, which has no document-header actions slot — there, Save is inside the Designer plus the panel's status row.
 
 ## 0.2.1
 

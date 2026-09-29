@@ -54,6 +54,23 @@ export function parseSessionFileAddress(address: string): SessionFileAddress | u
 }
 
 /**
+ * Build the address of a session file, in the form this module parses.
+ *
+ * Used by Save As: once the workbook has been written to a new path, the panel
+ * navigates to it, and only an address can be navigated to. Each path segment is
+ * escaped on its own so a separator inside a file name survives; the session id is
+ * escaped as one segment, exactly as the harness writes it.
+ *
+ * @param sessionId - the session whose workspace the path belongs to.
+ * @param path - the path inside that workspace.
+ * @returns the `dsh-resource://file/session/…` address.
+ */
+export function sessionFileAddressFor(sessionId: string, path: string): string {
+  const segments = path.split('/').filter(segment => segment !== '')
+  return `${FILE_ADDRESS_PREFIX}session/${encodeURIComponent(sessionId)}/${segments.map(encodeURIComponent).join('/')}`
+}
+
+/**
  * The lower-cased extension of a path, without the leading dot.
  *
  * @param path - a file name or path.

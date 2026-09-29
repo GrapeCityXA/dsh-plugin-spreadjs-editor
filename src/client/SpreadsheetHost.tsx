@@ -37,6 +37,7 @@ import {
 } from './designer-save-command.ts'
 import { installDesignerAbout } from './about.ts'
 import { installDesignerFileMenu, type DesignerFileMenuNamespace } from './designer-file-menu.ts'
+import { editorText } from './locales.ts'
 import { setEditorTheme } from './styles.ts'
 import { harnessThemeIsDark, onHarnessThemeChange } from './ds-theme.ts'
 import { resolveDirtyEvents, watchWorkbookChanges, type DirtyWatch, type DirtyWatchWorkbook } from './workbook-dirty.ts'
@@ -46,6 +47,18 @@ export type StatusTone = 'idle' | 'busy' | 'error'
 
 export interface SpreadsheetHostHandle {
   save: () => Promise<void>
+  /**
+   * Write the workbook to a workspace path other than the one it was opened from.
+   *
+   * The target is decided above this component: the document half knows the session
+   * address, and it is the half that can ask the user. This half only exports the
+   * workbook under that name and hands it to the write seam, which refuses a file
+   * that already exists (there is no baseline to overwrite it against).
+   *
+   * A rejected write propagates: the caller is showing a dialog and has to say what
+   * went wrong, which is also where a conflict becomes a sentence about the name.
+   */
+  saveAs: (path: string) => Promise<void>
   exportAs: (format: ExportFormat) => Promise<void>
   newWorkbook: () => void
   /**
@@ -60,6 +73,13 @@ export interface SpreadsheetHostHandle {
 
 /** Result of one write-back operation. */
 export type SpreadsheetSaveResult = 'saved' | 'download'
+
+/**
+ * The workbook cannot be written yet: no Designer, a load in flight, or another
+ * write already running. Typed rather than worded here, so the Save As dialog can
+ * say it in the reader's language instead of showing an internal sentence.
+ */
+export class WorkbookNotReadyError extends Error {}
 
 /**
  * What the Designer should be holding, which the document decides before anything
@@ -85,6 +105,14 @@ export interface SpreadsheetSource {
 /** Write-back seam: where an edited workbook goes. */
 export interface SpreadsheetFileAccess {
   save(blob: Blob, source: SpreadsheetSource): Promise<SpreadsheetSaveResult>
+  /**
+   * Write bytes to a workspace path chosen right now, as Save As does.
+   *
+   * No baseline is passed and none is expected: the host writes a new file, and
+   * refuses when the name is taken instead of replacing what is there. A failure
+   * throws, because the caller has a dialog in which to explain it.
+   */
+  saveTo(blob: Blob, path: string): Promise<void>
 }
 
 export interface SpreadsheetHostProps {
@@ -393,7 +421,7 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
       // keep their default behaviour, because those do mean "write a copy".
       const steered = redirectDesignerSave(ns, config)
       if (!steered) {
-        console.warn('[dsh-spreadjs-editor] the Designer Save command was not redirected; use the panel Save button')
+        console.warn('[dsh-spreadjs-editor] the Designer Save command was not redirected; use Save in the document header')
       }
       // The File tab dispatches through its own handler rather than the command
       // table, so the redirect above does not reach its Save row. Rebind that row
@@ -552,6 +580,34 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
       }
     }
 
+    /**
+     * Write the workbook to another workspace path (Save As).
+     *
+     * Every refusal below throws rather than reporting through the status line: the
+     * caller is a dialog the user is looking at, and "the name is taken" has to be
+     * said there, next to the field it concerns. Success marks the workbook clean,
+     * because the edits are now on disk under the new path — the document half is
+     * about to show that very file.
+     */
+    async function saveAs(path: string): Promise<void> {
+      const designer = designerRef.current
+      if (designer === null) throw new WorkbookNotReadyError('The workbook is not ready yet')
+      // Same guard as save(): a workbook that is still loading has no content, and
+      // writing it now would put an empty book where a file used to be.
+      if (loadInFlightRef.current) throw new WorkbookNotReadyError('The workbook is still loading')
+      if (saveInFlightRef.current) throw new WorkbookNotReadyError('Another save is already running')
+      saveInFlightRef.current = true
+      onLoadingChange(true)
+      try {
+        const blob = await workbookBlob(designer.getWorkbook(), path)
+        await fileAccess.saveTo(blob, path)
+        markWorkbookClean()
+      } finally {
+        saveInFlightRef.current = false
+        onLoadingChange(false)
+      }
+    }
+
     async function exportAs(format: ExportFormat): Promise<void> {
       const designer = designerRef.current
       if (designer === null) return
@@ -588,6 +644,7 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
       ref,
       () => ({
         save,
+        saveAs,
         exportAs,
         newWorkbook,
         getWorkbook: () => designerRef.current?.getWorkbook(),
@@ -600,9 +657,9 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
       <div className="dsh-spreadjs-host">
         <div ref={hostRef} />
         {source === undefined ? (
-          <div className="dsh-spreadjs-empty">New workbook ready. Use Export to save a copy.</div>
+          <div className="dsh-spreadjs-empty">{editorText('empty.newWorkbook')}</div>
         ) : null}
-        {status.kind === 'loading' ? <div className="dsh-spreadjs-loading">Loading…</div> : null}
+        {status.kind === 'loading' ? <div className="dsh-spreadjs-loading">{editorText('loading.workbook')}</div> : null}
         {status.kind === 'error' ? <div className="dsh-spreadjs-error">{status.message}</div> : null}
       </div>
     )

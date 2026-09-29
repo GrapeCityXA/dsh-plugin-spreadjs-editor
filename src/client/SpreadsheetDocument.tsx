@@ -25,6 +25,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { DocumentContent, DocumentPreviewProps } from '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/client'
 import {
   SpreadsheetHost,
+  WorkbookNotReadyError,
   type SpreadsheetFileAccess,
   type SpreadsheetHostHandle,
   type SpreadsheetLoad,
@@ -35,7 +36,10 @@ import {
 import { PROVIDER_ID, publishWorkbook } from './bridge.ts'
 import { HASH_PENDING, HASH_UNAVAILABLE, decideLoad, type HeldBuffer } from './load-decision.ts'
 import { editorText } from './locales.ts'
-import { contentHash, parseSessionFileAddress } from './session-file-address.ts'
+import { publishPanel, refreshPanel } from './panel-actions.ts'
+import { defaultSaveAsPath, saveAsFailureText } from './save-as.ts'
+import { SaveAsPrompt } from './SaveAsPrompt.tsx'
+import { contentHash, parseSessionFileAddress, sessionFileAddressFor } from './session-file-address.ts'
 import { statusLineFor } from './status-line.ts'
 import {
   forgetPath,
@@ -60,6 +64,11 @@ interface SaveResponse {
 /** A conflict the user must resolve; kept apart from transport failures. */
 class SaveConflictError extends Error {}
 
+/** The self-directed tab operation this body needs: navigating its own tab. */
+interface SpreadsheetTabActionsLike {
+  openResource: (address: string, options?: { readonly replaceTab?: boolean }) => void
+}
+
 /**
  * The tab facts this body relies on, as the platform's own bodies read them
  * (`const { tab } = props.useTabInfo()` in the product's Office body).
@@ -77,21 +86,36 @@ interface SpreadsheetTabInfoLike {
   readonly tab?: {
     readonly id?: unknown
     readonly signal?: unknown
+    readonly actions?: unknown
   }
 }
 
 /** The account a panel uses when the tab record is not what it expects. */
 const UNTRACKED_TAB = 'untracked'
 
-/** A tab record's id and abort signal, or the neutral fallback for each. */
-function readTab(info: SpreadsheetTabInfoLike | undefined): { id: string; signal: AbortSignal | undefined } {
+/**
+ * A tab record's id, abort signal and actions, or the neutral fallback for each.
+ *
+ * `actions` is read here too because Save As ends by navigating *this* tab to the
+ * file it wrote, and only the tab can do that: the panel cannot open a file, it can
+ * only be one. A record without actions loses the automatic switch, not the save.
+ */
+function readTab(info: SpreadsheetTabInfoLike | undefined): {
+  id: string
+  signal: AbortSignal | undefined
+  actions: SpreadsheetTabActionsLike | undefined
+} {
   const id = info?.tab?.id
   const signal = info?.tab?.signal
+  const actions = info?.tab?.actions
   return {
     id: typeof id === 'string' && id !== '' ? id : UNTRACKED_TAB,
     // `AbortSignal` exists in this runtime; a record that hands over something else
     // simply loses the close notification, not the buffer.
     signal: typeof AbortSignal !== 'undefined' && signal instanceof AbortSignal ? signal : undefined,
+    actions: typeof (actions as SpreadsheetTabActionsLike | undefined)?.openResource === 'function'
+      ? actions as SpreadsheetTabActionsLike
+      : undefined,
   }
 }
 
@@ -111,7 +135,7 @@ interface LoadDecision {
 export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Element {
   // Read once per render, defensively: the panel must open even if the record is
   // not the shape the platform documents (see readTab).
-  const { id: tabId, signal: tabSignal } = readTab(props.useTabInfo() as unknown as SpreadsheetTabInfoLike)
+  const { id: tabId, signal: tabSignal, actions: tabActions } = readTab(props.useTabInfo() as unknown as SpreadsheetTabInfoLike)
   const resourceAddress = props.resourceAddress
   const content = props.content as DocumentContent | undefined
   const address = useMemo(() => parseSessionFileAddress(resourceAddress), [resourceAddress])
@@ -124,6 +148,14 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
   const hostRef = useRef<SpreadsheetHostHandle | null>(null)
   /** Hash of the bytes currently on disk, as this panel last saw them. */
   const baselineRef = useRef<string | undefined>(undefined)
+  /**
+   * Live copies of the two facts the document header's buttons report, read there
+   * outside React: `dirty` decides whether Save carries a mark, `busy` whether it
+   * waits. State alone cannot be read from a callback, and republishing the panel on
+   * every keystroke would churn the header instead.
+   */
+  const dirtyRef = useRef(false)
+  const busyRef = useRef(false)
   /** The pending "this message fades" timer, if one is running. */
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [licenseKey, setLicenseKey] = useState('')
@@ -147,6 +179,12 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
   const [held, setHeld] = useState<HeldBuffer | undefined>(undefined)
   /** A buffer that cannot be applied on its own, because the file changed under it. */
   const [offered, setOffered] = useState<HeldBuffer | undefined>(undefined)
+  /** The Save As prompt is open. */
+  const [saveAsOpen, setSaveAsOpen] = useState(false)
+  /** A Save As write is in flight. */
+  const [saveAsBusy, setSaveAsBusy] = useState(false)
+  /** Why the last Save As write was refused, as text ready to show. */
+  const [saveAsError, setSaveAsError] = useState('')
 
   const handleStatus = useCallback((next: string, tone: StatusTone = 'idle') => {
     setStatus(next)
@@ -159,11 +197,21 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
   }, [])
 
   const handleDirtyChange = useCallback((next: boolean) => {
+    dirtyRef.current = next
     setDirty(next)
     // The page-close guard asks the module, not this component: a body that
     // unmounts stops being a live editor but its buffer must still count.
     setTabDirty(tabId, next)
+    // The header's Save button marks itself from the same fact.
+    refreshPanel()
   }, [tabId])
+
+  /** Loading covers the load and every write, which is exactly what Save waits for. */
+  const handleLoadingChange = useCallback((next: boolean) => {
+    busyRef.current = next
+    setLoading(next)
+    refreshPanel()
+  }, [])
 
   /** The host is leaving with edits: keep them under this tab and this file. */
   const handleUnsaved = useCallback((workbook: object) => {
@@ -265,6 +313,22 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
     },
   }), [resourceAddress])
 
+  // Offer this panel to the document header's Save actions (panel-actions.ts). The
+  // header is outside the panel and cannot see the workbook, so Save and Save As are
+  // registered there and routed here. Republished on an address change only: the
+  // callbacks read the live dirty and busy flags through refs, so typing does not
+  // republish, and the header reads them again whenever refreshPanel says so.
+  useEffect(() => publishPanel({
+    canSave: () => address !== undefined && hostRef.current !== null,
+    isDirty: () => dirtyRef.current,
+    isBusy: () => busyRef.current,
+    save: () => { void hostRef.current?.save() },
+    requestSaveAs: () => {
+      setSaveAsError('')
+      setSaveAsOpen(true)
+    },
+  }), [address])
+
   // The tab record is gone: this body will never mount again, so its tab-keyed
   // buffer is spent. The copy keyed by the file's path stays — that is what makes
   // closing a tab and reopening the file recoverable — and is dropped when the
@@ -284,39 +348,63 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
   // left behind is the buffer the host handed over during unmount.
   useEffect(() => () => { setTabDirty(tabId, false) }, [tabId])
 
+  /**
+   * Post one workbook to the host's write route.
+   *
+   * `base` is the freshness token of the file being *replaced*; Save As passes none,
+   * because there is no file to replace and the host turns the missing token into a
+   * refusal when the name is taken. A 409 is separated from a transport failure here,
+   * once, so both callers can word it as what it is.
+   */
+  const writeWorkbook = useCallback(async (
+    blob: Blob,
+    path: string | undefined,
+    base: string | undefined,
+  ): Promise<SaveResponse> => {
+    if (address === undefined || path === undefined) {
+      throw new Error('This document has no file address to write to.')
+    }
+    const written = new Uint8Array(await blob.arrayBuffer())
+    const params = new URLSearchParams({
+      sessionId: address.sessionId,
+      path,
+      body: await contentHash(written),
+    })
+    if (base !== undefined) params.set('base', base)
+    const response = await fetch(`/spreadjs/api/save?${params.toString()}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/octet-stream' },
+      body: blob,
+    })
+    const body = await response.json().catch(() => null) as SaveResponse | null
+    if (!response.ok || body?.ok !== true) {
+      const message = body?.error?.message ?? `HTTP ${response.status}`
+      if (response.status === 409) {
+        // The file moved under us. Report it as such so the status line can say
+        // what happened rather than looking like a transport failure.
+        throw new SaveConflictError(message)
+      }
+      throw new Error(message)
+    }
+    return body ?? {}
+  }, [address])
+
   const fileAccess = useMemo<SpreadsheetFileAccess>(() => ({
     save: async (blob, target): Promise<SpreadsheetSaveResult> => {
-      if (address === undefined) throw new Error('This document has no file address to save to.')
-      const written = new Uint8Array(await blob.arrayBuffer())
-      const params = new URLSearchParams({
-        sessionId: address.sessionId,
-        path: address.path,
-        body: await contentHash(written),
-      })
-      const baseline = baselineRef.current
-      if (baseline !== undefined) params.set('base', baseline)
-      const response = await fetch(`/spreadjs/api/save?${params.toString()}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/octet-stream' },
-        body: blob,
-      })
-      const body = await response.json().catch(() => null) as SaveResponse | null
-      if (!response.ok || body?.ok !== true) {
-        const message = body?.error?.message ?? `HTTP ${response.status}`
-        if (response.status === 409) {
-          // The file moved under us. Report it as such so the status line can say
-          // what happened rather than looking like a transport failure.
-          throw new SaveConflictError(message)
-        }
-        throw new Error(message)
-      }
-      baselineRef.current = body.hash ?? await contentHash(written)
+      const written = await writeWorkbook(blob, target.path, baselineRef.current)
+      baselineRef.current = written.hash ?? await contentHash(new Uint8Array(await blob.arrayBuffer()))
       // What is on disk is now exactly what this panel holds, so every buffer kept
       // for this file is spent — including one restored from a tab that is gone.
-      forgetPath(address.path)
+      forgetPath(target.path ?? '')
       return 'saved'
     },
-  }), [address])
+    saveTo: async (blob, path): Promise<void> => {
+      // No baseline and no bookkeeping: this is a *new* file, and the panel that
+      // called it is about to be navigated to that file, where the ordinary load
+      // path takes over and hashes what is there.
+      await writeWorkbook(blob, path, undefined)
+    },
+  }), [writeWorkbook])
 
   /** Keep the buffer the user was offered, and put it in the Designer. */
   const restoreOffered = useCallback(() => {
@@ -351,6 +439,56 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
     handleStatus(editorText('unsaved.dropped'), 'idle')
   }, [address, tabId, handleStatus])
 
+  /**
+   * Write the workbook to a new workspace path, then move this tab onto it.
+   *
+   * Save As deliberately leaves the file it came from alone: that file keeps what it
+   * had, and the edits now live under the new name. Which is why the buffers kept for
+   * the old path are dropped here — they describe edits that are on disk somewhere
+   * else, and offering them again when that file is reopened would be a lie.
+   */
+  const confirmSaveAs = useCallback(async (target: string) => {
+    if (address === undefined) return
+    const host = hostRef.current
+    if (host === null) {
+      setSaveAsError(editorText('saveAs.notReady'))
+      return
+    }
+    setSaveAsBusy(true)
+    setSaveAsError('')
+    try {
+      await host.saveAs(target)
+    } catch (error) {
+      const failure = error instanceof SaveConflictError
+        ? 'conflict'
+        : error instanceof WorkbookNotReadyError
+          ? 'notReady'
+          : 'other'
+      setSaveAsError(saveAsFailureText(failure, error instanceof Error ? error.message : String(error)))
+      setSaveAsBusy(false)
+      return
+    }
+    // The write is done: everything after this point reports it, never undoes it.
+    setSaveAsBusy(false)
+    const writtenFrom = address.path
+    forgetPath(writtenFrom)
+    setSaveAsOpen(false)
+    handleStatus(`${editorText('saveAs.done')}${target}`, 'idle')
+    console.info(`[dsh-spreadjs-editor] saved ${writtenFrom} as ${target}`)
+    if (tabActions === undefined) {
+      // The file is on disk; only the automatic switch is missing, so say where it
+      // went instead of leaving the panel looking like it now shows that file.
+      console.warn(`[dsh-spreadjs-editor] wrote ${target}, but this tab cannot navigate; open it from the file tree`)
+      return
+    }
+    try {
+      tabActions.openResource(sessionFileAddressFor(address.sessionId, target), { replaceTab: true })
+    } catch (error) {
+      // A failed navigation is not a failed save, and must not be reported as one.
+      console.warn('[dsh-spreadjs-editor] could not open the file just written:', error)
+    }
+  }, [address, handleStatus, tabActions])
+
   const noop = useCallback(() => {}, [])
 
   // The decision is only valid for the exact inputs it was made from; a fresh read
@@ -376,6 +514,13 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
     hasOffered: offered !== undefined,
   })
 
+  /**
+   * What the Save As prompt suggests: the current directory and format, with the
+   * localized word for "a copy" in the name. The suffix is part of the suggestion
+   * rather than a rule, so it follows the reader's language.
+   */
+  const saveAsInitialPath = defaultSaveAsPath(address?.path ?? '', editorText('saveAs.suffix'))
+
   // `text` content means the owner did not deliver complete bytes, which only
   // happens for a definition that asked for pages. Say so instead of mounting an
   // editor over a partial file.
@@ -383,7 +528,7 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
     return (
       <div className="dsh-spreadjs-panel" role="region" aria-label="SpreadJS">
         <div className="dsh-spreadjs-empty">
-          This workbook needs its complete file contents. Reopen it from the file tree.
+          {editorText('empty.bytes')}
         </div>
       </div>
     )
@@ -420,7 +565,7 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
           ready={configReady}
           fileAccess={fileAccess}
           onStatus={handleStatus}
-          onLoadingChange={setLoading}
+          onLoadingChange={handleLoadingChange}
           onNewWorkbook={noop}
           onDirtyChange={handleDirtyChange}
           onUnsaved={handleUnsaved}
@@ -433,6 +578,20 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
             <div className={`dsh-spreadjs-toast dsh-spreadjs-toast-${statusTone}`} role="status">{status}</div>
           </div>
         )}
+      {saveAsOpen
+        ? (
+          <SaveAsPrompt
+            // Remounting on a new address re-seeds the suggested target, which is
+            // the only thing the prompt takes from the panel.
+            key={address?.path ?? ''}
+            initialPath={saveAsInitialPath}
+            busy={saveAsBusy}
+            error={saveAsError}
+            onSubmit={path => { void confirmSaveAs(path) }}
+            onCancel={() => setSaveAsOpen(false)}
+          />
+        )
+        : null}
     </div>
   )
 }

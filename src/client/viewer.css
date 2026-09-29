@@ -179,3 +179,150 @@
 .dsh-spreadjs-toast-busy {
   color: var(--dsw-alias-state-business-primary);
 }
+
+/* Save and Save As in the harness's document header.
+ *
+ * This block is deliberately not scoped to the panel: the header is the product's
+ * own toolbar above it, so the buttons inherit its font and only borrow the tokens
+ * that make hover and focus look like the controls beside them. Nothing here may
+ * assume the panel's layout. */
+.dsh-spreadjs-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dsh-spreadjs-actions-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.dsh-spreadjs-actions-button:hover {
+  background: var(--dsw-alias-bg-layer-2);
+}
+
+.dsh-spreadjs-actions-button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.dsh-spreadjs-actions-button:disabled:hover {
+  background: transparent;
+}
+
+/* The unsaved mark, in the place a document's dirty state usually lives. It repeats
+   what the panel's own state line says, one row below, on purpose: the header is
+   where the hand reaches for Save, and a Save that looks identical whether or not
+   anything is pending is the thing that made this mark worth adding. */
+.dsh-spreadjs-actions-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--dsw-alias-state-business-primary);
+}
+
+/* The Save As prompt. It is modal to the panel rather than to the page: the rest of
+   the harness stays usable, and the scrim only has to hide the workbook the target
+   applies to. */
+.dsh-spreadjs-dialog-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: var(--dsw-alias-bg-mask-2);
+}
+
+.dsh-spreadjs-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(100%, 420px);
+  max-height: 100%;
+  overflow: auto;
+  padding: 16px;
+  border: 1px solid var(--dsw-alias-border-l3);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-base);
+  color: var(--dsw-alias-label-primary);
+  box-shadow: var(--dsw-elevation-soft);
+  font-size: 13px;
+  text-align: left;
+}
+
+.dsh-spreadjs-dialog-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.dsh-spreadjs-dialog-label {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+}
+
+.dsh-spreadjs-dialog-input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--dsw-alias-border-l3);
+  border-radius: 4px;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+}
+
+.dsh-spreadjs-dialog-hint {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.dsh-spreadjs-dialog-error {
+  margin: 0;
+  color: var(--dsw-alias-state-error-primary);
+  font-size: 12px;
+}
+
+.dsh-spreadjs-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.dsh-spreadjs-dialog-button {
+  padding: 4px 12px;
+  border: 1px solid var(--dsw-alias-border-l3);
+  border-radius: 4px;
+  background: var(--dsw-alias-bg-base);
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.dsh-spreadjs-dialog-button:hover {
+  background: var(--dsw-alias-bg-layer-2);
+}
+
+.dsh-spreadjs-dialog-button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.dsh-spreadjs-dialog-primary {
+  border-color: var(--dsw-alias-state-business-primary);
+  color: var(--dsw-alias-state-business-primary);
+  font-weight: 600;
+}

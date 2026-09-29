@@ -13,6 +13,10 @@
  *    same id. The Sidebar's `text` tab type already claims every session file
  *    address and routes it to the best matching implementation, so this plugin
  *    registers no tab type, pane, store, or layout of its own.
+ *  - the `sidebar.right.tab.document.actions` list slot adds the file's own Save
+ *    and Save As to the header the harness draws above it. That published slot is
+ *    where the editor's Save lives; the Designer's private File-menu template is
+ *    customised as well, but nothing depends on that rewrite succeeding.
  *
  * This is the whole client-side surface: no third-party sidebar bundle is
  * required or consulted, and the document owner reads the file, so the plugin
@@ -29,6 +33,7 @@
  * buffer, keyed by tab and by file (see unsaved.ts).
  */
 import type { Context } from '@deepseek-ai/cordis'
+import { SpreadsheetActions } from './SpreadsheetActions.tsx'
 import { SpreadsheetDocument } from './SpreadsheetDocument.tsx'
 import { attachToBridge } from './bridge.ts'
 import { attachHarnessTheme } from './ds-theme.ts'
@@ -96,6 +101,18 @@ export function apply(ctx: Context): void {
     name: 'sidebar.right.tab.document',
     key: SPREADSHEET_DOCUMENT_ID,
   }, SpreadsheetDocument)), 'dsh-spreadjs-editor: document body')
+
+  // Save acts on the file, so it belongs in the header the harness draws above a
+  // previewed file, next to every other viewer's own controls — not inside the
+  // Designer's chrome. Two facts make that the right home: the slot is published by
+  // the platform (so it survives Designer release changes), and it is rendered for
+  // the file rather than by the plugin, so a Save is reachable without knowing
+  // anything about SpreadJS. The buttons rout back into the panel on screen through
+  // panel-actions.ts, which is where the workbook actually lives.
+  ctx.effect(() => ctx.slots.inject('sidebar.right.tab.document.actions', () => ctx.slots.register({
+    name: 'sidebar.right.tab.document.actions',
+    id: 'spreadjs-save',
+  }, SpreadsheetActions)), 'dsh-spreadjs-editor: document header actions')
 
   // Unsaved work is the body's business (see unsaved.ts): it keeps a dirty
   // workbook alive across an unmount, and a tab close only costs the tab-keyed

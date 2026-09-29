@@ -133,9 +133,9 @@ export function designerSaveTargetFor(context: unknown): DesignerSaveTarget | un
  * @param namespace - the Designer namespace, if the package is loaded.
  * @param config - the config about to be handed to the Designer constructor.
  * @returns whether a Save command was found and redirected. `false` means this
- *   Designer build cannot be steered; the panel's own Save button still writes
- *   the file, so the feature survives, but the Designer's Save keeps its
- *   download behaviour.
+ *   Designer build cannot be steered; the header's Save — the published document
+ *   action — still writes the file, so the feature survives, but the Designer's
+ *   own Save keeps its download behaviour.
  */
 export function redirectDesignerSave(
   namespace: DesignerNamespaceLike | undefined,

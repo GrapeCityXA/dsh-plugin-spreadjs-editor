@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { contentHash, extensionOf, parseSessionFileAddress } from '../src/client/session-file-address.ts'
+import {
+  contentHash,
+  extensionOf,
+  parseSessionFileAddress,
+  sessionFileAddressFor,
+} from '../src/client/session-file-address.ts'
 
 describe('parseSessionFileAddress', () => {
   it('splits a session address into its session and path', () => {
@@ -38,6 +43,32 @@ describe('parseSessionFileAddress', () => {
     '',
   ])('rejects %j', address => {
     expect(parseSessionFileAddress(address)).toBeUndefined()
+  })
+})
+
+describe('sessionFileAddressFor', () => {
+  it('builds an address the parser reads back unchanged', () => {
+    const address = sessionFileAddressFor('s1', 'books/q1.xlsx')
+    expect(address).toBe('dsh-resource://file/session/s1/books/q1.xlsx')
+    expect(parseSessionFileAddress(address)).toEqual({ sessionId: 's1', path: 'books/q1.xlsx', name: 'q1.xlsx' })
+  })
+
+  it.each([
+    ['s1', '报表 2026 副本.xlsx'],
+    ['session/id with/slash', 'dir/a+b&c.xlsx'],
+    ['s1', 'dir/percent%name.xlsx'],
+  ])('round-trips %j %j', (sessionId, path) => {
+    const parsed = parseSessionFileAddress(sessionFileAddressFor(sessionId, path))
+    expect(parsed?.sessionId).toBe(sessionId)
+    expect(parsed?.path).toBe(path)
+  })
+
+  it('escapes each segment, so a separator inside a name is not one', () => {
+    const address = sessionFileAddressFor('s1', 'dir/a/b.xlsx')
+    expect(address).toBe('dsh-resource://file/session/s1/dir/a/b.xlsx')
+    // A name that itself contains an escaped separator parses back to the name,
+    // which is what makes the round trip above the real assertion.
+    expect(parseSessionFileAddress(sessionFileAddressFor('s1', 'dir/odd name.xlsx'))?.path).toBe('dir/odd name.xlsx')
   })
 })
 

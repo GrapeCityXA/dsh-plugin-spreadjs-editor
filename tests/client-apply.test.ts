@@ -246,11 +246,30 @@ describe('document registration', () => {
     const { slotInject, slotRegister } = makeCtx()
 
     expect(slotInject).toHaveBeenCalledWith('sidebar.right.tab.document', expect.any(Function))
-    expect(slotRegister).toHaveBeenCalledTimes(1)
     const seat = slotRegister.mock.calls[0]?.[0] as unknown as { name?: unknown; key?: unknown }
     expect(seat.name).toBe('sidebar.right.tab.document')
     expect(seat.key).toBe(SPREADSHEET_DOCUMENT_ID)
     expect(typeof slotRegister.mock.calls[0]?.[1]).toBe('function')
+  })
+
+  it('registers the file actions in the harness document header', () => {
+    const { slotInject, slotRegister } = makeCtx()
+
+    expect(slotInject).toHaveBeenCalledWith('sidebar.right.tab.document.actions', expect.any(Function))
+    // The second seat, in registration order: Save is a file action, so it belongs
+    // in the header the platform draws above the previewed file.
+    const seat = slotRegister.mock.calls[1]?.[0] as unknown as { name?: unknown; id?: unknown; key?: unknown }
+    expect(seat.name).toBe('sidebar.right.tab.document.actions')
+    // A list slot identifies a contribution by id; `key` is the keyed-slot form.
+    expect(seat.id).toBe('spreadjs-save')
+    expect(seat.key).toBeUndefined()
+    expect(typeof slotRegister.mock.calls[1]?.[1]).toBe('function')
+  })
+
+  it('claims exactly those two seats: no tab type, pane, store or layout', () => {
+    const { slotRegister } = makeCtx()
+
+    expect(slotRegister).toHaveBeenCalledTimes(2)
   })
 
   it('disposes both registrations with the plugin fiber', () => {
@@ -259,7 +278,9 @@ describe('document registration', () => {
     for (const disposer of disposers) disposer()
 
     expect(previewDispose).toHaveBeenCalled()
-    const slotDispose = slotRegister.mock.results[0]?.value as ReturnType<typeof vi.fn>
-    expect(slotDispose).toHaveBeenCalled()
+    for (const result of slotRegister.mock.results) {
+      expect((result.value as ReturnType<typeof vi.fn>)).toHaveBeenCalled()
+    }
+    expect(slotRegister.mock.results).toHaveLength(2)
   })
 })

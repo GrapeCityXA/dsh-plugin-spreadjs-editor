@@ -1,6 +1,16 @@
 /**
  * Make the Designer's File tab do exactly one thing: write this workbook back.
  *
+ * **Status: a best-effort consistency patch, not the Save path.** The editor's Save
+ * lives in the harness's own document header — the published
+ * `sidebar.right.tab.document.actions` slot, see SpreadsheetActions.tsx — and on
+ * Ctrl+S through the Save command redirect. Both of those are contracts. This module
+ * exists only because the File menu's *rows* dispatch through their own handler
+ * instead of the command table, so without it File → Save would still download a copy
+ * while every other Save writes the file. Deleting this file costs nothing but that
+ * inconsistency: an unrecognised template is reported and left alone, and saving has
+ * never depended on it.
+ *
  * The File menu is its own world. Its rows dispatch through
  * `FileMenuHandler.processPropertyChanged(context, bindingPath, value)` — reached
  * through the `fileMenuPanel` command's `execute` — not through the command
@@ -34,8 +44,8 @@
  * Everything is fail-soft, because none of this is a published contract: an
  * unrecognised template is reported through {@link FileMenuInstallResult.summary}
  * and left alone, and if the nav cannot be found at all a row of our own is added
- * instead of leaving the menu without a Save. The panel's own Save button in the
- * document tab is unaffected either way.
+ * instead of leaving the menu without a Save. The header's Save and Ctrl+S write the
+ * file either way.
  */
 import { designerSaveTargetFor, type DesignerCommandNames } from './designer-save-command.ts'
 
