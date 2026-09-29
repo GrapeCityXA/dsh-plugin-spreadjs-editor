@@ -19,22 +19,59 @@ import type { Context } from '@deepseek-ai/cordis'
 // Type-only, and never emitted: it makes `LocaleNamespaceMap` augmentable here.
 import type {} from '@deepseek-ai/dsh-client-ui-slots'
 
-/** This plugin's dictionary namespace; one key, the name the viewer list shows. */
+/** This plugin's dictionary namespace; the viewer name plus this panel's own text. */
 export const EDITOR_LOCALE_NAMESPACE = 'dsh.spreadjs-editor'
+
+/** Every string this plugin shows that is not part of the Designer's own chrome. */
+export type EditorTextKey =
+  | 'viewer.title'
+  | 'unsaved.chip'
+  | 'unsaved.restored'
+  | 'unsaved.stale'
+  | 'unsaved.restore'
+  | 'unsaved.discard'
+  | 'unsaved.kept'
+  | 'unsaved.dropped'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
-    'dsh.spreadjs-editor': 'viewer.title'
+    'dsh.spreadjs-editor': EditorTextKey
   }
 }
 
+/**
+ * The text used when no locale service is composed in — and the Chinese half of
+ * every dictionary. Chinese is the shipped default because the Designer this panel
+ * hosts is the Chinese build (`spread-sheets-designer-resources-cn`), so the
+ * surrounding chrome, including this plugin's Save row, is already Chinese.
+ */
+const FALLBACK_TEXT: Record<EditorTextKey, string> = {
+  'viewer.title': 'SpreadJS 编辑器',
+  'unsaved.chip': '未保存的改动',
+  'unsaved.restored': '已恢复本会话中未保存的改动。',
+  'unsaved.stale': '存在未保存的改动缓存，但文件已在磁盘上被修改。',
+  'unsaved.restore': '恢复',
+  'unsaved.discard': '丢弃',
+  'unsaved.kept': '未保存的改动已保留，切回本标签页即可继续',
+  'unsaved.dropped': '已丢弃未保存的改动，重新载入文件',
+}
+
 /** Shown when no locale service is composed in: the plugin's own shipped language. */
-export const EDITOR_TITLE_FALLBACK = 'SpreadJS 编辑器'
+export const EDITOR_TITLE_FALLBACK = FALLBACK_TEXT['viewer.title']
 
 /** Both dictionaries, registered in one call because the registry demands balance. */
 const DICTIONARIES: { zh: Record<string, string>; en: Record<string, string> } = {
-  zh: { 'viewer.title': 'SpreadJS 编辑器' },
-  en: { 'viewer.title': 'SpreadJS Editor' },
+  zh: FALLBACK_TEXT,
+  en: {
+    'viewer.title': 'SpreadJS Editor',
+    'unsaved.chip': 'Unsaved changes',
+    'unsaved.restored': 'Restored unsaved changes from this session.',
+    'unsaved.stale': 'An unsaved buffer exists, but the file changed on disk.',
+    'unsaved.restore': 'Restore',
+    'unsaved.discard': 'Discard',
+    'unsaved.kept': 'Unsaved changes kept; switch back to this tab to continue',
+    'unsaved.dropped': 'Discarded unsaved changes and reloaded the file',
+  },
 }
 
 /** The `ctx.locale` surface this file uses, declared structurally. */
@@ -51,19 +88,31 @@ function localeOf(ctx: Context): LocaleLike | undefined {
 let translate: ((key: string) => string) | undefined
 
 /**
- * The name the harness lists this implementation under. Read at call time, so a
- * dictionary that arrives after registration — or a locale switch — is picked up
- * without re-registering the definition.
+ * One of this plugin's own strings, in the harness's current language.
+ *
+ * Read at call time, so a dictionary that arrives after registration — or a locale
+ * switch, which rebinds the module-level translator — is picked up without
+ * re-registering anything.
+ *
+ * @param key - the string to read.
+ * @returns the localized text, or the shipped Chinese fallback.
+ */
+export function editorText(key: EditorTextKey): string {
+  try {
+    const text = translate?.(key)
+    return text === undefined || text === '' ? FALLBACK_TEXT[key] : text
+  } catch {
+    return FALLBACK_TEXT[key]
+  }
+}
+
+/**
+ * The name the harness lists this implementation under.
  *
  * @returns the localized or fallback display name.
  */
 export function editorTitle(): string {
-  try {
-    const text = translate?.('viewer.title')
-    return text === undefined || text === '' ? EDITOR_TITLE_FALLBACK : text
-  } catch {
-    return EDITOR_TITLE_FALLBACK
-  }
+  return editorText('viewer.title')
 }
 
 /**

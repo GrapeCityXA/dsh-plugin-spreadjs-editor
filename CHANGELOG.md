@@ -4,17 +4,19 @@
 
 ### 中文
 
+- **切走标签页不再丢掉未保存的改动**：DSH 在标签页被切走时会卸载文档主体，此前这等于销毁工作簿——未保存的编辑就此消失，而且没有任何提示。平台也没有能拦下的关闭钩子（关闭是同步的，文档定义里没有任何生命周期或否决点），所以这里不做「确认离开」的拦截，改为一律不丢：脏工作簿在主体卸载前留成快照，切回来即恢复；标签页真正关闭后，快照按文件路径继续保留，重新打开同一文件时可以恢复；若文件在磁盘上已被改动，则不会默默套用快照，而是给出「恢复 / 丢弃」两个选择。面板右下角常驻「未保存的改动」标记，整页刷新或关闭时浏览器会提示一次。保存成功即清空该文件的全部快照。
 - **工作簿不再被当作文本提供查看**：为 `.xlsm`、`.sjs`、`.ssjson` 声明「二进制后缀」（`.xlsx` 一并声明），DSH 因此不会再把它们列进纯文本查看方式——此前打开这类文件，可能选到把工作簿当文本渲染的方式，看到的是一屏乱码。该声明需要 DSH `0.1.7` 及以上才生效；`0.1.5-rc.3` 会忽略这个字段，行为与之前一致，不影响编辑与保存。
 - **查看器名称跟随 DSH 的语言，并与内置的只读预览区分开**：DSH `0.1.7` 起自带了只读的「表格」预览，会与本插件并列出现在同一份查看方式列表里，所以这里的名称由固定的 `SpreadJS` 改为随语言变化的「SpreadJS 编辑器 / SpreadJS Editor」，一眼能看出哪个能编辑。DSH 未提供语言服务时，则用内置的「SpreadJS 编辑器」。
 - **健康接口回报版本**：`/spreadjs/api/health` 现在返回插件版本与内置 SpreadJS 版本，`npm run probe:live` 因此能判断「正在运行的 DSH 里装的是不是这一版」——此前只能靠 404 猜测，进程里跑着旧版宿主半时其余检查都是一样的结果。
-- 构建与验收基线升到 DSH `0.1.7-rc.2`（`npm run typecheck`、89 项单测、两个 smoke、`verify:package`、`probe:live` 全部通过）。插件在 `0.1.5-rc.3` 上仍可运行。
+- 构建与验收基线升到 DSH `0.1.7-rc.2`（`npm run typecheck`、113 项单测、两个 smoke、`verify:package`、`probe:live` 全部通过）。插件在 `0.1.5-rc.3` 上仍可运行。
 
 ### English
 
+- **Switching tabs no longer throws unsaved edits away**: the harness unmounts a document body as soon as its tab is hidden, which used to destroy the workbook and silently take every unsaved edit with it — and the platform offers no close hook to intercept (a close is synchronous, and a document definition has no lifecycle or veto point). So leaving is still never blocked; nothing is dropped either. A dirty workbook is kept as a snapshot before its body goes away and put back when the tab returns, the snapshot also survives a real tab close under the file's path so reopening that file can restore it, and a file that changed on disk since the snapshot is *offered* rather than silently applied (restore or discard). A `未保存的改动` marker stays in the panel's corner, closing or reloading the page raises the browser's own prompt once, and a successful save clears every snapshot for that file.
 - **Workbooks are no longer offered as text**: `.xlsm`, `.sjs` and `.ssjson` (and `.xlsx`) are now declared as binary suffixes, so the harness stops listing a plain-text view for them — until now that view could render a workbook as a screenful of mojibake. The declaration takes effect on DSH `0.1.7` and later; `0.1.5-rc.3` ignores the field and behaves exactly as before, editing and saving unaffected.
 - **The viewer name follows the harness language and no longer collides with the built-in preview**: from DSH `0.1.7` the product ships its own read-only spreadsheet preview, listed beside this plugin, so the name changes from a fixed `SpreadJS` to a localized "SpreadJS 编辑器 / SpreadJS Editor" that says which one edits. Without a locale service the shipped Chinese name is used.
 - **The health endpoint reports versions**: `/spreadjs/api/health` now returns the plugin and bundled SpreadJS versions, so `npm run probe:live` can tell whether the running DSH carries this build — previously only a 404 distinguished an old host half, and every other check looked the same.
-- Built and verified against DSH `0.1.7-rc.2` (`npm run typecheck`, 89 unit tests, both smokes, `verify:package`, `probe:live` all green). The plugin still runs on `0.1.5-rc.3`.
+- Built and verified against DSH `0.1.7-rc.2` (`npm run typecheck`, 113 unit tests, both smokes, `verify:package`, `probe:live` all green). The plugin still runs on `0.1.5-rc.3`.
 
 ## 0.2.1
 

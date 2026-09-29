@@ -22,6 +22,11 @@
  * (`theme`, see ds-theme.ts). The panel's chrome needs no such help: it reads the
  * `--dsw-*` tokens the harness swaps for it. The display name comes from the
  * harness locale when one is composed in (see locales.ts).
+ *
+ * Leaving a tab is never blocked, because the platform gives a document body
+ * nothing to veto with: a hidden tab unmounts its body, and a close is
+ * synchronous. What a dirty body's edits do instead is survive the unmount as a
+ * buffer, keyed by tab and by file (see unsaved.ts).
  */
 import type { Context } from '@deepseek-ai/cordis'
 import { SpreadsheetDocument } from './SpreadsheetDocument.tsx'
@@ -29,6 +34,7 @@ import { attachToBridge } from './bridge.ts'
 import { attachHarnessTheme } from './ds-theme.ts'
 import { attachEditorLocale, editorTitle } from './locales.ts'
 import { injectStyles } from './styles.ts'
+import { watchUnloadGuard } from './unsaved.ts'
 
 export const name = 'dsh-spreadjs-editor'
 
@@ -90,6 +96,13 @@ export function apply(ctx: Context): void {
     name: 'sidebar.right.tab.document',
     key: SPREADSHEET_DOCUMENT_ID,
   }, SpreadsheetDocument)), 'dsh-spreadjs-editor: document body')
+
+  // Unsaved work is the body's business (see unsaved.ts): it keeps a dirty
+  // workbook alive across an unmount, and a tab close only costs the tab-keyed
+  // copy of it. What no body can do is outlive the page, so the one veto the
+  // platform does have — the browser's own unload prompt — is claimed here, once,
+  // and only while something would actually be lost.
+  ctx.effect(() => watchUnloadGuard(), 'dsh-spreadjs-editor: unsaved work guard')
 
   // Offer the live Designer to dsh-spreadjs-driver, when that plugin is present.
   // Nothing here depends on it: without a bridge this is a no-op and the editor

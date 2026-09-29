@@ -95,15 +95,75 @@
   background: var(--dsw-alias-bg-base);
 }
 
+/* Unsaved work has two faces, and they are placed differently on purpose.
+ *
+ * The banner carries buttons, so it takes real space in the panel's column above
+ * the editor rather than covering the Designer's own ribbon. The chip is an
+ * indicator only and floats: it appears and disappears as edits are made and
+ * saved, and anything that resized the editor at that moment would be felt while
+ * someone is typing into it. */
+.dsh-spreadjs-unsaved-bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 4px 12px;
+  border-bottom: 1px solid var(--dsw-alias-border-l3);
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.dsh-spreadjs-unsaved-bar > span {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.dsh-spreadjs-unsaved-action {
+  flex: 0 0 auto;
+  padding: 2px 10px;
+  border: 1px solid var(--dsw-alias-border-l3);
+  border-radius: 4px;
+  background: var(--dsw-alias-bg-base);
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.dsh-spreadjs-unsaved-action:hover {
+  background: var(--dsw-alias-bg-layer-2);
+}
+
 /* Status feedback floats over the editor instead of holding a bar of its own:
    the panel is a document view, and the Designer already owns a status area.
    What must stay visible is a failure (a refused save is the important one), so
-   busy and error messages persist and the rest fade in the component. */
-.dsh-spreadjs-toast {
+   busy and error messages persist and the rest fade in the component.
+   The unsaved marker shares this anchored column, so the two never overlap. */
+.dsh-spreadjs-overlay {
   position: absolute;
   right: 12px;
   bottom: 12px;
   z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.dsh-spreadjs-unsaved-chip {
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--dsw-alias-border-l3);
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-state-business-primary);
+  box-shadow: var(--dsw-elevation-soft);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.dsh-spreadjs-toast {
   max-width: min(70%, 420px);
   padding: 6px 12px;
   border-radius: 6px;
@@ -113,7 +173,6 @@
   box-shadow: var(--dsw-elevation-soft);
   font-size: 12px;
   line-height: 1.4;
-  pointer-events: none;
 }
 
 .dsh-spreadjs-toast-error {

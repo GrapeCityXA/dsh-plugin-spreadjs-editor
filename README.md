@@ -37,7 +37,7 @@ A DeepSeek Harness Web UI plugin that opens, views, and edits Excel / SpreadJS f
 
 | DSH 版本 | 状态 | 说明 |
 | --- | --- | --- |
-| `0.1.7-rc.2` | ✅ 构建与验收基线 | `typecheck`、89 项单测、两个 smoke、`verify:package`、`probe:live` 全部通过（`probe:live` 的版本核对需要先重启 DSH，见下文） |
+| `0.1.7-rc.2` | ✅ 构建与验收基线 | `typecheck`、113 项单测、两个 smoke、`verify:package`、`probe:live` 全部通过（`probe:live` 的版本核对需要先重启 DSH，见下文） |
 | `0.1.6.x` | ⚪ 未验证 | 没有核对过这个区间的平台：既未逐项跑验收，也不确定它是否已提供下表中的两项能力 |
 | `0.1.5-rc.3` | ✅ 上一版验收基线 | 插件最初就是对着它构建并验收的；它会忽略「二进制后缀」声明，查看方式列表里仍可能出现纯文本一项 |
 
@@ -72,6 +72,17 @@ npx --yes @deepseek-ai/dsh@latest --profile web
 - **写不出工作区。** 目标必须在当前会话的工作区内，越界（含 `..` 逃逸）直接拒绝。
 - **只有循环回环地址可用。** 保存接口与 DSH 其它接口一样只服务本机来源；通过局域网地址访问时，需要把该地址加进 `trustedHosts`。
 
+### 未保存的改动
+
+DSH 在标签页被切走时会卸载文档主体，平台也没有可供拦下的关闭钩子（关闭是同步的，文档定义里既无生命周期也没有否决点），所以这里**不做「确认离开」的拦截**，而是保证不丢：
+
+- **切走再切回不丢。** 有未保存改动的工作簿会在主体卸载前留成一份快照，切回同一个标签页时原样恢复，不需要重新读盘。
+- **关掉标签页也不丢。** 快照同时按文件路径保留；重新打开同一个文件时，只要磁盘上的文件仍是快照写下的那一版，就自动恢复，并在面板顶部说明来源。
+- **文件被外部改过时不默默套用。** 若磁盘上的文件已经变了（Agent 改过、你在别处存过），面板顶部会提示「存在未保存的改动缓存，但文件已在磁盘上被修改」，由你选择**恢复**（用缓存继续，之后保存即写入磁盘）或**丢弃**（重新读盘）。
+- **看得见。** 有未保存改动时，面板右下角常驻「未保存的改动」标记，保存成功后自动消失。
+- **整页关闭会提示。** 刷新或关闭页面时，只要还有未保存的改动（含已留存的缓存），浏览器会弹出一次自己的离开确认。
+- **保存即清空。** 保存成功后，该文件的快照全部清除。
+
 ### 配置
 
 如已获得许可证，在 web profile 的 `cordis.patch.yml` 中添加以下配置：
@@ -96,7 +107,7 @@ npx --yes @deepseek-ai/dsh@latest --profile web
 
 | 命令 | 验证内容 |
 | --- | --- |
-| `npm run typecheck`、`npm test` | 类型契约，以及 89 个单元测试（保存路由的每条守卫、文件地址解析、保存命令重定向的每条分支、编辑器主题桥的每条分支、查看器名称与二进制后缀声明的边界） |
+| `npm run typecheck`、`npm test` | 类型契约，以及 113 个单元测试（保存路由的每条守卫、文件地址解析、保存命令重定向的每条分支、编辑器主题桥的每条分支、查看器名称与二进制后缀声明的边界、未保存改动的缓存规则与脏状态跟踪的边界、打开时「用文件还是用缓存」的每个分支） |
 | `node scripts/smoke-client.mjs` | 构建后的浏览器半结构：loader 包装、内联的 SpreadJS 与样式、外部依赖只有 react |
 | `node scripts/smoke-node.mjs` | 构建后的宿主半：路由注册、许可证配置，以及保存路径的真实写盘、冲突与越界拒绝 |
 | `npm run probe:live` | **对着正在运行的 DSH** 跑一遍真实保存：真实 `ctx.fs` 的解析、落盘、冲突守卫、工作区越界；并核对进程里装的是不是本构建（插件版本与内置 SpreadJS 版本） |
@@ -136,7 +147,7 @@ Requires DSH `>=0.1.5-rc.3`. The plugin uses the harness's own right Sidebar and
 
 | DSH version | Status | Notes |
 | --- | --- | --- |
-| `0.1.7-rc.2` | ✅ build and verification baseline | `typecheck`, 89 unit tests, both smokes, `verify:package` and `probe:live` all green (the probe's version check needs DSH restarted first, see below) |
+| `0.1.7-rc.2` | ✅ build and verification baseline | `typecheck`, 113 unit tests, both smokes, `verify:package` and `probe:live` all green (the probe's version check needs DSH restarted first, see below) |
 | `0.1.6.x` | ⚪ not verified | This range was never checked: neither point-by-point acceptance nor whether it already offers the two capabilities below |
 | `0.1.5-rc.3` | ✅ previous verification baseline | The release this plugin was originally built and accepted against; it ignores the binary-suffix declaration, so a plain-text entry may still appear among the viewer choices |
 
@@ -171,6 +182,17 @@ Save has a single entry point: the **保存到工作区** button in the Designer
 - **It cannot write outside the workspace.** The target must sit inside the current session's workspace; anything else — including `..` escapes — is refused.
 - **Loopback only.** The save endpoint serves the local machine like the rest of DSH. If you reach DSH through a LAN address, add that address to `trustedHosts`.
 
+### Unsaved work
+
+The harness unmounts a document body when its tab is hidden, and the platform offers no close hook to intercept (a close is synchronous, and a document definition has neither a lifecycle nor a veto point). So leaving is never blocked — and nothing is dropped either:
+
+- **Switching away and back keeps the edits.** A dirty workbook is kept as a snapshot just before its body unmounts, and restored as-is when the same tab returns, without re-reading the file.
+- **Closing the tab keeps them too.** The snapshot is also kept under the file's path, so reopening that file restores it — and says so in a banner — as long as the file on disk is still the version the snapshot was written from.
+- **A file changed elsewhere is never silently replaced.** If the file on disk changed since the snapshot (an agent, another editor), the panel offers it instead: **Restore** carries on from the buffer (a later save writes it to disk), **Discard** re-reads the file.
+- **It is visible.** A `未保存的改动` marker stays in the panel's corner while edits are unsaved, and clears after a successful save.
+- **Closing the page warns.** A reload or close raises the browser's own prompt once, as long as anything is unsaved or still cached.
+- **Saving clears it.** A successful save drops every snapshot for that file, so reopening starts from disk.
+
 ### Configuration
 
 If you have licenses, add the following to the web profile's `cordis.patch.yml`:
@@ -195,7 +217,7 @@ Restart DSH and refresh the browser after changing the configuration.
 
 | Command | What it proves |
 | --- | --- |
-| `npm run typecheck`, `npm test` | The type contract, and 89 unit tests: every save guard, file-address parsing, every branch of the Save-command redirect, every branch of the editor theme bridge, and the viewer-name and binary-suffix edge cases |
+| `npm run typecheck`, `npm test` | The type contract, and 113 unit tests: every save guard, file-address parsing, every branch of the Save-command redirect, every branch of the editor theme bridge, the viewer-name and binary-suffix edge cases, the unsaved-buffer and dirty-tracking rules, and every branch of the file-versus-buffer decision at open |
 | `node scripts/smoke-client.mjs` | The built browser half's structure: loader wrapper, inlined SpreadJS and styles, react as the only runtime external |
 | `node scripts/smoke-node.mjs` | The built host half: route registration, license config, and the save path writing real bytes plus refusing conflicts and escapes |
 | `npm run probe:live` | A real save against a **running DSH**: the actual `ctx.fs` resolving, writing, refusing a stale base hash, and refusing a workspace escape — plus a check that the process carries *this* build (plugin and bundled SpreadJS versions) |

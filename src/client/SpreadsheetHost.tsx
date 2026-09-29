@@ -39,6 +39,7 @@ import { installDesignerAbout } from './about.ts'
 import { installDesignerFileMenu, type DesignerFileMenuNamespace } from './designer-file-menu.ts'
 import { setEditorTheme } from './styles.ts'
 import { harnessThemeIsDark, onHarnessThemeChange } from './ds-theme.ts'
+import { resolveDirtyEvents, watchWorkbookChanges, type DirtyWatch, type DirtyWatchWorkbook } from './workbook-dirty.ts'
 
 export type ExportFormat = 'xlsx' | 'sjs' | 'ssjson' | 'csv'
 export type StatusTone = 'idle' | 'busy' | 'error'
@@ -60,6 +61,17 @@ export interface SpreadsheetHostHandle {
 /** Result of one write-back operation. */
 export type SpreadsheetSaveResult = 'saved' | 'download'
 
+/**
+ * What the Designer should be holding, which the document decides before anything
+ * is loaded: the file's own bytes, or a buffer this panel kept when it last held
+ * unsaved edits. `undefined` means "not decided yet" and loads nothing — reading
+ * the file first and swapping the buffer in afterwards would re-parse a whole
+ * workbook on every tab switch, which is the cost the buffer exists to avoid.
+ */
+export type SpreadsheetLoad =
+  | { readonly kind: 'file' }
+  | { readonly kind: 'buffer'; readonly workbook: object }
+
 /** One workbook handed over by the document owner: bytes plus their identity. */
 export interface SpreadsheetSource {
   /** Basename, used for extension detection and status text. */
@@ -78,6 +90,8 @@ export interface SpreadsheetFileAccess {
 export interface SpreadsheetHostProps {
   /** Workbook to display (undefined = the Sidebar has nothing selected). */
   source: SpreadsheetSource | undefined
+  /** What to put in the Designer, once the document has made that decision. */
+  load: SpreadsheetLoad | undefined
   /** SpreadJS license key from /spreadjs/api/config. */
   licenseKey: string
   /** Separate Designer key from /spreadjs/api/config. */
@@ -89,6 +103,14 @@ export interface SpreadsheetHostProps {
   onStatus: (status: string, tone?: StatusTone) => void
   onLoadingChange: (loading: boolean) => void
   onNewWorkbook: () => void
+  /** Whether the live workbook holds edits that are not on disk. */
+  onDirtyChange: (dirty: boolean) => void
+  /**
+   * The body is going away while the workbook still holds edits. Called with
+   * `workbook.toJSON()` and nothing else: the file's path and freshness hash belong
+   * to the document, which is the half that knows the address.
+   */
+  onUnsaved: (workbook: object) => void
 }
 
 type LoadStatus = { kind: 'idle' } | { kind: 'loading' } | { kind: 'error'; message: string }
@@ -135,6 +157,17 @@ function designerNamespace(): DesignerNamespace | undefined {
   if (designer.Spread?.Sheets?.Designer !== undefined) return designer.Spread.Sheets.Designer
   const gc = GC as unknown as { Spread?: { Sheets?: { Designer?: DesignerNamespace } } }
   return gc.Spread?.Sheets?.Designer
+}
+
+/**
+ * The `GC.Spread.Sheets.Events` name table this build exposes.
+ *
+ * Read as a table rather than as individual constants so the edit watch can be
+ * handed the names that exist in whichever build is bundled (see
+ * {@link resolveDirtyEvents}).
+ */
+function eventsTable(): Record<string, string> | undefined {
+  return (GC as unknown as { Spread?: { Sheets?: { Events?: Record<string, string> } } }).Spread?.Sheets?.Events
 }
 
 /**
@@ -263,7 +296,7 @@ function workbookBlob(spread: any, path: string, format?: ExportFormat): Promise
 }
 
 export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHostProps>(
-  function SpreadsheetHost({ source, licenseKey, designerLicenseKey = '', ready, fileAccess, onStatus, onLoadingChange, onNewWorkbook }, ref) {
+  function SpreadsheetHost({ source, load, licenseKey, designerLicenseKey = '', ready, fileAccess, onStatus, onLoadingChange, onNewWorkbook, onDirtyChange, onUnsaved }, ref) {
     const hostRef = useRef<HTMLDivElement | null>(null)
     const designerRef = useRef<DesignerLike | null>(null)
     const loadSeqRef = useRef(0)
@@ -278,10 +311,39 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
     const loadInFlightRef = useRef(false)
     /** One write-back at a time. */
     const saveInFlightRef = useRef(false)
+    /** Whether the live workbook holds edits that are not on disk. */
+    const dirtyRef = useRef(false)
+    /** The edit watch over the current workbook, stopped with it. */
+    const dirtyWatchRef = useRef<DirtyWatch | null>(null)
+    /** The newest reporters; both outlive a render, like the save redirect above. */
+    const onDirtyChangeRef = useRef(onDirtyChange)
+    const onUnsavedRef = useRef(onUnsaved)
     const [status, setStatus] = useState<LoadStatus>({ kind: 'idle' })
 
     sourceRef.current = source
     saveRef.current = save
+    onDirtyChangeRef.current = onDirtyChange
+    onUnsavedRef.current = onUnsaved
+
+    /**
+     * The workbook has edits that are not on disk.
+     *
+     * A load is excluded because reading a file into the Designer drives commands
+     * of its own — that is not a user edit. Both loads end by saying which of the
+     * two states the result is in ({@link markWorkbookClean} for the file's own
+     * bytes, a dirty mark for a restored buffer).
+     */
+    function markWorkbookDirty(): void {
+      if (loadInFlightRef.current) return
+      dirtyRef.current = true
+      onDirtyChangeRef.current(true)
+    }
+
+    /** The workbook and the file on disk now agree (or there is no file to lose). */
+    function markWorkbookClean(): void {
+      dirtyRef.current = false
+      onDirtyChangeRef.current(false)
+    }
 
     // SpreadJS and Designer require separate license keys and both must be set
     // before the designer is constructed.
@@ -363,40 +425,71 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
       if (spread !== undefined) {
         spread.options.tabStripVisible = true
         spread.options.newTabVisible = true
+        dirtyWatchRef.current = watchWorkbookChanges(
+          spread as DirtyWatchWorkbook,
+          markWorkbookDirty,
+          resolveDirtyEvents(eventsTable()),
+        )
       }
       designerRef.current = designer
       return () => {
+        dirtyWatchRef.current?.stop()
+        dirtyWatchRef.current = null
         const current = designer.getWorkbook()
+        if (dirtyRef.current && current !== undefined) {
+          // The body is leaving with edits that never reached the file. Hand the
+          // workbook over *before* destroying it: the document keeps it under this
+          // tab and under the file's path, so switching back — or reopening the
+          // file later — gets the edits back instead of starting from disk.
+          try {
+            onUnsavedRef.current(current.toJSON())
+            console.info('[dsh-spreadjs-editor] kept unsaved changes before unmounting the editor')
+          } catch (error) {
+            console.error('[dsh-spreadjs-editor] could not keep the unsaved workbook:', error)
+          }
+          dirtyRef.current = false
+        }
         if (current !== undefined && typeof current.destroy === 'function') current.destroy()
         if (typeof designer.destroy === 'function') designer.destroy()
         designerRef.current = null
       }
     }, [ready])
 
-    // Load the selected file; a stale async result is dropped by seq. This must
-    // wait for `ready` because the Designer is created in a separate effect that
-    // runs only after the host config fetch completes.
+    // Put the selected workbook into the Designer: the file's own bytes, or the
+    // buffer the document decided to show instead. A stale async result is dropped
+    // by seq. This waits for `ready`, because the Designer is created in a separate
+    // effect that only runs after the host config fetch, and for `load`, because the
+    // document hashes the bytes before it can tell a kept buffer from a stale one —
+    // loading the file first and swapping the buffer in afterwards would re-parse a
+    // whole workbook on every tab switch, which is the cost the buffer avoids.
     useEffect(() => {
       const designer = designerRef.current
-      if (!ready || designer === null || source === undefined) {
+      if (!ready || designer === null || source === undefined || load === undefined) {
         if (source === undefined) setStatus({ kind: 'idle' })
         loadInFlightRef.current = false
         return
       }
+      const buffer = load.kind === 'buffer' ? load.workbook : undefined
       const seq = ++loadSeqRef.current
       loadInFlightRef.current = true
       setStatus({ kind: 'loading' })
       onLoadingChange(true)
-      onStatus(`Loading ${source.name}…`, 'busy')
+      onStatus(buffer === undefined ? `Loading ${source.name}…` : 'Restoring unsaved changes…', 'busy')
       void (async () => {
-        // The document owner already read the file, so there is nothing to
-        // fetch: the bytes on hand are the workbook.
-        const file = new File([source.bytes], source.name, { type: 'application/octet-stream' })
         const spread = designer.getWorkbook()
         if (spread === undefined) throw new Error('Designer workbook is not available')
         spread.suspendPaint()
         try {
-          await loadIntoWorkbook(spread, file, source.name)
+          if (buffer !== undefined) {
+            // The snapshot is a workbook's own serialization, so it goes back in
+            // through the same door a workbook file does.
+            await spread.fromJSON(buffer)
+          } else {
+            // The document owner already read the file, so there is nothing to
+            // fetch: the bytes on hand are the workbook.
+            const file = new File([source.bytes], source.name, { type: 'application/octet-stream' })
+            await loadIntoWorkbook(spread, file, source.name)
+          }
         } finally {
           spread.resumePaint()
         }
@@ -407,7 +500,15 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
         loadInFlightRef.current = false
         setStatus({ kind: 'idle' })
         onLoadingChange(false)
-        onStatus(`Loaded ${source.name}`, 'idle')
+        if (buffer !== undefined) {
+          // A buffer is by definition not what the file on disk holds: it is work
+          // still to be saved.
+          markWorkbookDirty()
+          onStatus('Restored unsaved changes', 'idle')
+        } else {
+          markWorkbookClean()
+          onStatus(`Loaded ${source.name}`, 'idle')
+        }
       }).catch((error: unknown) => {
         if (seq !== loadSeqRef.current) return
         loadInFlightRef.current = false
@@ -416,7 +517,7 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
         onLoadingChange(false)
         onStatus(`Load failed: ${message}`, 'error')
       })
-    }, [source, ready, onLoadingChange, onStatus])
+    }, [source, load, ready, onLoadingChange, onStatus])
 
     async function save(): Promise<void> {
       const designer = designerRef.current
@@ -435,6 +536,9 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
       try {
         const blob = await workbookBlob(designer.getWorkbook(), current.name)
         const result = await fileAccess.save(blob, current)
+        // What is on disk is now the workbook in front of the user, so there is
+        // nothing left that a buffer would have to keep.
+        markWorkbookClean()
         onStatus(
           result === 'download' ? `Saved ${current.name} as download` : `Saved ${current.name}`,
           'idle',
@@ -473,6 +577,9 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
       resetWorkbook(designer.getWorkbook())
       loadSeqRef.current += 1
       setStatus({ kind: 'idle' })
+      // Resetting the workbook fires changes of its own, and they are not edits to
+      // a file: this panel holds a brand-new book that has never been on disk.
+      markWorkbookClean()
       onNewWorkbook()
       onStatus('New workbook', 'idle')
     }
