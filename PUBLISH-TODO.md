@@ -39,9 +39,37 @@
 - [ ] 发布后从 npm 安装到临时 profile，打开 `.xlsx` 验收
 - [ ] 内联 SpreadJS 的再分发许可：随包携带 `lib/licenses` 是不够的结论性依据，正式对外发布前仍需 GrapeCity 侧确认一次条款（本文件开头那条「未确认 EULA 前不把 lib/ 打进公开包」的原则，与现在的发货方式不一致，需要以书面结论替代）
 
+## 发布流程（从 `0.2.2` 起约定）
+
+> 背景：`0.1.0`–`0.2.1` 实际是「改完就发」——29 天 7 个版本，其中 `0.1.2`→`0.1.3` 隔 27 分钟、
+> `0.2.0`→`0.2.1` 隔 21 小时；而且**一个 tag 都没有**，npm 上的版本只能用 `package.json`
+> 反推对应哪次提交。以下约定从 `0.2.2` 开始执行，历史版本**不回溯补 tag**（推定的 tag 会
+> 给出假的确定性）。
+
+1. **版本号**：不到 1.0 之前，没有破坏性变更就继续在原位上递增（`0.2.2` → `0.2.3` …），
+   不为了「有功能」跳到 `0.3.0`。
+2. **提交与发布分离**：`main` 随时可提交；`latest` 只在功能攒够一批、或出现严重缺陷时移动。
+3. **想立刻验证**用本地 tarball 或 `npm publish --tag next`，不污染 `latest`。
+4. **发布动作**（手动执行；`npm publish` 本身**不会**打 tag，所以 `npm version` 那步不能省）：
+
+   ```sh
+   npm run typecheck && npx vitest run && npm run build
+   node scripts/smoke-client.mjs && node scripts/smoke-node.mjs
+   npm run verify:package
+   npm version 0.2.2 -m "chore(release): 0.2.2"   # 改 package.json + 提交 + 打 tag
+   npm publish
+   git push --follow-tags                          # 提交与 tag 一起推
+   gh release create v0.2.2 --title "0.2.2" --notes-file <从 CHANGELOG.md 抽出的那一节>
+   ```
+
+5. **发布后核对**：`npm run probe:live` 报出的插件版本 == 刚发布的版本（需先重启 DSH）。
+6. **权限**：`gh` 已登录的账号对 `GrapeCityXA/dsh-plugin-spreadjs-editor` 具备 push（无 admin）；
+   推提交、打 tag、建 Release 都不需要 admin。
+
 ## 最终验收
 
 - [ ] `dsh plugin --profile web add <specifier>` 可从干净环境安装
 - [ ] 安装后在文件树里打开 `.xlsx`，由 **DSH 自带的右侧栏**承接（不需要任何第三方侧边栏插件）
 - [ ] `npm run probe:live` 能报出「正在运行的进程就是这一版」（0.2.2 起 `/spreadjs/api/health` 回报插件版本与内置 SpreadJS 版本）
 - [ ] README 中的 license/config 说明与最终发布方式一致
+- [ ] 发布后 `git tag`（`v<version>`）与 `gh release` 均已创建，且 tag 指向发布提交
