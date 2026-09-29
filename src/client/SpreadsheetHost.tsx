@@ -38,6 +38,7 @@ import {
 import { installDesignerAbout } from './about.ts'
 import { installDesignerFileMenu, type DesignerFileMenuNamespace } from './designer-file-menu.ts'
 import { setEditorTheme } from './styles.ts'
+import { harnessThemeIsDark, onHarnessThemeChange } from './ds-theme.ts'
 
 export type ExportFormat = 'xlsx' | 'sjs' | 'ssjson' | 'csv'
 export type StatusTone = 'idle' | 'busy' | 'error'
@@ -152,16 +153,10 @@ function cloneDefaultDesignerConfig(): DesignerConfigLike | undefined {
   }
 }
 
-function prefersDark(): boolean {
-  return typeof window !== 'undefined'
-    && typeof window.matchMedia === 'function'
-    && window.matchMedia('(prefers-color-scheme: dark)').matches === true
-}
-
 /**
- * Follow the OS light/dark preference for both halves of the editor: the
- * workbook's own stylesheet and the Designer's chrome preset are swapped, and
- * the caller repaints the workbook to apply that half.
+ * Follow the harness's resolved light/dark palette for both halves of the
+ * editor: the workbook's own stylesheet and the Designer's chrome preset are
+ * swapped, and the caller repaints the workbook to apply that half.
  *
  * Nothing is layered on top. `setTheme()` recolours only the Designer's own
  * `--sjs-*` variables — it reaches neither the workbook nor the product's icon
@@ -169,7 +164,7 @@ function prefersDark(): boolean {
  * product's dark preset for no gain. The preset is the theme.
  */
 function applyEditorTheme(): void {
-  setEditorTheme(prefersDark())
+  setEditorTheme(harnessThemeIsDark())
 }
 
 export function workbookFileType(path: string): GC.Spread.Sheets.FileType {
@@ -298,25 +293,19 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
       if (ns !== undefined && designerLicenseKey !== '') ns.LicenseKey = designerLicenseKey
     }, [licenseKey, designerLicenseKey, ready])
 
-    // Follow the OS light/dark preference for both halves of the editor. This
-    // runs before the Designer is constructed, so it starts on the right palette
-    // and on the matching runtime stylesheet, and keeps listening for live
-    // system theme changes. The workbook is repainted because a theme change is
-    // applied by swapping that stylesheet, not by a Designer setting.
+    // Follow the harness palette for both halves of the editor. This runs before
+    // the Designer is constructed, so it starts on the right palette and on the
+    // matching runtime stylesheet, and it stays subscribed for later switches —
+    // a preference change, or the OS while the harness preference is `system`.
+    // The workbook is repainted because a theme change is applied by swapping
+    // that stylesheet, not by a Designer setting.
     useEffect(() => {
-      if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
-      const mq = window.matchMedia('(prefers-color-scheme: dark)')
       const apply = (): void => {
         applyEditorTheme()
         designerRef.current?.getWorkbook()?.refresh()
       }
       apply()
-      if (typeof mq.addEventListener === 'function') mq.addEventListener('change', apply)
-      else if (typeof mq.addListener === 'function') (mq as MediaQueryList & { addListener(cb: () => void): void }).addListener(apply)
-      return () => {
-        if (typeof mq.removeEventListener === 'function') mq.removeEventListener('change', apply)
-        else if (typeof mq.removeListener === 'function') (mq as MediaQueryList & { removeListener(cb: () => void): void }).removeListener(apply)
-      }
+      return onHarnessThemeChange(apply)
     }, [])
 
     // Offer this panel to the Designer's Save command for as long as it is

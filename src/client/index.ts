@@ -15,16 +15,21 @@
  * This is the whole client-side surface: no third-party sidebar bundle is
  * required or consulted, and the document owner reads the file, so the plugin
  * performs no file reads.
+ *
+ * The editor's own light/dark pair is chosen from the harness's resolved palette
+ * (`theme`, see ds-theme.ts). The panel's chrome needs no such help: it reads the
+ * `--dsw-*` tokens the harness swaps for it.
  */
 import type { Context } from '@deepseek-ai/cordis'
 import { SpreadsheetDocument } from './SpreadsheetDocument.tsx'
 import { attachToBridge } from './bridge.ts'
+import { attachHarnessTheme } from './ds-theme.ts'
 import { injectStyles } from './styles.ts'
 
 export const name = 'dsh-spreadjs-editor'
 
 /** Required client services. The two registries are part of the web shell. */
-export const inject = ['documentPreviews', 'slots']
+export const inject = ['documentPreviews', 'slots', 'theme']
 
 /** File suffixes this implementation renders, without a leading dot. */
 export const SPREADSHEET_EXTENSIONS = ['xlsx', 'xlsm', 'csv', 'sjs', 'ssjson'] as const
@@ -38,6 +43,10 @@ export const SPREADSHEET_DOCUMENT_ID = '@grapecity-software/dsh-spreadjs-editor/
 
 export function apply(ctx: Context): void {
   ctx.effect(() => injectStyles(), 'dsh-spreadjs-editor: styles')
+
+  // Read the harness palette before any panel mounts, so the first Designer is
+  // built on the scheme the user chose rather than the one the OS reports.
+  ctx.effect(() => attachHarnessTheme(ctx), 'dsh-spreadjs-editor: harness theme')
 
   ctx.effect(() => ctx.documentPreviews.register({
     id: SPREADSHEET_DOCUMENT_ID,

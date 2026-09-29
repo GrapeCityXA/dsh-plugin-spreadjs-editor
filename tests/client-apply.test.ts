@@ -34,6 +34,15 @@ vi.mock('@grapecity-software/spread-sheets-languagepackages', () => ({}))
 import { SPREADSHEET_DOCUMENT_ID, SPREADSHEET_EXTENSIONS, apply, inject, name } from '../src/client/index.ts'
 import { exportFileType, workbookFileType } from '../src/client/SpreadsheetHost.tsx'
 
+/** One light snapshot, in the shape `ctx.theme.getTheme()` returns. */
+const themeSnapshot = {
+  preference: 'system',
+  fontSize: 14,
+  active: { id: 'light', colorScheme: 'light', tokens: {} },
+  themes: [],
+  revision: 0,
+}
+
 interface CtxDouble {
   ctx: Record<string, unknown>
   disposers: Array<() => unknown>
@@ -41,10 +50,13 @@ interface CtxDouble {
   previewDispose: ReturnType<typeof vi.fn>
   slotInject: ReturnType<typeof vi.fn>
   slotRegister: ReturnType<typeof vi.fn>
+  themeGet: ReturnType<typeof vi.fn>
+  on: ReturnType<typeof vi.fn>
 }
 
 /**
- * A cordis-shaped double carrying the two registries the plugin writes to.
+ * A cordis-shaped double carrying everything the plugin reads: the two
+ * registries it writes to, the theme service it follows, and the event bus.
  *
  * `ctx.effect` runs its callback immediately and records the returned disposer,
  * which is how the real client runtime applies a plugin body.
@@ -56,6 +68,8 @@ function makeCtx(): CtxDouble {
   const slotDispose = vi.fn()
   const slotRegister = vi.fn((_seat: unknown, _component: unknown) => slotDispose)
   const slotInject = vi.fn((_name: string, callback: () => unknown) => callback())
+  const themeGet = vi.fn(() => themeSnapshot)
+  const on = vi.fn(() => () => {})
 
   const ctx = {
     effect: vi.fn((execute: unknown) => {
@@ -65,11 +79,13 @@ function makeCtx(): CtxDouble {
     }),
     documentPreviews: { register: previewRegister },
     slots: { inject: slotInject, register: slotRegister },
+    theme: { getTheme: themeGet },
+    on,
     inject: vi.fn(() => ({ dispose: () => {} })),
   }
   apply(ctx as never)
 
-  return { ctx, disposers, previewRegister, previewDispose, slotInject, slotRegister }
+  return { ctx, disposers, previewRegister, previewDispose, slotInject, slotRegister, themeGet, on }
 }
 
 describe('client plugin manifest', () => {
@@ -77,8 +93,17 @@ describe('client plugin manifest', () => {
     expect(name).toBe('dsh-spreadjs-editor')
   })
 
-  it('requires the harness document registries', () => {
-    expect(inject).toEqual(['documentPreviews', 'slots'])
+  it('requires the harness document registries and the theme service', () => {
+    expect(inject).toEqual(['documentPreviews', 'slots', 'theme'])
+  })
+
+  it('subscribes to the harness palette for the plugin lifetime', () => {
+    const { themeGet, on } = makeCtx()
+
+    // The editor cannot read the palette from CSS (SpreadJS needs one of two
+    // stylesheets), so the subscription is the only way it learns the scheme.
+    expect(themeGet).toHaveBeenCalled()
+    expect(on).toHaveBeenCalledWith('theme/change', expect.any(Function))
   })
 
   it('maps file extensions and export formats to SpreadJS FileType enums', () => {

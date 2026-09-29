@@ -1,6 +1,6 @@
 {
   "name": "@grapecity-software/dsh-spreadjs-editor",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "DeepSeek Harness Web UI plugin: SpreadJS workbook editor for the harness's own right Sidebar, with binary save.",
   "keywords": [
     "deepseek-harness",
@@ -61,6 +61,7 @@
     "client": {
       "platform": "web",
       "inject": [
+        "@deepseek-ai/dsh-client-ui-theme",
         "@deepseek-ai/dsh-client-ui-slots",
         "@deepseek-ai/dsh-client-ui-sidebar-right",
         "@deepseek-ai/dsh-client-ui-sidebar-documentpreview"
@@ -72,6 +73,7 @@
     "@deepseek-ai/dsh-client-ui-renderer": ">=0.1.5-rc.3",
     "@deepseek-ai/dsh-client-ui-sidebar-documentpreview": ">=0.1.5-rc.3",
     "@deepseek-ai/dsh-client-ui-slots": ">=0.1.5-rc.3",
+    "@deepseek-ai/dsh-client-ui-theme": ">=0.1.5-rc.3",
     "react": "^18.0.0"
   },
   "devDependencies": {
@@ -103,6 +105,7 @@
     "@deepseek-ai/dsh-client-ui-slots": "0.1.5-rc.3",
     "@deepseek-ai/dsh-client-ui-sidebar-right": "0.1.5-rc.3",
     "@deepseek-ai/dsh-client-ui-sidebar-documentpreview": "0.1.5-rc.3",
+    "@deepseek-ai/dsh-client-ui-theme": "0.1.5-rc.3",
     "@deepseek-ai/dsh-host-webserver": "0.1.5-rc.3",
     "@types/node": "^22.0.0",
     "@types/react": "^18.3.0",

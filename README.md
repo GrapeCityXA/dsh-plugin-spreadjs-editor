@@ -19,7 +19,7 @@ A DeepSeek Harness Web UI plugin that opens, views, and edits Excel / SpreadJS f
 - 支持 `.xlsx`、`.xlsm`、`.csv`、`.sjs`、`.ssjson` 文件。
 - 从文件树打开工作簿，使用 SpreadJS Designer 编辑表格。
 - 编辑后可直接保存回原文件：原子写入、限制在会话工作区内、带冲突检测。
-- 编辑器跟随系统切换浅色和深色主题，工具栏与工作表区域一起变。
+- 编辑器跟随 DSH 的浅色/深色主题，工具栏与工作表区域一起变；DSH 偏好设为「跟随系统」时自然跟着系统走。
 - 「设置」标签里有「关于」按钮：内置版本、授权状态与版权信息在弹窗里。
 
 ### 内置版本与文件兼容性
@@ -64,21 +64,6 @@ npx --yes @deepseek-ai/dsh@latest --profile web
 - **写不出工作区。** 目标必须在当前会话的工作区内，越界（含 `..` 逃逸）直接拒绝。
 - **只有循环回环地址可用。** 保存接口与 DSH 其它接口一样只服务本机来源；通过局域网地址访问时，需要把该地址加进 `trustedHosts`。
 
-### 配合 AI 使用：让 Agent 改你正在看的表
-
-再装上 [`@grapecity-software/dsh-spreadjs-driver`](https://www.npmjs.com/package/@grapecity-software/dsh-spreadjs-driver)，就可以直接对 Agent 说"把金额列改成红色"——改动**立刻出现在你正看着的这张表上**。
-
-```sh
-dsh plugin --profile web add @grapecity-software/dsh-spreadjs-driver
-```
-
-- **改的是同一个对象，不是文件副本。** 编辑器把当前工作簿交给该插件的 `spreadjsHostBridge` 服务；两个插件的浏览器半跑在同一个页面里，所以改动直接落在 Designer 正在渲染的那份文档上——**不会覆盖你尚未保存的编辑**（这一点是按文件走的路子给不了的）。
-- **磁盘上的文件不动。** 改动只活在编辑器里，除非你明确要求保存——所以你有机会先看清楚，再决定要不要落盘。
-- **只有它拿得到。** 工作簿是编辑器**主动交出去**的，不存在"查找别人的工作簿"这类入口，同页面上的其他插件够不到。
-- 该插件本身还带一整套表格工具（新建、导入、导出 `.xlsx` / `.csv` / `.pdf`、截图），**不装编辑器也能单独使用**。
-
-> 需要本插件 **0.2.0 或更高版本**——更早的版本里没有这个桥，装上 driver 也不会有联动。
-
 ### 配置
 
 如已获得许可证，在 web profile 的 `cordis.patch.yml` 中添加以下配置：
@@ -103,7 +88,7 @@ dsh plugin --profile web add @grapecity-software/dsh-spreadjs-driver
 
 | 命令 | 验证内容 |
 | --- | --- |
-| `npm run typecheck`、`npm test` | 类型契约，以及 53 个单元测试（保存路由的每条守卫、文件地址解析，以及保存命令重定向的每条分支） |
+| `npm run typecheck`、`npm test` | 类型契约，以及 84 个单元测试（保存路由的每条守卫、文件地址解析、保存命令重定向的每条分支，以及编辑器主题桥的每条分支） |
 | `node scripts/smoke-client.mjs` | 构建后的浏览器半结构：loader 包装、内联的 SpreadJS 与样式、外部依赖只有 react |
 | `node scripts/smoke-node.mjs` | 构建后的宿主半：路由注册、许可证配置，以及保存路径的真实写盘、冲突与越界拒绝 |
 | `npm run probe:live` | **对着正在运行的 DSH** 跑一遍真实保存：真实 `ctx.fs` 的解析、落盘、冲突守卫、工作区越界 |
@@ -125,7 +110,7 @@ dsh plugin --profile web add @grapecity-software/dsh-spreadjs-driver
 - Opens `.xlsx`, `.xlsm`, `.csv`, `.sjs`, and `.ssjson` files.
 - Open workbooks from the file tree and edit them with SpreadJS Designer.
 - Save edits straight back to the file: atomic, confined to the session workspace, with conflict detection.
-- Follows the system's light or dark theme, toolbars and worksheet alike.
+- Follows the harness's light or dark theme, toolbars and worksheet alike; a harness preference of `system` still tracks the OS.
 - An **About** button in the settings tab reports the bundled versions, the licence state and the copyright.
 
 ### Bundled Versions and File Compatibility
@@ -170,21 +155,6 @@ Save has a single entry point: the **保存到工作区** button in the Designer
 - **It cannot write outside the workspace.** The target must sit inside the current session's workspace; anything else — including `..` escapes — is refused.
 - **Loopback only.** The save endpoint serves the local machine like the rest of DSH. If you reach DSH through a LAN address, add that address to `trustedHosts`.
 
-### Let the agent edit the sheet you are looking at
-
-Install [`@grapecity-software/dsh-spreadjs-driver`](https://www.npmjs.com/package/@grapecity-software/dsh-spreadjs-driver) alongside this plugin, and you can simply ask the agent — "make the amount column red" — and **watch the change land on the sheet you have open**.
-
-```sh
-dsh plugin --profile web add @grapecity-software/dsh-spreadjs-driver
-```
-
-- **It edits the same object, not a copy of the file.** The editor hands its current workbook to that plugin's `spreadjsHostBridge` service. Both plugins' browser halves run in the same page, so the change lands on the very document the Designer is rendering — and it **does not clobber edits you have not saved**, which a file-based route cannot promise.
-- **The file on disk is not touched.** The change lives in the editor until you explicitly ask for a save, so you get to look before deciding.
-- **Only that plugin can reach it.** The workbook is handed over *by the editor*; there is no way to go looking for somebody else's workbook, so other plugins on the page cannot touch it.
-- That plugin also brings a full set of spreadsheet tools of its own (create, import, export `.xlsx` / `.csv` / `.pdf`, screenshot) and **works on its own without the editor**.
-
-> Requires this plugin **0.2.0 or later** — earlier versions have no bridge, so installing the driver alongside them changes nothing.
-
 ### Configuration
 
 If you have licenses, add the following to the web profile's `cordis.patch.yml`:
@@ -209,7 +179,7 @@ Restart DSH and refresh the browser after changing the configuration.
 
 | Command | What it proves |
 | --- | --- |
-| `npm run typecheck`, `npm test` | The type contract, and 53 unit tests: every save guard, file-address parsing, and every branch of the Save-command redirect |
+| `npm run typecheck`, `npm test` | The type contract, and 84 unit tests: every save guard, file-address parsing, every branch of the Save-command redirect, and every branch of the editor theme bridge |
 | `node scripts/smoke-client.mjs` | The built browser half's structure: loader wrapper, inlined SpreadJS and styles, react as the only runtime external |
 | `node scripts/smoke-node.mjs` | The built host half: route registration, license config, and the save path writing real bytes plus refusing conflicts and escapes |
 | `npm run probe:live` | A real save against a **running DSH**: the actual `ctx.fs` resolving, writing, refusing a stale base hash, and refusing a workspace escape |

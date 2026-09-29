@@ -1,4 +1,11 @@
-/* dsh-spreadjs-editor panel styles */
+/* dsh-spreadjs-editor panel styles.
+ *
+ * Every colour comes from the harness's own `--dsw-*` tokens, so the panel
+ * follows the active palette with no JavaScript and no scheme-specific rules:
+ * the harness swaps the whole token set when the user switches light/dark, or
+ * while the preference is `system` and the OS does. The editor inside the panel
+ * is themed separately, by swapping SpreadJS's own stylesheets (see styles.ts),
+ * because a token cannot choose between two product stylesheets. */
 
 .dsh-spreadjs-panel {
   display: flex;
@@ -18,8 +25,8 @@
      height, a short editor beats a collapsed one that looks like a blank tab. */
   min-height: 220px;
   overflow: hidden;
-  background: var(--dsw-bg, #ffffff);
-  color: var(--dsw-fg, #1f2329);
+  background: var(--dsw-alias-bg-base);
+  color: var(--dsw-alias-label-primary);
 }
 
 
@@ -45,25 +52,31 @@
   width: 100%;
 }
 
+/* A document-shaped backdrop, like the product's own preview bodies. */
 .dsh-spreadjs-empty {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--dsw-fg-muted, #8a919c);
+  color: var(--dsw-alias-label-secondary);
   font-size: 13px;
-  background: var(--dsw-bg, #ffffff);
+  /* The preview-surface token exists from DSH 0.1.7 on, but the peer range
+     starts at 0.1.5-rc.3, where it is undefined — an undefined var() would drop
+     the whole declaration, leaving the empty state without its backdrop. */
+  background: var(--dsw-alias-bg-document-preview, var(--dsw-alias-bg-base));
 }
 
+/* The lighter of the two mask levels: a non-modal veil that signs the panel as
+   busy without hiding the workbook the way a dialog scrim would. */
 .dsh-spreadjs-loading {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.72);
-  color: #4b5563;
+  background: var(--dsw-alias-bg-mask-2);
+  color: var(--dsw-alias-label-secondary);
   font-size: 13px;
   z-index: 5;
 }
@@ -74,12 +87,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #c0392b;
+  color: var(--dsw-alias-state-error-primary);
   font-size: 13px;
   padding: 24px;
   text-align: center;
   z-index: 5;
-  background: var(--dsw-bg, #ffffff);
+  background: var(--dsw-alias-bg-base);
 }
 
 /* Status feedback floats over the editor instead of holding a bar of its own:
@@ -94,56 +107,20 @@
   max-width: min(70%, 420px);
   padding: 6px 12px;
   border-radius: 6px;
-  border: 1px solid var(--dsw-border, #d5d8de);
-  background: var(--dsw-bg, #ffffff);
-  color: var(--dsw-fg-muted, #4b5563);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--dsw-alias-border-l3);
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-secondary);
+  box-shadow: var(--dsw-elevation-soft);
   font-size: 12px;
   line-height: 1.4;
   pointer-events: none;
 }
 
 .dsh-spreadjs-toast-error {
-  border-color: #e0b4ae;
-  color: #c0392b;
+  border-color: var(--dsw-alias-state-error-secondary);
+  color: var(--dsw-alias-state-error-primary);
 }
 
 .dsh-spreadjs-toast-busy {
-  color: #1a56db;
-}
-
-/* Follow the OS light/dark preference. The Designer chrome and the workbook are
-   themed by their own stylesheets (see styles.ts), so these rules cover the
-   panel's own chrome only — they must not fight the product's theme inside the
-   host. */
-@media (prefers-color-scheme: dark) {
-  .dsh-spreadjs-panel {
-    color-scheme: dark;
-  }
-
-  .dsh-spreadjs-toast {
-    border-color: #343a42;
-    background: #1e2227;
-    color: #c7ccd3;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-  }
-
-  .dsh-spreadjs-toast-error {
-    border-color: #6b3a34;
-    color: #f0a0a0;
-  }
-
-  .dsh-spreadjs-toast-busy {
-    color: #8ab4ff;
-  }
-
-  .dsh-spreadjs-loading {
-    background: rgba(20, 22, 26, 0.72);
-    color: #c7ccd3;
-  }
-
-  .dsh-spreadjs-error {
-    background: #171a1f;
-    color: #f0a0a0;
-  }
+  color: var(--dsw-alias-state-business-primary);
 }

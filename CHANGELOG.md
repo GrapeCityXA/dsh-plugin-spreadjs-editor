@@ -1,5 +1,17 @@
 # Release Notes / 版本记录
 
+## 0.2.1
+
+### 中文
+
+- **编辑器跟随 DSH 的主题，而不是操作系统**：此前深色与否取决于系统的 `prefers-color-scheme`，所以在 DSH 里选「浅色 / 深色」时编辑器毫无反应——两者不一致时最明显。现在改为订阅 DSH 的主题服务；DSH 偏好设为「跟随系统」时，仍然随系统一起切换。
+- **面板自身配色改用 DSH 真实存在的主题 token**：原先用的几个 `--dsw-*` 变量 DSH 并未定义，那些规则实际一直落在硬编码的浅色回退值上，深色下会出现白色底块。
+
+### English
+
+- **The editor follows the harness theme, not the operating system**: toolbars, sheet area and panel used to darken according to the system's `prefers-color-scheme`, so choosing light or dark inside the harness changed nothing here — most visible when the two disagreed. The plugin now subscribes to the harness theme service, and a harness preference of `system` still tracks the OS.
+- **The panel's own chrome reads real harness theme tokens**: several `--dsw-*` variables it used are not defined by DSH, so those rules were silently falling back to hard-coded light colours and left white patches in dark mode.
+
 ## 0.2.0
 
 > 破坏性变更：本版要求 DSH `>=0.1.5-rc.3`，并改用 DSH 自带的右侧栏，不再需要任何第三方侧边栏插件；升级前请先升级 DSH。仓库里准备过的 `0.1.5` 从未发布，其内容已并入本版。
@@ -10,7 +22,6 @@
 - **浅色/深色完整跟随系统**：此前只有工具栏和面板变深、工作表区域仍是白底，现在一起切换。
 - **界面更干净**：去掉面板顶部的文件名标题栏（DSH 标签页已有）和底部状态栏，保存与冲突提示改为右下角浮层。
 - **新增「关于」**：Designer「设置」标签里可查看插件版本、内置 SpreadJS 与 Designer 版本、授权状态和版权信息。
-- **可以让 AI 直接改你正在编辑的表**：另装配套的 `@grapecity-software/dsh-spreadjs-driver` 后，可通过对话让 Agent 修改当前工作簿；未安装时插件行为不变。
 - 内置 SpreadJS 升级到 19.2.0；新增配置项 `maxSaveBytes`（默认 64 MB）与 `trustedHosts`。
 
 ### English
@@ -19,7 +30,6 @@
 - **Light and dark follow the system all the way**: previously only the toolbars and panels darkened while the sheet stayed white.
 - **A cleaner panel**: the file-name title bar (the harness tab already shows it) and the status bar are gone, and save or conflict messages appear as a floating notice in the corner.
 - **A new About dialog**: the Designer's settings tab shows the plugin and bundled versions, the licence state and the copyright.
-- **Let an agent edit the sheet you are looking at**: with the companion `@grapecity-software/dsh-spreadjs-driver` installed, you can ask an agent to change the open workbook in conversation; without it the plugin behaves as before.
 - Bundled SpreadJS moved to 19.2.0; new configuration `maxSaveBytes` (default 64 MB) and `trustedHosts`.
 
 ## 0.1.4
