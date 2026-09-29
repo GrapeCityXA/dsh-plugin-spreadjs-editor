@@ -1,63 +1,47 @@
 # dsh-spreadjs-editor 发布与收录 TODO
 
 > 状态约定：`[ ]` 待办，`[x]` 已完成，`[~]` 进行中。
-> 原则：未确认 GrapeCity SpreadJS EULA 前，不把内联 SpreadJS 的 `lib/` 打进公开 npm 包。
+> 最近核对：2026-09-29。npm 上最新为 **`0.2.1`**，仓库里当前未发布的版本是 **`0.2.2`**。
+>
+> **事实更正**（原文写于 0.1.x 时期，与后来实际发货的方式相反）：
+> - 公开 npm 包**不是**「源码构建模式」：0.1.2 起就以**预构建**分发，`lib/client.js` 内联了
+>   SpreadJS（`0.2.1` 的 tarball 10 个文件、解包约 53 MB），`lib/licenses` 随包携带。
+> - 安装期不执行任何脚本：0.1.4 起移除 `prepare`，`prepack` 只在发布机上构建。
+>   因此下文的 `postinstall` / `rebuild` 类条目已随旧方案作废（已从本文件删除）。
 
 ## 仓库准备
 
-- [ ] 给 GitHub 仓库添加 Topics：`dsh-plugin`、`deepseek-harness`
-- [ ] 可选 Topics：`spreadjs`、`excel`、`web-ui`
-- [ ] README 补充可识别的一键安装 specifier（git 或 npm）
-- [ ] README 明确安装流程：`npm install && npm run build` 后交给 `dsh plugin`
-- [ ] 确认 `package.json` 保留 `dsh.bundle` manifest 和 `cordis.patch.yml`
+- [x] 给 GitHub 仓库添加 Topics：`deepseek-harness`、`dsh-plugin`
+- [x] 可选 Topics：`spreadjs`、`excel`、`web-ui`
+- [ ] **移除过期 Topic `dsh-better-sidebar`**：0.2.0 起本插件不再依赖它，但仓库 Topics 里仍留着这一项（已用 GitHub API 核对）。按该主题检索的人会误以为它属于 better-sidebar 生态。
+- [x] README 有可识别的一键安装 specifier（npm 包名）
+- [x] README 写清安装流程：`dsh plugin --profile web add @grapecity-software/dsh-spreadjs-editor`
+- [x] `package.json` 保留 `dsh.bundle` manifest 与 `cordis.patch.yml`
 
-## dshmk / dsh-plugins-store 自动收录
+## 目录收录（本次未逐一核对）
 
-- [ ] 确认 GitHub Topics 已生效
-- [ ] 检查 https://dshmk.com/ 是否出现 `GrapeCityXA/dsh-plugin-spreadjs-editor`
-- [ ] 观察验证状态；失败时根据验证结果修复仓库/README
-- [ ] 参考：https://github.com/ZASENJC/dsh-plugins-store
+- [ ] 检查 https://dshmk.com/ 是否出现 `GrapeCityXA/dsh-plugin-spreadjs-editor`，并观察验证状态
+- [ ] awesome-dsh-plugin：确认 `data/plugins/GrapeCityXA__dsh-plugin-spreadjs-editor.yml` 是否已收录（本次只看到列表开头的字母段，未能确认；若未收录，按仓库 contributing 提 PR）
+- [ ] ui-all `community.json`（`zhu1090093659/dsh-web`）：确认是否已有本插件条目，并补 `npm` 字段
+- [ ] dsh-market：确认是否已自动同步收录
 
-## awesome-dsh-plugin 人工收录
+## npm 发布
 
-- [ ] PR 新增 `data/plugins/GrapeCityXA__dsh-plugin-spreadjs-editor.yml`
-- [ ] 填写 `url`、`name`、`category: ui`、`description.en`
-- [ ] 补充 `description.zh`
-- [ ] 确认满足：`dsh.bundle`、仓库满 1 天、至少 10 commits、已加 `dsh-plugin` Topic
-- [ ] 参考：https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/blob/main/contributing.md
-
-## ui-all community.json 收录
-
-- [ ] PR 到 https://github.com/zhu1090093659/dsh-web
-- [ ] 修改 `packages/dsh-client-ui-community-plugins/community.json`
-- [ ] 新增 `@grapecity-software/dsh-spreadjs-editor` 条目，含 repo、name、category、subcategory
-- [ ] 确认 `subcategory` 使用现有枚举；如无 file/editor，则先归入 `panel` 或新增
-- [ ] 若后续发布 npm，再补 `npm` 字段
-- [ ] 参考：已安装包 `@linxin666/dsh-client-ui-community-plugins/community.json`
-
-## dsh-market 收录
-
-- [ ] awesome-dsh-plugin 合并后检查 dsh-market 是否自动出现
-- [ ] 如未出现，研究 dsh-market 的直接提交入口
-- [ ] 参考：https://github.com/dsh-market/dsh-market
-
-## npm 发布决策（不阻塞目录收录）
-
-- [x] 已定：公开 npm 采用“源码构建模式”，tarball 不携带 `lib/`
-- [x] 与用户确认：不把内联 SpreadJS 的 `lib/` 打进公开 npm 包
-- [x] 把 GrapeCity 包、tsdown、typescript、unrun 移入 `dependencies`，保证安装阶段可构建
-- [x] package.json 增加 `postinstall` / `rebuild` 脚本
-- [x] README 写清 pnpm 10 需要 `onlyBuiltDependencies` + `pnpm rebuild`
-- [x] 使用 `pnpm pack` 验证 tarball 内容不包含 `lib/client.js`
-- [x] 在临时 profile 中安装 tarball，验证 postinstall 构建成功
-- [~] 确认 npm 登录状态和包名可用性（包名可用；本机未登录）
-- [ ] 在发布机器执行 `npm adduser` 或配置 npm token
-- [ ] 执行 `npm publish`（或 `pnpm publish`）
-- [ ] 发布后从 npm 安装到临时 profile 并打开 `.xlsx` 验收
-- [ ] 发布成功后补 ui-all community.json 的 `npm` 字段
+- [x] 已发布：`0.1.0` → `0.1.4`、`0.2.0`、`0.2.1`（`latest = 0.2.1`，2026-09-29）
+- [x] 预构建分发：`files` 含 `lib/*.js` 与 `lib/licenses`，`prepack` 在发布机构建，安装期无脚本
+- [x] 打包校验：`npm run verify:package`（离线 tarball 全新安装 + 客户端注册 + 独立 license 配置）
+- [ ] 发布 **`0.2.2`**（未发布，内容见 `CHANGELOG.md`）：发布前跑一遍全量验收
+      ```sh
+      npm run typecheck && npx vitest run && npm run build
+      node scripts/smoke-client.mjs && node scripts/smoke-node.mjs
+      npm run verify:package && npm run probe:live
+      ```
+- [ ] 发布后从 npm 安装到临时 profile，打开 `.xlsx` 验收
+- [ ] 内联 SpreadJS 的再分发许可：随包携带 `lib/licenses` 是不够的结论性依据，正式对外发布前仍需 GrapeCity 侧确认一次条款（本文件开头那条「未确认 EULA 前不把 lib/ 打进公开包」的原则，与现在的发货方式不一致，需要以书面结论替代）
 
 ## 最终验收
 
 - [ ] `dsh plugin --profile web add <specifier>` 可从干净环境安装
-- [ ] 安装后 SpreadJS 能通过 better-sidebar 打开 `.xlsx`
-- [ ] README 中 license/config 说明与最终发布方式一致
+- [ ] 安装后在文件树里打开 `.xlsx`，由 **DSH 自带的右侧栏**承接（不需要任何第三方侧边栏插件）
+- [ ] `npm run probe:live` 能报出「正在运行的进程就是这一版」（0.2.2 起 `/spreadjs/api/health` 回报插件版本与内置 SpreadJS 版本）
+- [ ] README 中的 license/config 说明与最终发布方式一致

@@ -35,6 +35,14 @@ A DeepSeek Harness Web UI plugin that opens, views, and edits Excel / SpreadJS f
 
 需要 DSH `>=0.1.5-rc.3`。插件使用 DSH 自带的右侧栏，**不需要安装任何第三方侧边栏插件**。
 
+| DSH 版本 | 状态 | 说明 |
+| --- | --- | --- |
+| `0.1.7-rc.2` | ✅ 构建与验收基线 | `typecheck`、89 项单测、两个 smoke、`verify:package`、`probe:live` 全部通过（`probe:live` 的版本核对需要先重启 DSH，见下文） |
+| `0.1.6.x` | ⚪ 未验证 | 没有核对过这个区间的平台：既未逐项跑验收，也不确定它是否已提供下表中的两项能力 |
+| `0.1.5-rc.3` | ✅ 上一版验收基线 | 插件最初就是对着它构建并验收的；它会忽略「二进制后缀」声明，查看方式列表里仍可能出现纯文本一项 |
+
+`0.1.7` 起平台提供了两样本插件会用到的能力：文档定义里的**二进制后缀**声明（决定是否还提供纯文本查看方式），以及内置的只读 Excel 预览（会与本插件并列出现在查看方式列表里）。插件在 `0.1.5-rc.3` 上照常工作，只是拿不到这两点。
+
 插件内置 SpreadJS 和 Designer，无需编译。使用已安装的 DSH CLI 安装并启动：
 
 ```sh
@@ -88,12 +96,12 @@ npx --yes @deepseek-ai/dsh@latest --profile web
 
 | 命令 | 验证内容 |
 | --- | --- |
-| `npm run typecheck`、`npm test` | 类型契约，以及 84 个单元测试（保存路由的每条守卫、文件地址解析、保存命令重定向的每条分支，以及编辑器主题桥的每条分支） |
+| `npm run typecheck`、`npm test` | 类型契约，以及 89 个单元测试（保存路由的每条守卫、文件地址解析、保存命令重定向的每条分支、编辑器主题桥的每条分支、查看器名称与二进制后缀声明的边界） |
 | `node scripts/smoke-client.mjs` | 构建后的浏览器半结构：loader 包装、内联的 SpreadJS 与样式、外部依赖只有 react |
 | `node scripts/smoke-node.mjs` | 构建后的宿主半：路由注册、许可证配置，以及保存路径的真实写盘、冲突与越界拒绝 |
-| `npm run probe:live` | **对着正在运行的 DSH** 跑一遍真实保存：真实 `ctx.fs` 的解析、落盘、冲突守卫、工作区越界 |
+| `npm run probe:live` | **对着正在运行的 DSH** 跑一遍真实保存：真实 `ctx.fs` 的解析、落盘、冲突守卫、工作区越界；并核对进程里装的是不是本构建（插件版本与内置 SpreadJS 版本） |
 
-`npm run probe:live` 要求 DSH 已重启到本版本；如果它报 404，说明进程里还是旧的宿主半。可选参数：`--url`（默认 `http://127.0.0.1:3080`）、`--session <id>`、`--home <DSH_HOME>`。探针会在会话工作区内建一个临时文件，结束时删除。
+`npm run probe:live` 要求 DSH 已重启到本版本。宿主半会在 `/spreadjs/api/health` 回报插件版本与内置 SpreadJS 版本，探针据此判断「正在跑的进程是不是这一版」——回报的版本与本构建不一致会直接判失败；如果进程里是很早的宿主半（连版本字段都没有），探针会说明需要重启，如果连保存路由都报 404，则说明那更是旧版。可选参数：`--url`（默认 `http://127.0.0.1:3080`）、`--session <id>`、`--home <DSH_HOME>`。探针会在会话工作区内建一个临时文件，结束时删除。
 
 ### 许可
 
@@ -125,6 +133,14 @@ The **About** button in the Designer's settings tab shows the bundled versions, 
 ### Installation
 
 Requires DSH `>=0.1.5-rc.3`. The plugin uses the harness's own right Sidebar and needs **no third-party sidebar plugin**.
+
+| DSH version | Status | Notes |
+| --- | --- | --- |
+| `0.1.7-rc.2` | ✅ build and verification baseline | `typecheck`, 89 unit tests, both smokes, `verify:package` and `probe:live` all green (the probe's version check needs DSH restarted first, see below) |
+| `0.1.6.x` | ⚪ not verified | This range was never checked: neither point-by-point acceptance nor whether it already offers the two capabilities below |
+| `0.1.5-rc.3` | ✅ previous verification baseline | The release this plugin was originally built and accepted against; it ignores the binary-suffix declaration, so a plain-text entry may still appear among the viewer choices |
+
+From `0.1.7` the platform offers two things this plugin uses: the **binary-suffix** declaration on a document definition (which is what removes the plain-text viewer choice), and its own read-only Excel preview (which is listed beside this plugin). The plugin still works on `0.1.5-rc.3`; it simply does not get those two.
 
 The plugin includes SpreadJS and Designer, with no build step required. With the DSH CLI installed:
 
@@ -179,12 +195,12 @@ Restart DSH and refresh the browser after changing the configuration.
 
 | Command | What it proves |
 | --- | --- |
-| `npm run typecheck`, `npm test` | The type contract, and 84 unit tests: every save guard, file-address parsing, every branch of the Save-command redirect, and every branch of the editor theme bridge |
+| `npm run typecheck`, `npm test` | The type contract, and 89 unit tests: every save guard, file-address parsing, every branch of the Save-command redirect, every branch of the editor theme bridge, and the viewer-name and binary-suffix edge cases |
 | `node scripts/smoke-client.mjs` | The built browser half's structure: loader wrapper, inlined SpreadJS and styles, react as the only runtime external |
 | `node scripts/smoke-node.mjs` | The built host half: route registration, license config, and the save path writing real bytes plus refusing conflicts and escapes |
-| `npm run probe:live` | A real save against a **running DSH**: the actual `ctx.fs` resolving, writing, refusing a stale base hash, and refusing a workspace escape |
+| `npm run probe:live` | A real save against a **running DSH**: the actual `ctx.fs` resolving, writing, refusing a stale base hash, and refusing a workspace escape — plus a check that the process carries *this* build (plugin and bundled SpreadJS versions) |
 
-`npm run probe:live` needs DSH restarted onto this version; a 404 from it means the running process still carries the old host half. Options: `--url` (default `http://127.0.0.1:3080`), `--session <id>`, `--home <DSH_HOME>`. The probe creates one temporary file inside the session workspace and deletes it.
+`npm run probe:live` needs DSH restarted onto this version. The host half reports the plugin and bundled SpreadJS versions on `/spreadjs/api/health`, so the probe can tell whether the running process is this build: a version that disagrees with this build fails outright, a host half old enough to omit the field is reported as needing a restart, and a 404 means the host half predates the save route. Options: `--url` (default `http://127.0.0.1:3080`), `--session <id>`, `--home <DSH_HOME>`. The probe creates one temporary file inside the session workspace and deletes it.
 
 ### License
 

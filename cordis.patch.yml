@@ -1,15 +1,17 @@
 # dsh-spreadjs-editor bundle patch
 #
 # One row activates the whole plugin: the Loader imports the package's node
-# half (lib/index.js, the /spreadjs license/config endpoint) and the
-# client-modules scan picks up the `dsh.client` declaration for the browser
-# half (lib/client.js, which registers the SpreadJS viewer into
-# dsh-better-sidebar).
+# half (lib/index.js, the /spreadjs license handshake, health report, and the
+# binary save endpoint) and the client-modules scan picks up the `dsh.client`
+# declaration for the browser half (lib/client.js, which registers the SpreadJS
+# editor with the harness's OWN right Sidebar through `ctx.documentPreviews`
+# and the `sidebar.right.tab.document` slot).
 #
 # The row must run only under the Web composition (it injects the webServer
-# service); a headless profile should not mount this bundle. The browser half
-# has no hard client dependency: it waits for `dsh-better-sidebar`, which is
-# bundled by @linxin666/dsh-web-all (ui-all).
+# service); a headless profile should not mount this bundle. No third-party
+# sidebar plugin is required or consulted — the browser half's optional
+# dependencies (`dsh-spreadjs-driver`'s bridge, the locale service) are attached
+# only when present, and their absence costs nothing but the extra behaviour.
 - insert:
   - id: spreadjs-editor
     name: '@grapecity-software/dsh-spreadjs-editor'
