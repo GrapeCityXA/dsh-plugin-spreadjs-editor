@@ -50,17 +50,23 @@
    不为了「有功能」跳到 `0.3.0`。
 2. **提交与发布分离**：`main` 随时可提交；`latest` 只在功能攒够一批、或出现严重缺陷时移动。
 3. **想立刻验证**用本地 tarball 或 `npm publish --tag next`，不污染 `latest`。
-4. **发布动作**（手动执行；`npm publish` 本身**不会**打 tag，所以 `npm version` 那步不能省）：
+4. **发布动作**：用闸门脚本，不要手敲。`npm publish` 本身**不会**打 tag，而
+   `prepublishOnly` 虽然已经跑了同一套验收，但它触发在 `npm publish` 那一刻——那时版本提交、
+   tag、Release 都已经推出去，验收一失败就会留下一个从没上过 npm 的 tag。脚本把同一套验收
+   挪到这些动作之前：
 
    ```sh
-   npm run typecheck && npx vitest run && npm run build
-   node scripts/smoke-client.mjs && node scripts/smoke-node.mjs
-   npm run verify:package
-   npm version 0.2.2 -m "chore(release): 0.2.2"   # 改 package.json + 提交 + 打 tag
-   npm publish
-   git push --follow-tags                          # 提交与 tag 一起推
-   gh release create v0.2.2 --title "0.2.2" --notes-file <从 CHANGELOG.md 抽出的那一节>
+   npm run release -- --dry-run    # 排练：只跑验收并打印计划，不改动任何东西
+   npm run release                 # 发布 package.json 已声明的版本（本仓库的批次就是这么定号的）
+   npm run release -- 0.2.3        # 或顺带升到 0.2.3
+   npm publish                     # 最后一步手动敲（prepublishOnly 是最后一道防线）
    ```
+
+   `scripts/release.mjs` 依次做：前置检查（分支 `main`、工作区干净、CHANGELOG 有对应小节、
+   tag 未被本地/远端占用）→ 与 `prepublishOnly` 同一套验收 → 定版（CHANGELOG 去掉
+   「（未发布）」、需要时改 `package.json`）→ 一次提交 + annotated tag →
+   `git push --follow-tags` → `gh release create --verify-tag`（说明文字直接取自 CHANGELOG
+   那一节，避免两处不一致）。**它故意不执行 `npm publish`**：最不可逆的一步留给人手敲。
 
 5. **发布后核对**：`npm run probe:live` 报出的插件版本 == 刚发布的版本（需先重启 DSH）。
 6. **权限**：`gh` 已登录的账号对 `GrapeCityXA/dsh-plugin-spreadjs-editor` 具备 push（无 admin）；
