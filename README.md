@@ -39,7 +39,7 @@ A DeepSeek Harness Web UI plugin that opens, views, and edits Excel / SpreadJS f
 
 | DSH 版本 | 状态 | 说明 |
 | --- | --- | --- |
-| `0.1.7-rc.2` | ✅ 构建与验收基线 | `typecheck`、179 项单测、两个 smoke、`verify:package`、`probe:live` 全部通过（`probe:live` 的版本核对需要先重启 DSH，见下文） |
+| `0.1.7-rc.2` | ✅ 构建与验收基线 | `typecheck`、190 项单测、两个 smoke、`verify:package`、`probe:live` 全部通过（`probe:live` 的版本核对需要先重启 DSH，见下文） |
 | `0.1.6.x` | ⚪ 未验证 | 没有核对过这个区间的平台：既未逐项跑验收，也不确定它是否已提供下表中的能力 |
 | `0.1.5-rc.3` | ✅ 上一版验收基线 | 插件最初就是对着它构建并验收的；它会忽略「二进制后缀」声明，查看方式列表里仍可能出现纯文本一项；文档头部没有动作槽，因此保存入口只有 `Ctrl+S`，未保存状态靠面板右下角的浮动胶囊 |
 
@@ -133,7 +133,7 @@ DSH 在标签页被切走时会卸载文档主体，平台也没有可供拦下�
 
 | 命令 | 验证内容 |
 | --- | --- |
-| `npm run typecheck`、`npm test` | 类型契约，以及 179 个单元测试（保存路由的每条守卫、文件地址解析与地址构造、另存为的目标校验、默认名与失败文案、保存命令重定向的每条分支、编辑器主题桥的每条分支、查看器名称与二进制后缀声明的边界、未保存改动的缓存规则与脏状态跟踪的边界、打开时「用文件还是用缓存」的每个分支、面板状态胶囊的状态与操作矩阵、文档头部动作的发布/订阅/命令路由、按钮的尺寸字号颜色规格、「只在表格文件上出现」的判定与注册顺序，隐藏 Designer「文件」Tab 那条规则的两处身份与作用域，以及桥选择的方向与「写入被拒也要报出来」、桥字段是否真的声明为 volatile、名册与设置页在有无 settings 服务时的接线） |
+| `npm run typecheck`、`npm test` | 类型契约，以及 190 个单元测试（保存路由的每条守卫、文件地址解析与地址构造、另存为的目标校验、默认名与失败文案、保存命令重定向的每条分支、编辑器主题桥的每条分支、查看器名称与二进制后缀声明的边界、未保存改动的缓存规则与脏状态跟踪的边界、打开时「用文件还是用缓存」的每个分支、面板状态胶囊的状态与操作矩阵、文档头部动作的发布/订阅/命令路由、按钮的尺寸字号颜色规格、「只在表格文件上出现」的判定与注册顺序，隐藏 Designer「文件」Tab 那条规则的两处身份与作用域，以及桥选择的方向与「写入被拒也要报出来」、桥字段是否真的声明为 volatile、名册与设置页在有无 settings 服务时的接线，以及设置页每一行确实是照 DSH 自己设置页的行规格画的） |
 | `node scripts/smoke-client.mjs` | 构建后的浏览器半结构：loader 包装、内联的 SpreadJS 与样式、外部依赖只有 react |
 | `node scripts/smoke-node.mjs` | 构建后的宿主半：路由注册、许可证配置，以及保存路径的真实写盘、冲突与越界拒绝 |
 | `npm run probe:live` | **对着正在运行的 DSH** 跑一遍真实保存：真实 `ctx.fs` 的解析、落盘、冲突守卫、工作区越界；并核对进程里装的是不是本构建（插件版本与内置 SpreadJS 版本） |
@@ -175,7 +175,7 @@ Requires DSH `>=0.1.5-rc.3`. The plugin uses the harness's own right Sidebar and
 
 | DSH version | Status | Notes |
 | --- | --- | --- |
-| `0.1.7-rc.2` | ✅ build and verification baseline | `typecheck`, 179 unit tests, both smokes, `verify:package` and `probe:live` all green (the probe's version check needs DSH restarted first, see below) |
+| `0.1.7-rc.2` | ✅ build and verification baseline | `typecheck`, 190 unit tests, both smokes, `verify:package` and `probe:live` all green (the probe's version check needs DSH restarted first, see below) |
 | `0.1.6.x` | ⚪ not verified | This range was never checked: neither point-by-point acceptance nor whether it already offers the capabilities below |
 | `0.1.5-rc.3` | ✅ previous verification baseline | The release this plugin was originally built and accepted against; it ignores the binary-suffix declaration, so a plain-text entry may still appear among the viewer choices, and its document header has no actions slot — so `Ctrl+S` is the only Save entry and unsaved work shows in the panel's floating pill |
 
@@ -269,7 +269,7 @@ One more field is deliberately **not** in that table: `bridge` is written by the
 
 | Command | What it proves |
 | --- | --- |
-| `npm run typecheck`, `npm test` | The type contract, and 179 unit tests: every save guard, file-address parsing and address building, the Save As target rules, suggested name and failure wording, every branch of the Save-command redirect, every branch of the editor theme bridge, the viewer-name and binary-suffix edge cases, the unsaved-buffer and dirty-tracking rules, every branch of the file-versus-buffer decision at open, the panel state pill's state/action matrix, the document header actions' publication, subscription, command routing, button spec, "spreadsheets only" rule and registration order, both identities plus the scope of the rule that hides the Designer's File tab, the direction of the bridge choice and that a refused write is reported, that the bridge field really is declared volatile, and the wiring of the roster and the settings page with and without a settings service |
+| `npm run typecheck`, `npm test` | The type contract, and 190 unit tests: every save guard, file-address parsing and address building, the Save As target rules, suggested name and failure wording, every branch of the Save-command redirect, every branch of the editor theme bridge, the viewer-name and binary-suffix edge cases, the unsaved-buffer and dirty-tracking rules, every branch of the file-versus-buffer decision at open, the panel state pill's state/action matrix, the document header actions' publication, subscription, command routing, button spec, "spreadsheets only" rule and registration order, both identities plus the scope of the rule that hides the Designer's File tab, the direction of the bridge choice and that a refused write is reported, that the bridge field really is declared volatile, the wiring of the roster and the settings page with and without a settings service, and that every row of that page is drawn to the harness's own settings-row spec |
 | `node scripts/smoke-client.mjs` | The built browser half's structure: loader wrapper, inlined SpreadJS and styles, react as the only runtime external |
 | `node scripts/smoke-node.mjs` | The built host half: route registration, license config, and the save path writing real bytes plus refusing conflicts and escapes |
 | `npm run probe:live` | A real save against a **running DSH**: the actual `ctx.fs` resolving, writing, refusing a stale base hash, and refusing a workspace escape — plus a check that the process carries *this* build (plugin and bundled SpreadJS versions) |

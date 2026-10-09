@@ -53,7 +53,7 @@ export type EditorTextKey =
   | 'unsaved.dropped'
   | 'settings.nav'
   | 'settings.hint'
-  | 'settings.inUse'
+  | 'settings.empty'
   | 'settings.none'
   | 'settings.notSavedRefused'
   | 'settings.notSavedFailed'
@@ -102,7 +102,7 @@ const FALLBACK_TEXT: Record<EditorTextKey, string> = {
   // whole product is SpreadJS, so a title saying so told the reader nothing.
   'settings.nav': '电子表格编辑器',
   'settings.hint': '选择由哪个插件驱动你正打开的那张表。被选中的插件会接管那份文档，且仅在它打开期间。',
-  'settings.inUse': '使用中',
+  'settings.empty': '还没有安装任何桥。桥是让 AI 直接改你正打开的那张表的插件；没有它，这个编辑器照样能打开和保存文件。',
   'settings.none': '不使用',
   'settings.notSavedRefused': '宿主没有接受这次更改，所以它只在你刷新前有效。',
   'settings.notSavedFailed': '这次更改没能保存，所以它只在你刷新前有效。',
@@ -130,7 +130,7 @@ const DICTIONARIES: { zh: Record<string, string>; en: Record<string, string> } =
     'saveAs.cancel': 'Cancel',
     'settings.nav': 'Spreadsheet Editor',
     'settings.hint': 'Choose which plugin drives the spreadsheet you have open. The chosen one is handed that document, and only while it is open.',
-    'settings.inUse': 'In use',
+    'settings.empty': 'No bridge is installed. A bridge is what lets the agent edit the workbook you have open; without one, this editor still opens and saves files.',
     'settings.none': 'None',
     'settings.notSavedRefused': 'The host did not accept this change, so it applies only until you reload.',
     'settings.notSavedFailed': 'This change could not be saved, so it applies only until you reload.',

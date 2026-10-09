@@ -371,3 +371,126 @@
   color: var(--dsw-alias-state-business-primary);
   font-weight: 600;
 }
+
+/* The bridge picker, on the harness's own Settings surface.
+ *
+ * Every number here is measured off the product's own settings pages
+ * (`dsh-client-ui-settings-general`'s row/title/description rules) rather than
+ * invented, because this page is a guest in that surface and should read as one
+ * of its rows: `.5px` hairline separators in `--dsw-alias-border-l2`, 16px of
+ * vertical padding per row, a 24px gap between the label and whatever sits on
+ * the right, a 14px/20px title and 12px/18px supporting text. Same doctrine as
+ * the header buttons above — copy the neighbour's values, do not import the
+ * neighbour's package, since a third-party client plugin cannot assume an
+ * internal `@deepseek-ai/*` module resolves at runtime.
+ *
+ * Every colour is a `--dsw-*` token, so the page follows the active palette; a
+ * literal would freeze it into one theme.
+ *
+ * This block did not exist at first, and that was the whole bug: classes with no
+ * rule leave a `<button>` wearing the platform's default chrome — grey, centred,
+ * inset — and two adjacent inline spans with no `gap` collapse into one run of
+ * text ("SpreadJS Driver使用中"). */
+.dsh-spreadjs-settings {
+  display: flex;
+  flex-direction: column;
+  font-family: var(--dsw-font-family, system-ui, sans-serif);
+  color: var(--dsw-alias-label-primary);
+}
+
+/* Supporting text: what a bridge is, and what the choice does. */
+.dsh-spreadjs-settings-hint {
+  margin: 0 0 4px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+/* Only after a write the host would not take. A warning, not an error: the
+   choice IS in force — it just will not survive a reload. */
+.dsh-spreadjs-settings-warning {
+  margin: 8px 0 0;
+  color: var(--dsw-alias-state-warn-primary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.dsh-spreadjs-settings-group {
+  display: flex;
+  flex-direction: column;
+}
+
+/* One choice. A full-width row rather than a control: the whole line is the hit
+   area, which is both what the harness's rows do and what makes a list of two or
+   three options comfortable to click. */
+.dsh-spreadjs-settings-row {
+  box-sizing: border-box;
+  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  width: 100%;
+  padding: 16px 8px;
+  border: none;
+  /* Between rows only — a rule under the last one reads as the start of
+     something that is not there. */
+  border-bottom: .5px solid var(--dsw-alias-border-l2);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dsh-spreadjs-settings-row:last-child {
+  border-bottom: none;
+}
+
+.dsh-spreadjs-settings-row:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.dsh-spreadjs-settings-row:active {
+  background: var(--dsw-alias-interactive-bg-active);
+}
+
+/* Drawn inside the row's own bounds: an outer ring would shift the hairline
+   stacking, and a row is wide enough that an inset ring still reads clearly. */
+.dsh-spreadjs-settings-row:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: -2px;
+}
+
+.dsh-spreadjs-settings-row-title {
+  min-width: 0;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+/* The tick. Hidden by visibility rather than removed, so selecting a row moves
+   no layout: the mark's box is always reserved, and only its ink appears. */
+.dsh-spreadjs-settings-row-mark {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--dsw-alias-brand-primary);
+  visibility: hidden;
+}
+
+.dsh-spreadjs-settings-row[aria-checked='true'] .dsh-spreadjs-settings-row-mark {
+  visibility: visible;
+}
+
+/* A tick from two borders of one box, at the row's own text scale — no image, no
+   icon font, and `currentColor` takes the colour set above. */
+.dsh-spreadjs-settings-row-mark::before {
+  content: '';
+  display: block;
+  width: 5px;
+  height: 10px;
+  margin: 1px 0 0 5px;
+  border: solid currentColor;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
