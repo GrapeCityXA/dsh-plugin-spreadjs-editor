@@ -21,8 +21,44 @@ A DeepSeek Harness Web UI plugin that opens, views, and edits Excel / SpreadJS f
 - 编辑后可直接保存回原文件：原子写入、限制在会话工作区内、带冲突检测。保存按钮在 DSH 文档头部自己的工具栏上，未保存时带一个标记点；它与「另存为…」的尺寸、字号、颜色都按 DSH 头部自身控件的规格绘制，而且**只在表格文件上出现**。
 - 「另存为」可以把当前工作簿（含新建的空白工作簿）写进工作区的另一个路径，成功后就地切换到那个文件；同名文件不会被覆盖。
 - 编辑器跟随 DSH 的浅色/深色主题，工具栏与工作表区域一起变；DSH 偏好设为「跟随系统」时自然跟着系统走。
-- **把屏幕上这份工作簿交给 AI 用**：DSH 设置里多出一页「SpreadJS 桥」，选择由哪一个「桥」来使用你正打开的工作簿。装上 [`@grapecity-software/dsh-spreadjs-driver`](https://www.npmjs.com/package/@grapecity-software/dsh-spreadjs-driver) 之后，AI 就能直接在你看着的这张表上改，而不是另开一个文件——它拿到的是**活引用而不是副本**，所以改动立刻可见。没装任何桥时这一页只有「不使用」一项，其余行为不受影响。
 - 「设置」标签里有「关于」按钮：内置版本、授权状态与版权信息在弹窗里。
+
+### 配合 SpreadJS Driver 使用
+
+本插件**单独使用就是完整的**：打开、编辑、保存工作簿都不需要别的插件。但配上 driver，它会多出一件单独做不到的事——**让 AI 直接改你屏幕上这份表**。
+
+[`@grapecity-software/dsh-spreadjs-driver`](https://www.npmjs.com/package/@grapecity-software/dsh-spreadjs-driver) 是配套的 driver。它**自己就能用**，带着一整套文件级工具（新建 `/` 导入 `/` 状态 `/` 执行 `/` 导出 `/` 截图 `/` 草稿）和一个 `spreadjs` 编排 skill——但那些工具作用在**工作区里的文件**上，你只能看到结果，看不到过程。把这个编辑器装上并在设置里选中 driver，它就额外拿到一份**活引用**：改的是你正打开的那张表，改完当场就在你眼前。
+
+#### 安装
+
+两个插件都装在**同一个 web profile** 下——driver 的活工作簿能力只存在于 Web UI 里：
+
+```sh
+dsh plugin --profile web add @grapecity-software/dsh-spreadjs-editor
+dsh plugin --profile web add @grapecity-software/dsh-spreadjs-driver
+dsh --profile web
+```
+
+装完重启 DSH，打开任意一个表格文件，然后在 **设置 → SpreadJS 桥** 里选中 **SpreadJS Driver**。（没装任何 driver 时这一页只有「不使用」一项，编辑器行为与本功能不存在时完全一样。）
+
+> 「装了」不等于「激活」：两个包都必须出现在 profile 的 `dsh.profile.bundles` 里。光 `pnpm add` 或 `dsh plugin add` 不一定替你写进去，装完请开一个真实会话确认工具确实在场。
+
+#### 两边是怎么配合的
+
+编辑器**持有**你打开的那份工作簿，每个 driver **登记**为候选人；名册里可以有多个（比如我们的测试夹具），但**只有一个**会拿到工作簿——就是你在设置里选中的那一个。
+
+- **递出去的是活引用，不是副本。** 工作簿从不离开页面、也从不被序列化，所以通过它写的样式、公式、格式，当场就出现在表格里。
+- **默认不落盘。** AI 的改动先活在工作簿里，你看着满意了它才会要求保存。保存走的还是文档头部那颗「保存」，因此冲突检测、工作区围栏、原子写入一条都不少。
+- **名册只认被选中的那个。** 设置里改选别人、或选「不使用」，driver 的**全部**工具与 skill 都会让位。这个设置命名的是「谁来管这里的电子表格」，而不只是「谁暂时拿着这份活文档」。
+- **编辑器始终是守门人。** 名册是候选人列表，不是广播。没有被递到工作簿的插件，没有任何办法去够到它。
+
+装上之后，AI 会多出一件工具 `sjs_live_execute`（改你正打开的表）和一个 `sjs_live_status`（看看现在有没有活的设计器）。driver 其余的工具照旧作用于文件。
+
+#### 要求
+
+- **本插件的「桥」名册随本版（0.2.2）一同发布。** 更早的编辑器上装着 driver 不会报错，只是 `sjs_live_execute` 永远找不到设计器——所以两个插件都建议用最新版。
+- **两侧都需要 DSH `0.1.7-alpha.1` 或更新**（设置命名空间从 Loader 记录 id 派生，是 0.1.7 才有的）。本插件自身在 `0.1.5-rc.3` 上仍可运行，见下面的版本表——但**这一对**不行。
+- **driver 自己还有前提**：本机装了 Chrome 或 Edge（引擎跑在真实浏览器进程里），Node ≥ 22.19，导出含中日韩文字的 PDF 需要系统里有可嵌入的 `.ttf` 字体。这些是 driver 的要求，细节见[它的 README](https://github.com/GrapeCityXA/dsh-plugin-spreadjs-driver#requirements)。
 
 ### 内置版本与文件兼容性
 
@@ -157,8 +193,44 @@ DSH 在标签页被切走时会卸载文档主体，平台也没有可供拦下�
 - Save edits straight back to the file: atomic, confined to the session workspace, with conflict detection. Save lives in the harness's own document header, with a mark while anything is unsaved.
 - **Save As** writes the workbook — including a new blank one — to another path in the workspace and moves the tab onto it; an existing name is never overwritten. Both header buttons follow the spec of the header's own controls (see Saving below) and appear on this plugin's own files only.
 - Follows the harness's light or dark theme, toolbars and worksheet alike; a harness preference of `system` still tracks the OS.
-- **Hand the workbook on screen to an AI**: DSH gains a **SpreadJS bridge** page in Settings, where you choose which bridge may drive the workbook you have open. With [`@grapecity-software/dsh-spreadjs-driver`](https://www.npmjs.com/package/@grapecity-software/dsh-spreadjs-driver) installed, the AI edits the very sheet you are looking at instead of writing a separate file — it holds a **live reference, not a copy**, so changes appear at once. With no bridge installed the page offers only "None" and nothing else changes.
 - An **About** button in the settings tab reports the bundled versions, the licence state and the copyright.
+
+### Using it with the SpreadJS Driver
+
+This plugin is **complete on its own**: opening, editing and saving workbooks needs nothing else. Paired with the driver, though, it gains the one thing it cannot do alone — **letting the AI edit the very sheet you have on screen**.
+
+[`@grapecity-software/dsh-spreadjs-driver`](https://www.npmjs.com/package/@grapecity-software/dsh-spreadjs-driver) is that companion driver. It **works by itself**, carrying a full set of file-level tools (create / import / status / execute / export / screenshot / drafts) and a `spreadjs` orchestration skill — but those act on **files in the workspace**, so you see the result and not the work. Add this editor and select the driver in Settings, and it is additionally handed a **live reference**: it edits the workbook you have open, and the change lands in front of you as it happens.
+
+#### Install
+
+Both plugins go into the **same web profile** — the driver's live-workbook capability exists only in the Web UI:
+
+```sh
+dsh plugin --profile web add @grapecity-software/dsh-spreadjs-editor
+dsh plugin --profile web add @grapecity-software/dsh-spreadjs-driver
+dsh --profile web
+```
+
+Restart DSH, open any spreadsheet file, then pick **SpreadJS Driver** under **Settings → SpreadJS bridge**. (With no driver installed that page offers only "None", and the editor behaves exactly as it does without the feature.)
+
+> Installed is not the same as active: both packages have to appear in the profile's `dsh.profile.bundles`. `pnpm add` or `dsh plugin add` does not always write that for you, so after installing, open a real session and confirm the tools are actually there.
+
+#### How the two fit together
+
+The editor **owns** the workbook you open; each driver **registers** as a candidate. The roster may hold several — our test fixture, for one — but exactly **one** is handed the workbook: the one you selected in Settings.
+
+- **What is handed over is a live reference, not a copy.** The workbook never leaves the page and is never serialized, so a style, formula or format written through it appears in the sheet at once.
+- **Nothing reaches disk by default.** An AI edit lives in the workbook until you are happy with it and the agent asks for a save. That save is the document header's own Save, so conflict detection, the workspace fence and the atomic write are all still in force.
+- **The roster answers to the selection alone.** Choose another bridge — or "None" — and **every** tool and skill the driver registers steps aside. The setting names the plugin that *owns spreadsheets* here, not merely the one holding the live document for the moment.
+- **The editor stays the gatekeeper.** The roster is a list of candidates, not a broadcast. A plugin that was not handed the workbook has no way to reach it.
+
+Installed, the AI gains `sjs_live_execute` (edit the sheet you have open) and `sjs_live_status` (is a designer live right now?). The driver's other tools go on acting on files.
+
+#### Requirements
+
+- **This plugin's bridge roster ships with this version (0.2.2).** On an earlier editor the driver installs without complaint and `sjs_live_execute` simply never finds a designer — so use the latest of both.
+- **Both sides need DSH `0.1.7-alpha.1` or later** (a settings namespace derived from the Loader entry is a 0.1.7 idea). This plugin still runs on `0.1.5-rc.3` by itself — see the version table below — but **the pair** does not.
+- **The driver has requirements of its own**: Chrome or Microsoft Edge on the machine (the engine runs in a real browser process), Node ≥ 22.19, and an embeddable `.ttf` system font for PDF export containing CJK text. Those are the driver's terms; see [its README](https://github.com/GrapeCityXA/dsh-plugin-spreadjs-driver#requirements).
 
 ### Bundled Versions and File Compatibility
 
