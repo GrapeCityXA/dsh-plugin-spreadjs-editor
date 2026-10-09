@@ -1,8 +1,8 @@
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, rmSync, readFileSync, realpathSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, rmSync, readFileSync, realpathSync, symlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { pathToFileURL } from 'node:url'
+import { dirname, join } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { runInNewContext } from 'node:vm'
 import assert from 'node:assert/strict'
 
@@ -50,6 +50,43 @@ try {
   }
   assert.equal(Object.keys(manifest.dependencies ?? {}).length, 0)
 
+  // Give the consumer the bare specifiers the node half actually imports, the
+  // way a profile gives them to a plugin installed into it.
+  //
+  // They are peers, not dependencies: DSH carries them at the profile root,
+  // beside every plugin (`~/.dsh/profiles/node_modules/@deepseek-ai/…`), which
+  // is what a bare import from here resolves against. `--omit=dev
+  // --legacy-peer-deps` deliberately installs none of them, so without this
+  // step the import below would exercise a layout no real install has, and
+  // would fail for a reason that has nothing to do with this package.
+  //
+  // The specifiers are READ OFF the built artifact rather than copied from
+  // `peerDependencies`: the question under test is what this file needs at
+  // runtime, and a peer the bundle inlined — or never imported — is not part of
+  // the answer.
+  //
+  // Each one's whole SCOPE is linked, not the package on its own, because a peer
+  // has dependencies of its own (schemastery pulls cosmokit) and a package-by-
+  // package copy lands a tree that resolves half way. The plugin installs under
+  // a different scope, so nothing linked here can shadow it.
+  const repository = fileURLToPath(new URL('..', import.meta.url))
+  const nodeHalfSource = readFileSync(join(installed, 'lib/index.js'), 'utf8')
+  const scopes = new Set(
+    [...nodeHalfSource.matchAll(/\bfrom\s*"([^"]+)"/gu)]
+      .map(match => match[1])
+      .filter(specifier => !specifier.startsWith('.') && !specifier.startsWith('node:'))
+      // `@scope/pkg/…` and bare `pkg` both reduce to the directory to link.
+      .map(specifier => specifier.startsWith('@') ? specifier.split('/').slice(0, 2).join('/') : specifier),
+  )
+  for (const specifier of scopes) {
+    const from = join(repository, 'node_modules', ...specifier.split('/'))
+    if (!existsSync(from)) continue
+    const to = join(consumer, 'node_modules', ...specifier.split('/'))
+    if (existsSync(to)) continue
+    mkdirSync(dirname(to), { recursive: true })
+    symlinkSync(from, to, 'junction')
+  }
+
   // Execute the installed wrapper without invoking its DOM-dependent factory.
   const entries = []
   runInNewContext(readFileSync(join(installed, 'lib/client.js'), 'utf8'), {
@@ -61,8 +98,21 @@ try {
 
   const host = await import(pathToFileURL(join(installed, 'lib/index.js')).href)
   let route
-  host.apply({ webServer: { register(value) { route = value; return () => {} } }, effect() {} },
-    { licenseKey: 'TEST-SHEETS', designerLicenseKey: 'TEST-DESIGNER' })
+  // The stub carries the two cordis members `apply` reaches for beyond the
+  // route table: `inject`, which runs its callback against the same (empty)
+  // service bag, so the settings branch is taken and finds no service — the
+  // state a profile with no settings surface has — and `fiber`, the identity a
+  // settings policy would be filed against.
+  host.apply({
+    webServer: { register(value) { route = value; return () => {} } },
+    effect() {},
+    fiber: { id: 'verify' },
+    get() { return undefined },
+    inject(_deps, callback) {
+      callback({ effect() {}, get() { return undefined } })
+      return { dispose() {} }
+    },
+  }, { licenseKey: 'TEST-SHEETS', designerLicenseKey: 'TEST-DESIGNER' })
   let body
   route.handler({ url: '/spreadjs/api/config' }, { writeHead() {}, end(value) { body = value } })
   assert.deepEqual(JSON.parse(body), { licenseKey: 'TEST-SHEETS', designerLicenseKey: 'TEST-DESIGNER' })

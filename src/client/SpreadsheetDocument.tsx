@@ -308,8 +308,19 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
     getWorkbook: () => hostRef.current?.getWorkbook(),
     getNamespace: () => hostRef.current?.getNamespace(),
     getActivePath: () => resourceAddress,
+    // The one caller that must hear the truth. Whoever holds this promise is
+    // driving the editor from outside the page — an agent asking for the file to
+    // be written — so a failure has to reject, not resolve: a resolved save
+    // tells it the file on disk is now what it just edited, and it will go on to
+    // describe a file that was never written. A panel that has since unmounted
+    // is a failure too, and the optional call this replaces turned exactly that
+    // case into a success.
     save: async () => {
-      await hostRef.current?.save()
+      const host = hostRef.current
+      if (host === null) {
+        throw new WorkbookNotReadyError('No editor is showing a workbook, so there is nothing to save')
+      }
+      await host.save()
     },
   }), [resourceAddress])
 
@@ -322,7 +333,10 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
     canSave: () => address !== undefined && hostRef.current !== null,
     isDirty: () => dirtyRef.current,
     isBusy: () => busyRef.current,
-    save: () => { void hostRef.current?.save() },
+    // The second of the two callers allowed to drop the failure: the header's
+    // Save button runs through panel-actions.ts, whose contract is `() => void`.
+    // The user sees the outcome in the panel's status line either way.
+    save: () => { void hostRef.current?.save().catch(() => {}) },
     requestSaveAs: () => {
       setSaveAsError('')
       setSaveAsOpen(true)

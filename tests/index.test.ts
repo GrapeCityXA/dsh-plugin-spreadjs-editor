@@ -5,7 +5,10 @@ import { tmpdir } from 'node:os'
 import { join, sep } from 'node:path'
 import { Readable } from 'node:stream'
 import { Writable } from 'node:stream'
-import { apply, inject, name, PLUGIN_VERSION, SPREADJS_VERSION, type Config } from '../src/index.ts'
+// `Config` is both meanings at once: the schema the harness reads `default`s
+// and `volatile` off, and — through the interface it merges with — the shape a
+// patch may carry. One import covers both.
+import { Config, apply, inject, name, PLUGIN_VERSION, SPREADJS_VERSION } from '../src/index.ts'
 import type { Context } from '@deepseek-ai/cordis'
 
 interface MockResponse {
@@ -91,6 +94,22 @@ function harness(config?: Config, services: Record<string, unknown> = {}) {
       disposers.push(fn)
     }),
     get: (serviceName: string) => services[serviceName],
+    // The fiber a settings policy is filed against. A token: the double only
+    // has to hand back the same identity, which is what `configure` keys on.
+    fiber: { id: 'test-fiber' },
+    // Cordis `inject` runs its callback in a child scope once every requested
+    // service exists, and parks it otherwise. The double runs it with the same
+    // service bag `get` resolves from, so "no settings service in this profile"
+    // reaches the plugin as an undefined `settings` — the state a headless
+    // profile really has — without the plugin's own code knowing about tests.
+    inject: vi.fn((deps: readonly string[], callback: (scope: unknown) => unknown) => {
+      callback({
+        effect: vi.fn(),
+        get: (serviceName: string) => services[serviceName],
+        ...Object.fromEntries(deps.map(dep => [dep, services[dep]])),
+      })
+      return { dispose: () => {} }
+    }),
   } as unknown as Context
 
   apply(ctx, config)
@@ -355,5 +374,62 @@ describe('POST /spreadjs/api/save', () => {
       // The guard refused before writing: the target was never created on disk.
       await expect(readFile(join(root, 'book.xlsx'))).rejects.toThrow()
     })
+  })
+})
+
+describe('settings page policy', () => {
+  /**
+   * The per-field schemas, read exactly the way the host reads them: it walks
+   * `schema.dict` and asks each field's `meta.volatile`, which is how it decides
+   * what a settings write is allowed to touch. Reaching for the same property
+   * keeps this test honest about the real rule rather than restating it.
+   */
+  function fields(): Record<string, { meta?: { volatile?: boolean } } | undefined> {
+    return (Config as unknown as { dict: Record<string, { meta?: { volatile?: boolean } }> }).dict
+  }
+
+  it('declares the bridge field volatile, which is the only way a write is accepted', () => {
+    // DSH builds a volatile-only projection of this schema and refuses any write
+    // to a field outside it. Without `.volatile()` every click was declined — and
+    // because a refusal arrives as a resolved `false`, the choice was never
+    // stored and the next start showed None again.
+    expect(fields().bridge?.meta?.volatile).toBe(true)
+  })
+
+  it('leaves the deployment fields non-volatile, so the UI cannot rewrite them', () => {
+    for (const field of ['licenseKey', 'designerLicenseKey', 'maxSaveBytes', 'trustedHosts']) {
+      expect(fields()[field]?.meta?.volatile).toBeUndefined()
+    }
+  })
+
+  it('opts out of the auto-generated page, filed against the plugin fiber', () => {
+    const configure = vi.fn(() => () => {})
+    const { ctx } = harness(undefined, { settings: { configure } })
+
+    const injectMock = ctx.inject as unknown as ReturnType<typeof vi.fn>
+    expect(injectMock).toHaveBeenCalledWith(['settings'], expect.any(Function))
+
+    // The owner must be the plugin's own fiber. The callback runs in an inject
+    // child scope, so leaving the owner off would file the policy against the
+    // child and the harness would never find it.
+    expect(configure).toHaveBeenCalledWith({ auto: false }, (ctx as unknown as { fiber: unknown }).fiber)
+  })
+
+  it('mounts in a profile that has no settings service', () => {
+    expect(() => harness()).not.toThrow()
+  })
+
+  it('resolves a patch, filling deployment defaults and leaving the choice unset', () => {
+    // The schema is what the Loader validates the patch through, so a field it
+    // does not declare is a field an operator cannot set. This is the contract
+    // the four `host-side` settings in README rely on.
+    const resolved = (Config as unknown as (value: unknown) => Record<string, unknown>)({
+      licenseKey: 'KEY',
+      trustedHosts: ['dsh.internal:3080'],
+    })
+
+    expect(resolved).toMatchObject({ licenseKey: 'KEY', trustedHosts: ['dsh.internal:3080'] })
+    expect(resolved.designerLicenseKey).toBe('')
+    expect(typeof resolved.maxSaveBytes).toBe('number')
   })
 })

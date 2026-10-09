@@ -32,6 +32,9 @@ vi.mock('@grapecity-software/spread-sheets-reportsheet-addon', () => ({}))
 vi.mock('@grapecity-software/spread-sheets-languagepackages', () => ({}))
 
 import {
+  BRIDGE_SETTINGS_ID,
+  BRIDGE_SETTINGS_ORDER,
+  BRIDGE_SETTINGS_SLOT,
   SPREADSHEET_BINARY_EXTENSIONS,
   SPREADSHEET_DOCUMENT_ID,
   SPREADSHEET_EXTENSIONS,
@@ -39,6 +42,7 @@ import {
   inject,
   name,
 } from '../src/client/index.ts'
+import { BRIDGE_REGISTRY_SERVICE } from '../src/client/bridge-registry.ts'
 import { EDITOR_LOCALE_NAMESPACE, EDITOR_TITLE_FALLBACK } from '../src/client/locales.ts'
 import { exportFileType, workbookFileType } from '../src/client/SpreadsheetHost.tsx'
 
@@ -61,11 +65,19 @@ interface CtxDouble {
   themeGet: ReturnType<typeof vi.fn>
   on: ReturnType<typeof vi.fn>
   inject: ReturnType<typeof vi.fn>
+  provide: ReturnType<typeof vi.fn>
+  /** The services `provide` was called with, by name. */
+  provided: Map<string, unknown>
 }
 
 /** Options the double needs to make an optional service present or absent. */
 interface CtxOptions {
   locale?: unknown
+  /**
+   * The settings service the bridge page is filed through. Absent by default,
+   * which is the state a profile without a settings surface has.
+   */
+  configForms?: unknown
 }
 
 /**
@@ -95,15 +107,28 @@ function makeCtx(options: CtxOptions = {}): CtxDouble {
     return result
   })
 
+  // The services a child scope resolves, which is what `ctx.inject` hands its
+  // callback. `slots` is the same object the top-level ctx carries, so a
+  // registration made through a child lands where the real one would.
+  const services: Record<string, unknown> = {
+    slots: { inject: slotInject, register: slotRegister },
+    configForms: options.configForms,
+    locale: options.locale,
+  }
   const child = {
     effect,
-    get: () => undefined,
-    locale: options.locale,
+    get: (serviceName: string) => services[serviceName],
+    ...services,
   }
   const inject = vi.fn((deps: readonly string[], callback: (scope: unknown) => unknown) => {
     if (deps.includes('locale') && options.locale === undefined) return { dispose: () => {} }
     callback(child)
     return { dispose: () => {} }
+  })
+
+  const provided = new Map<string, unknown>()
+  const provide = vi.fn((serviceName: string, value: unknown) => {
+    provided.set(serviceName, value)
   })
 
   const ctx = {
@@ -113,10 +138,14 @@ function makeCtx(options: CtxOptions = {}): CtxDouble {
     theme: { getTheme: themeGet },
     on,
     inject,
+    provide,
   }
   apply(ctx as never)
 
-  return { ctx, disposers, previewRegister, previewDispose, slotInject, slotRegister, themeGet, on, inject }
+  return {
+    ctx, disposers, provided, provide,
+    previewRegister, previewDispose, slotInject, slotRegister, themeGet, on, inject,
+  }
 }
 
 /**
@@ -292,5 +321,64 @@ describe('document registration', () => {
       expect((result.value as ReturnType<typeof vi.fn>)).toHaveBeenCalled()
     }
     expect(slotRegister.mock.results).toHaveLength(2)
+  })
+})
+
+describe('bridge registry', () => {
+  it('publishes the roster under the name another plugin reads it by', () => {
+    const { provided } = makeCtx()
+
+    const registry = provided.get(BRIDGE_REGISTRY_SERVICE)
+
+    expect(registry).toBeDefined()
+    // A roster with nobody on it is a valid state, not a failure: the editor is
+    // complete without a bridge.
+    expect((registry as { list(): unknown[] }).list()).toEqual([])
+  })
+
+  it('offers no bridge until one is chosen, then hands over the chosen one', () => {
+    const { provided } = makeCtx()
+    const registry = provided.get(BRIDGE_REGISTRY_SERVICE) as {
+      register(entry: unknown): () => void
+      current(): { id: string } | undefined
+      select(id: string | undefined): void
+    }
+    let attachments = 0
+    registry.register({ id: 'a-bridge', title: () => 'A', attach: () => { attachments += 1; return () => {} } })
+
+    expect(registry.current()).toBeUndefined()
+
+    registry.select('a-bridge')
+
+    expect(attachments).toBe(1)
+    expect(registry.current()?.id).toBe('a-bridge')
+  })
+})
+
+describe('bridge settings page', () => {
+  it('registers a page in the settings nav when the settings surface is present', () => {
+    const form = {
+      getSnapshot: () => ({ status: 'ready' as const, value: {} }),
+      subscribe: () => () => {},
+      set: async () => true,
+    }
+    const { slotRegister } = makeCtx({ configForms: { get: () => form } })
+
+    const seats = slotRegister.mock.calls.map(call => call[0] as Record<string, unknown>)
+    const page = seats.find(seat => seat.name === BRIDGE_SETTINGS_SLOT)
+
+    expect(page).toMatchObject({ id: BRIDGE_SETTINGS_ID, order: BRIDGE_SETTINGS_ORDER })
+    // A thunk, so the nav text follows the active locale without re-registering.
+    expect(typeof page?.label).toBe('function')
+  })
+
+  it('costs nothing when the profile has no settings surface', () => {
+    // A headless profile has no `configForms`. The document body must still
+    // mount; only this page is missing, and nothing may throw on the way.
+    expect(() => makeCtx()).not.toThrow()
+    const { slotRegister } = makeCtx()
+
+    expect(slotRegister.mock.calls.map(call => (call[0] as { name: string }).name))
+      .not.toContain(BRIDGE_SETTINGS_SLOT)
   })
 })

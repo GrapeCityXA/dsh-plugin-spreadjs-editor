@@ -81,6 +81,19 @@ export type SpreadsheetSaveResult = 'saved' | 'download'
 export class WorkbookNotReadyError extends Error {}
 
 /**
+ * The write completed, but not to the file that was asked about.
+ *
+ * Separate from {@link WorkbookNotReadyError} because nothing went wrong with the
+ * workbook or the editor: the write-back seam had no file to write, so it handed
+ * the bytes to the browser as a download instead (`SpreadsheetSaveResult`). For a
+ * person looking at the panel that is a real, legible outcome, and the status
+ * line still says so; for a caller that asked for *this file* to be written it is
+ * a failure, and reporting it as success is how an agent comes to believe a file
+ * changed when no file changed.
+ */
+export class WorkbookNotWrittenError extends Error {}
+
+/**
  * What the Designer should be holding, which the document decides before anything
  * is loaded: the file's own bytes, or a buffer this panel kept when it last held
  * unsaved edits. `undefined` means "not decided yet" and loads nothing — reading
@@ -404,7 +417,14 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
     useEffect(() => registerDesignerSaveTarget({
       workbook: () => designerRef.current?.getWorkbook(),
       canWriteBack: () => sourceRef.current !== undefined,
-      save: () => { void saveRef.current?.() },
+      // One of exactly two callers allowed to drop the failure, because the
+      // command registry's `save` is `() => void`: a ribbon button and a Ctrl+S
+      // have no promise for a rejection to travel down. Dropping it costs
+      // nothing here — `save()` has already written the reason to the status
+      // line the user is looking at, which is the only audience this path has.
+      // The bridge is the caller that *is* waiting for the answer, and there the
+      // rejection is the whole point.
+      save: () => { void saveRef.current?.().catch(() => {}) },
     }), [])
 
     // Create / destroy the designer with the host element.
@@ -548,17 +568,34 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
       })
     }, [source, load, ready, onLoadingChange, onStatus])
 
+    /**
+     * Write the workbook back to the file it came from.
+     *
+     * Every refusal and every failure THROWS, exactly as {@link saveAs} already
+     * does, and the status line is still written first so the person looking at
+     * the panel sees the outcome where they expect it. The two voices are not
+     * redundant: the bridge in `SpreadsheetDocument.tsx` hands this promise to
+     * whatever is driving the editor, and a caller that is told "saved" when
+     * nothing was written will go on to describe a file that does not exist.
+     * Reporting to the status line and throwing is the same information going to
+     * its two audiences; reporting to the status line alone is a failure that
+     * only a human can see.
+     *
+     * A still-loading workbook is refused rather than skipped, on purpose: it has
+     * no content yet, so exporting it would overwrite the file with an empty book.
+     */
     async function save(): Promise<void> {
       const designer = designerRef.current
       const current = sourceRef.current
-      if (designer === null || current === undefined) return
-      // A workbook that is still loading has no content yet, so exporting it now
-      // would overwrite the file on disk with an empty book.
-      if (loadInFlightRef.current) {
-        onStatus(`Still loading ${current.name}; nothing was saved`, 'busy')
-        return
+      if (designer === null || current === undefined) {
+        throw new WorkbookNotReadyError('The workbook is not ready yet')
       }
-      if (saveInFlightRef.current) return
+      if (loadInFlightRef.current) {
+        throw new WorkbookNotReadyError(`Still loading ${current.name}`)
+      }
+      if (saveInFlightRef.current) {
+        throw new WorkbookNotReadyError('Another save is already running')
+      }
       saveInFlightRef.current = true
       onLoadingChange(true)
       onStatus(`Saving ${current.name}…`, 'busy')
@@ -568,13 +605,23 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
         // What is on disk is now the workbook in front of the user, so there is
         // nothing left that a buffer would have to keep.
         markWorkbookClean()
-        onStatus(
-          result === 'download' ? `Saved ${current.name} as download` : `Saved ${current.name}`,
-          'idle',
-        )
+        if (result === 'download') {
+          onStatus(`Saved ${current.name} as download`, 'idle')
+          throw new WorkbookNotWrittenError(
+            `${current.name} was downloaded, not written back — there is no file to write it to`,
+          )
+        }
+        onStatus(`Saved ${current.name}`, 'idle')
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        onStatus(`Save failed: ${message}`, 'error')
+        // The refusal above already worded itself in the status line; anything
+        // reaching here from the write is news, so it is reported before it
+        // travels on. `WorkbookNotWrittenError` is excluded because it has just
+        // been reported in its own words — "Save failed" would contradict them.
+        if (!(error instanceof WorkbookNotWrittenError)) {
+          const message = error instanceof Error ? error.message : String(error)
+          onStatus(`Save failed: ${message}`, 'error')
+        }
+        throw error
       } finally {
         saveInFlightRef.current = false
         onLoadingChange(false)

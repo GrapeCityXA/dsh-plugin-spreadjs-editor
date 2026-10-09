@@ -36,6 +36,8 @@ import { mkdir, rename, rm, writeFile } from 'node:fs/promises'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { dirname, join } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
+import z from '@deepseek-ai/schemastery'
+import { BRIDGE_FIELD } from './shared/settings.ts'
 
 export const name = 'dsh-spreadjs-editor'
 
@@ -60,9 +62,71 @@ export interface Config {
    * @default []
    */
   trustedHosts?: readonly string[]
+  /**
+   * The bridge the user chose in **Settings → Spreadsheet Editor**; empty means
+   * none was chosen.
+   *
+   * This field is the whole persistence layer of that choice. DSH derives a
+   * settings namespace from each Loader entry — its id — so this plugin's
+   * namespace is `spreadjs-editor` (the `id:` in `cordis.patch.yml`) and its
+   * fields are this Config. There is nothing to register: declaring the field
+   * here *is* serving it.
+   *
+   * It lives in the host half even though the choice is made in the browser,
+   * because the browser writes over the wire into the host's own settings
+   * document — and other plugins read the same field back, to decide whether
+   * they step aside.
+   *
+   * Typed as what a *patch* may contain. The schema below carries no
+   * `z<Config>` annotation precisely because of this field: see there.
+   */
+  bridge?: string
 }
 
+/**
+ * The largest workbook accepted on the wire, used when the patch sets none.
+ *
+ * Declared above the schema so the schema's own `default` can name it: a
+ * schema is built while this module evaluates, so a constant declared below
+ * would be in its temporal dead zone at that moment.
+ */
 const DEFAULT_MAX_SAVE_BYTES = 64 * 1024 * 1024
+
+/**
+ * Cordis configuration schema.
+ *
+ * The `[BRIDGE_FIELD]` key is spread rather than spelled so the two halves of
+ * the choice cannot drift: the browser half writes through the same constant,
+ * and a rename would otherwise surface as "the setting does not stick".
+ *
+ * **`volatile()` is what makes the choice persist at all.** DSH accepts a
+ * settings write only for a field declared volatile — `SettingsForms.write`
+ * builds a volatile-only projection of the schema and throws
+ * `Config field "bridge" is not volatile` for anything else. Without it every
+ * click was refused, the refusal arrived as a *resolved `false`* rather than a
+ * rejection, and the choice lived only in the running page: the next start
+ * showed None again. The license keys and the two save limits are deployment
+ * configuration an operator puts in the patch, so they stay non-volatile and
+ * unwritable from the UI.
+ *
+ * No `default` on `bridge`: an ABSENT field and an explicit `''` are different
+ * states — "never chosen" versus "chosen None" — and only the absence is
+ * visible to a later default-if-unset rule.
+ *
+ * Deliberately NOT annotated `z<Config>`. That annotation asserts the schema's
+ * input and output are the same type, and for a volatile field they are not: a
+ * patch carries a plain string, while the resolved value is a `Volatile<…>`
+ * handle — a stable reference, because DSH may rewrite the value while this
+ * plugin runs. The shipped plugins with a volatile field leave the annotation
+ * off for the same reason.
+ */
+export const Config = z.object({
+  licenseKey: z.string().default(''),
+  designerLicenseKey: z.string().default(''),
+  maxSaveBytes: z.natural().default(DEFAULT_MAX_SAVE_BYTES),
+  trustedHosts: z.array(z.string()).default([]),
+  [BRIDGE_FIELD]: z.string().volatile(),
+})
 
 /* ------------------------------------------------------------------ *
  * Build identity
@@ -151,6 +215,26 @@ interface SessionStoreLike {
 /** `ctx.sandboxPolicy` — @deepseek-ai/dsh-sandbox `SandboxPolicy`. */
 interface SandboxPolicyLike {
   readonly workspaceRoot: string
+}
+
+/**
+ * `ctx.settings` — @deepseek-ai/dsh-settings `SettingsForms`, one method of it.
+ *
+ * Declared locally rather than imported from the package: that would add a
+ * build-time dependency for one call, and the only thing needed from it is the
+ * context augmentation its types carry.
+ */
+interface SettingsLike {
+  /**
+   * Register this instance's settings-page policy.
+   *
+   * `auto: false` means "do not synthesize a page from my Config — I supply my
+   * own". The owner must be passed explicitly: this runs inside an `inject`
+   * callback, so the calling fiber is the inject child, not the plugin, and the
+   * policy has to be filed against the plugin's own fiber — the identity the
+   * harness later looks the policy up by.
+   */
+  configure(presentation: { auto?: boolean }, owner?: unknown): () => void
 }
 
 function serviceOf<T>(ctx: Context, serviceName: string): T | undefined {
@@ -391,4 +475,23 @@ export function apply(ctx: Context, config: Config = {}): void {
   })
 
   ctx.effect(() => disposer, 'dsh-spreadjs-editor: /spreadjs routes')
+
+  // Opt out of the settings page the harness would otherwise synthesize from
+  // `Config`: its volatile `bridge` field would come out as a free-text input,
+  // and a bridge is picked from a roster the browser half knows, not typed.
+  // The page this plugin ships instead lives in the client half (`settings.section`).
+  //
+  // Declared through `inject` rather than added to the plugin's own `inject`
+  // list, on purpose: a profile without a settings service must still mount
+  // this plugin, it just cannot offer the page. Nothing else here depends on
+  // settings existing.
+  //
+  // `auto: false` alone would not be enough if the choice were only a UI
+  // concern — the field has to be declared volatile for the *write* to be
+  // accepted at all, which is the schema above.
+  ctx.inject(['settings'], (child) => {
+    const settings = (child as unknown as { settings?: SettingsLike }).settings
+    if (settings === undefined) return () => {}
+    return settings.configure({ auto: false }, ctx.fiber)
+  })
 }

@@ -42,11 +42,30 @@ const ctx = {
     disposers.push(fn)
   },
   get: name => services[name],
+  fiber: { id: 'smoke' },
+  // Cordis runs an `inject` callback in a child scope once the services exist.
+  // The stub runs it against the same bag `get` resolves from, so the settings
+  // branch is exercised here rather than skipped.
+  inject(deps, callback) {
+    callback({
+      effect() {},
+      get: name => services[name],
+      ...Object.fromEntries(deps.map(dep => [dep, services[dep]])),
+    })
+    return { dispose() {} }
+  },
 }
 
 pkg.apply(ctx, { licenseKey: 'SMOKE-KEY', designerLicenseKey: 'DESIGNER-SMOKE-KEY' })
 check('registers /spreadjs route', handler !== undefined)
 check('registers effect disposers', disposers.length === 2)
+
+// The built artifact is what actually ships to a profile, so the one field the
+// settings write needs is asserted HERE and not only in the sources: this is the
+// check that fails if the build ever drops or re-wraps the schema.
+const bridgeField = pkg.Config?.dict?.bridge
+check('ships a Config schema with a volatile bridge field', bridgeField?.meta?.volatile === true)
+check('leaves the license keys non-volatile', pkg.Config?.dict?.licenseKey?.meta?.volatile !== true)
 
 function makeRes() {
   const chunks = []

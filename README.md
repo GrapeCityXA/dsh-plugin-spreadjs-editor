@@ -21,6 +21,7 @@ A DeepSeek Harness Web UI plugin that opens, views, and edits Excel / SpreadJS f
 - 编辑后可直接保存回原文件：原子写入、限制在会话工作区内、带冲突检测。保存按钮在 DSH 文档头部自己的工具栏上，未保存时带一个标记点；它与「另存为…」的尺寸、字号、颜色都按 DSH 头部自身控件的规格绘制，而且**只在表格文件上出现**。
 - 「另存为」可以把当前工作簿（含新建的空白工作簿）写进工作区的另一个路径，成功后就地切换到那个文件；同名文件不会被覆盖。
 - 编辑器跟随 DSH 的浅色/深色主题，工具栏与工作表区域一起变；DSH 偏好设为「跟随系统」时自然跟着系统走。
+- **把屏幕上这份工作簿交给 AI 用**：DSH 设置里多出一页「SpreadJS 桥」，选择由哪一个「桥」来使用你正打开的工作簿。装上 [`@grapecity-software/dsh-spreadjs-driver`](https://www.npmjs.com/package/@grapecity-software/dsh-spreadjs-driver) 之后，AI 就能直接在你看着的这张表上改，而不是另开一个文件——它拿到的是**活引用而不是副本**，所以改动立刻可见。没装任何桥时这一页只有「不使用」一项，其余行为不受影响。
 - 「设置」标签里有「关于」按钮：内置版本、授权状态与版权信息在弹窗里。
 
 ### 内置版本与文件兼容性
@@ -38,7 +39,7 @@ A DeepSeek Harness Web UI plugin that opens, views, and edits Excel / SpreadJS f
 
 | DSH 版本 | 状态 | 说明 |
 | --- | --- | --- |
-| `0.1.7-rc.2` | ✅ 构建与验收基线 | `typecheck`、157 项单测、两个 smoke、`verify:package`、`probe:live` 全部通过（`probe:live` 的版本核对需要先重启 DSH，见下文） |
+| `0.1.7-rc.2` | ✅ 构建与验收基线 | `typecheck`、179 项单测、两个 smoke、`verify:package`、`probe:live` 全部通过（`probe:live` 的版本核对需要先重启 DSH，见下文） |
 | `0.1.6.x` | ⚪ 未验证 | 没有核对过这个区间的平台：既未逐项跑验收，也不确定它是否已提供下表中的能力 |
 | `0.1.5-rc.3` | ✅ 上一版验收基线 | 插件最初就是对着它构建并验收的；它会忽略「二进制后缀」声明，查看方式列表里仍可能出现纯文本一项；文档头部没有动作槽，因此保存入口只有 `Ctrl+S`，未保存状态靠面板右下角的浮动胶囊 |
 
@@ -126,11 +127,13 @@ DSH 在标签页被切走时会卸载文档主体，平台也没有可供拦下�
 
 修改后重启 DSH 并刷新网页。
 
+还有一项**不写在这里**：`bridge` 是「SpreadJS 桥」设置页在 Web UI 里写的，代表用户选了哪一个桥。它同样属于本插件的配置，但**不该手写进 patch**——设置页会把写入结果如实报出来（写入被拒或失败时页面会说明），而手写的值不会经过这条检查。既没选过、又在 patch 里留空，含义相同：`bridge: ''` 等于「不使用」。本插件自身的设置页取代了 DSH 从这个 schema 自动生成的那一页，所以不会出现两个入口。
+
 ### 验证
 
 | 命令 | 验证内容 |
 | --- | --- |
-| `npm run typecheck`、`npm test` | 类型契约，以及 157 个单元测试（保存路由的每条守卫、文件地址解析与地址构造、另存为的目标校验、默认名与失败文案、保存命令重定向的每条分支、编辑器主题桥的每条分支、查看器名称与二进制后缀声明的边界、未保存改动的缓存规则与脏状态跟踪的边界、打开时「用文件还是用缓存」的每个分支、面板状态胶囊的状态与操作矩阵、文档头部动作的发布/订阅/命令路由、按钮的尺寸字号颜色规格、「只在表格文件上出现」的判定与注册顺序，以及隐藏 Designer「文件」Tab 那条规则的两处身份与作用域） |
+| `npm run typecheck`、`npm test` | 类型契约，以及 179 个单元测试（保存路由的每条守卫、文件地址解析与地址构造、另存为的目标校验、默认名与失败文案、保存命令重定向的每条分支、编辑器主题桥的每条分支、查看器名称与二进制后缀声明的边界、未保存改动的缓存规则与脏状态跟踪的边界、打开时「用文件还是用缓存」的每个分支、面板状态胶囊的状态与操作矩阵、文档头部动作的发布/订阅/命令路由、按钮的尺寸字号颜色规格、「只在表格文件上出现」的判定与注册顺序，隐藏 Designer「文件」Tab 那条规则的两处身份与作用域，以及桥选择的方向与「写入被拒也要报出来」、桥字段是否真的声明为 volatile、名册与设置页在有无 settings 服务时的接线） |
 | `node scripts/smoke-client.mjs` | 构建后的浏览器半结构：loader 包装、内联的 SpreadJS 与样式、外部依赖只有 react |
 | `node scripts/smoke-node.mjs` | 构建后的宿主半：路由注册、许可证配置，以及保存路径的真实写盘、冲突与越界拒绝 |
 | `npm run probe:live` | **对着正在运行的 DSH** 跑一遍真实保存：真实 `ctx.fs` 的解析、落盘、冲突守卫、工作区越界；并核对进程里装的是不是本构建（插件版本与内置 SpreadJS 版本） |
@@ -154,6 +157,7 @@ DSH 在标签页被切走时会卸载文档主体，平台也没有可供拦下�
 - Save edits straight back to the file: atomic, confined to the session workspace, with conflict detection. Save lives in the harness's own document header, with a mark while anything is unsaved.
 - **Save As** writes the workbook — including a new blank one — to another path in the workspace and moves the tab onto it; an existing name is never overwritten. Both header buttons follow the spec of the header's own controls (see Saving below) and appear on this plugin's own files only.
 - Follows the harness's light or dark theme, toolbars and worksheet alike; a harness preference of `system` still tracks the OS.
+- **Hand the workbook on screen to an AI**: DSH gains a **SpreadJS bridge** page in Settings, where you choose which bridge may drive the workbook you have open. With [`@grapecity-software/dsh-spreadjs-driver`](https://www.npmjs.com/package/@grapecity-software/dsh-spreadjs-driver) installed, the AI edits the very sheet you are looking at instead of writing a separate file — it holds a **live reference, not a copy**, so changes appear at once. With no bridge installed the page offers only "None" and nothing else changes.
 - An **About** button in the settings tab reports the bundled versions, the licence state and the copyright.
 
 ### Bundled Versions and File Compatibility
@@ -171,7 +175,7 @@ Requires DSH `>=0.1.5-rc.3`. The plugin uses the harness's own right Sidebar and
 
 | DSH version | Status | Notes |
 | --- | --- | --- |
-| `0.1.7-rc.2` | ✅ build and verification baseline | `typecheck`, 157 unit tests, both smokes, `verify:package` and `probe:live` all green (the probe's version check needs DSH restarted first, see below) |
+| `0.1.7-rc.2` | ✅ build and verification baseline | `typecheck`, 179 unit tests, both smokes, `verify:package` and `probe:live` all green (the probe's version check needs DSH restarted first, see below) |
 | `0.1.6.x` | ⚪ not verified | This range was never checked: neither point-by-point acceptance nor whether it already offers the capabilities below |
 | `0.1.5-rc.3` | ✅ previous verification baseline | The release this plugin was originally built and accepted against; it ignores the binary-suffix declaration, so a plain-text entry may still appear among the viewer choices, and its document header has no actions slot — so `Ctrl+S` is the only Save entry and unsaved work shows in the panel's floating pill |
 
@@ -259,11 +263,13 @@ If you have licenses, add the following to the web profile's `cordis.patch.yml`:
 
 Restart DSH and refresh the browser after changing the configuration.
 
+One more field is deliberately **not** in that table: `bridge` is written by the **SpreadJS bridge** page in the Web UI and records which bridge the user chose. It is this plugin's configuration all the same, but it should not be written into the patch by hand — the page reports honestly whether a write was accepted, and a hand-written value never goes through that check. Not having chosen yet and leaving it empty in the patch mean the same thing: `bridge: ''` is "None". This plugin's own page replaces the one DSH would otherwise synthesise from the schema, so there is only ever one entry point.
+
 ### Verification
 
 | Command | What it proves |
 | --- | --- |
-| `npm run typecheck`, `npm test` | The type contract, and 157 unit tests: every save guard, file-address parsing and address building, the Save As target rules, suggested name and failure wording, every branch of the Save-command redirect, every branch of the editor theme bridge, the viewer-name and binary-suffix edge cases, the unsaved-buffer and dirty-tracking rules, every branch of the file-versus-buffer decision at open, the panel state pill's state/action matrix, the document header actions' publication, subscription, command routing, button spec, "spreadsheets only" rule and registration order, and both identities plus the scope of the rule that hides the Designer's File tab |
+| `npm run typecheck`, `npm test` | The type contract, and 179 unit tests: every save guard, file-address parsing and address building, the Save As target rules, suggested name and failure wording, every branch of the Save-command redirect, every branch of the editor theme bridge, the viewer-name and binary-suffix edge cases, the unsaved-buffer and dirty-tracking rules, every branch of the file-versus-buffer decision at open, the panel state pill's state/action matrix, the document header actions' publication, subscription, command routing, button spec, "spreadsheets only" rule and registration order, both identities plus the scope of the rule that hides the Designer's File tab, the direction of the bridge choice and that a refused write is reported, that the bridge field really is declared volatile, and the wiring of the roster and the settings page with and without a settings service |
 | `node scripts/smoke-client.mjs` | The built browser half's structure: loader wrapper, inlined SpreadJS and styles, react as the only runtime external |
 | `node scripts/smoke-node.mjs` | The built host half: route registration, license config, and the save path writing real bytes plus refusing conflicts and escapes |
 | `npm run probe:live` | A real save against a **running DSH**: the actual `ctx.fs` resolving, writing, refusing a stale base hash, and refusing a workspace escape — plus a check that the process carries *this* build (plugin and bundled SpreadJS versions) |

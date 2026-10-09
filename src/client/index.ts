@@ -35,9 +35,11 @@
 import type { Context } from '@deepseek-ai/cordis'
 import { SpreadsheetActions } from './SpreadsheetActions.tsx'
 import { SpreadsheetDocument } from './SpreadsheetDocument.tsx'
-import { attachToBridge } from './bridge.ts'
+import { provideBridgeRegistry } from './bridge.ts'
+import { connectBridgeSetting } from './bridge-setting.ts'
+import { bridgeSettingsPage } from './settings-page.tsx'
 import { attachHarnessTheme } from './ds-theme.ts'
-import { attachEditorLocale, editorTitle } from './locales.ts'
+import { attachEditorLocale, editorText, editorTitle } from './locales.ts'
 import { injectStyles } from './styles.ts'
 import { watchUnloadGuard } from './unsaved.ts'
 
@@ -73,6 +75,17 @@ export const SPREADSHEET_BINARY_EXTENSIONS = ['xlsx', 'xlsm', 'sjs', 'ssjson'] a
  * duplicate live id makes the registry throw.
  */
 export const SPREADSHEET_DOCUMENT_ID = '@grapecity-software/dsh-spreadjs-editor/spreadsheet'
+
+/**
+ * This plugin's page in the Settings nav.
+ *
+ * A `list` slot any package can register into. The id is fresh — reusing a
+ * shipped one replaces that page rather than adding one — and the order puts it
+ * after every shipped page (general 0, models 10, plugins 15, agent-presets 20).
+ */
+export const BRIDGE_SETTINGS_SLOT = 'settings.section'
+export const BRIDGE_SETTINGS_ID = 'spreadjs-bridge'
+export const BRIDGE_SETTINGS_ORDER = 100
 
 export function apply(ctx: Context): void {
   ctx.effect(() => injectStyles(), 'dsh-spreadjs-editor: styles')
@@ -130,8 +143,49 @@ export function apply(ctx: Context): void {
   // and only while something would actually be lost.
   ctx.effect(() => watchUnloadGuard(), 'dsh-spreadjs-editor: unsaved work guard')
 
-  // Offer the live Designer to dsh-spreadjs-driver, when that plugin is present.
-  // Nothing here depends on it: without a bridge this is a no-op and the editor
-  // is unchanged.
-  ctx.effect(() => attachToBridge(ctx), 'dsh-spreadjs-editor: spreadjs bridge adapter')
+  // Publish the roster of bridges and hand the Designer to whichever one the user
+  // selected. Nothing here depends on a provider being installed: an empty roster
+  // is a valid state and this plugin is unchanged by it.
+  const registry = provideBridgeRegistry(ctx)
+
+  // The Settings page that chooses among the roster. Wired here rather than
+  // inside the registry, so the registry stays free of any UI or persistence
+  // concern and can be tested without either.
+  //
+  // `settings.section` is a `list` slot any package can register into. `order`
+  // puts this page after the shipped ones (general 0, models 10, plugins 15,
+  // agent-presets 20), and the id is fresh — reusing a shipped one would replace
+  // that page instead of adding one.
+  ctx.effect(() => {
+    const fiber = ctx.inject(['configForms', 'slots'], (child) => {
+      const forms = child.get('configForms')
+      const slots = child.get('slots')
+      if (forms === undefined || slots === undefined) return
+      const setting = connectBridgeSetting(forms, registry)
+      child.effect(() => {
+        try {
+          return slots.inject(BRIDGE_SETTINGS_SLOT, () => slots.register(
+            {
+              name: BRIDGE_SETTINGS_SLOT,
+              id: BRIDGE_SETTINGS_ID,
+              order: BRIDGE_SETTINGS_ORDER,
+              // A thunk, so the nav text follows the active locale without
+              // re-registering — the shell resolves it on every projection.
+              label: () => editorText('settings.nav'),
+            },
+            bridgeSettingsPage(registry, setting) as never,
+          ))
+        } catch (error) {
+          // Loud, not fatal: losing this page must not take the document body
+          // down with it, and a silent no-op is exactly the failure this plugin
+          // was ported here to remove.
+          console.error('[dsh-spreadjs-editor] the bridge settings page did not register:', error)
+          return () => {}
+        }
+      }, 'dsh-spreadjs-editor: bridge settings page')
+    })
+    return () => {
+      try { fiber.dispose() } catch { /* already disposed */ }
+    }
+  }, 'dsh-spreadjs-editor: bridge settings wiring')
 }

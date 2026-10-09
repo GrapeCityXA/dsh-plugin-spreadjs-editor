@@ -1,7 +1,7 @@
 lockfileVersion: '9.0'
 
 settings:
-  autoInstallPeers: false
+  autoInstallPeers: true
   excludeLinksFromLockfile: false
 
 importers:
@@ -29,6 +29,9 @@ importers:
       '@deepseek-ai/dsh-host-webserver':
         specifier: 0.1.7-rc.2
         version: 0.1.7-rc.2(@deepseek-ai/cordis@4.0.4)
+      '@deepseek-ai/schemastery':
+        specifier: ^3.18.4
+        version: 3.18.4
       '@grapecity-software/spread-excelio':
         specifier: 19.2.0
         version: 19.2.0

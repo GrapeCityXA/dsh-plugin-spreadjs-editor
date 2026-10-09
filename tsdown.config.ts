@@ -3,8 +3,9 @@
  *
  * Two artifacts (aligned with the harness client bundle preset):
  *  - lib/index.js  — node half (ESM). Runs on the harness host: registers the
- *    /spreadjs file bridge on ctx.webServer. No runtime dependencies beyond
- *    node builtins (dsh services are injected, not imported).
+ *    /spreadjs file bridge on ctx.webServer. Its dependencies are node builtins
+ *    and one peer the host itself provides — the config schema library — since
+ *    dsh services are injected rather than imported.
  *  - lib/client.js — browser half (CJS closure factory). Loaded by the
  *    client-modules system through window.__ModuleLoader__.load({id, factory}).
  *    React resolves from the module table and stays external; SpreadJS and
@@ -32,6 +33,16 @@ const SPREADJS_VERSION: string = (() => {
     return 'unknown'
   }
 })()
+
+/**
+ * The one bare specifier the node half imports at runtime.
+ *
+ * Named here rather than matched by prefix: it is a peer, so it resolves from
+ * the harness profile beside this plugin, and a rule that kept every
+ * `@deepseek-ai/*` external would also silently un-bundle anything added later
+ * that the host does *not* provide.
+ */
+const SCHEMA_LIBRARY = '@deepseek-ai/schemastery'
 
 /** Module-table specifiers the browser bundle resolves at runtime. */
 const CLIENT_EXTERNALS = new Set([
@@ -83,9 +94,13 @@ const nodeHalf: UserConfig = {
     __DSH_SPREADJS_VERSION__: JSON.stringify(SPREADJS_VERSION),
   },
   deps: {
-    // Relative sources inline; node: builtins stay external; nothing else
-    // (the node half imports no bare runtime deps — dsh services are injected).
-    neverBundle: specifier => specifier.startsWith('node:'),
+    // Relative sources inline; node: builtins stay external. The one bare
+    // runtime import is the config schema library, and that one must stay
+    // external too: DSH reads `Config` back off this module and walks it with
+    // ITS OWN copy of schemastery to decide which fields a settings write may
+    // touch, so a second copy inlined here would be a second class of schema
+    // objects answering questions the host asks about ours.
+    neverBundle: specifier => specifier.startsWith('node:') || specifier === SCHEMA_LIBRARY,
     alwaysBundle: specifier => specifier.startsWith('.'),
   },
 }
