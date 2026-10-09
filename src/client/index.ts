@@ -33,6 +33,13 @@
  * buffer, keyed by tab and by file (see unsaved.ts).
  */
 import type { Context } from '@deepseek-ai/cordis'
+// Type-only, and load-bearing: `settings.section` — the slot registered further down
+// — is declared by the settings domain base, which extends ui-slots' `SlotMap`
+// through declaration merging. The name is in the program only while that package's
+// types are, and it is the `./client` subpath that reaches the declaring file: the
+// root entry describes the host-side config form and declares no slots. Erased at
+// build time, so this costs the bundle nothing and adds no runtime import.
+import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import { SpreadsheetActions } from './SpreadsheetActions.tsx'
 import { SpreadsheetDocument } from './SpreadsheetDocument.tsx'
 import { provideBridgeRegistry } from './bridge.ts'

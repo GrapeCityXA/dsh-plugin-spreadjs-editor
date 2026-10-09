@@ -57,7 +57,7 @@ dsh --profile web
 #### 要求
 
 - **本插件的「桥」名册随本版（0.2.2）一同发布。** 更早的编辑器上装着 driver 不会报错，只是 `sjs_live_execute` 永远找不到设计器——所以两个插件都建议用最新版。
-- **两侧都需要 DSH `0.1.7-alpha.1` 或更新**（设置命名空间从 Loader 记录 id 派生，是 0.1.7 才有的）。本插件自身在 `0.1.5-rc.3` 上仍可运行，见下面的版本表——但**这一对**不行。
+- **两侧都需要 DSH `0.2.0-rc.2` 或更新**：桥选择页注册在设置面板的分区账本 `settings.section` 上，这个槽位是 `0.2.0` 才有的；选择本身存在设置文档里（命名空间从 Loader 记录 id 派生，需要 `0.1.7` 及以上）。更早的 DSH 上，本插件照常打开、编辑、保存，但**设置里没有「SpreadJS 桥」这一页**，也就没法把活工作簿交给 driver。本插件自身在 `0.1.5-rc.3` 上仍可运行，见下面的版本表——但**这一对**在 `0.2.0` 之前不成。
 - **driver 自己还有前提**：本机装了 Chrome 或 Edge（引擎跑在真实浏览器进程里），Node ≥ 22.19，导出含中日韩文字的 PDF 需要系统里有可嵌入的 `.ttf` 字体。这些是 driver 的要求，细节见[它的 README](https://github.com/GrapeCityXA/dsh-plugin-spreadjs-driver#requirements)。
 
 ### 内置版本与文件兼容性
@@ -75,11 +75,12 @@ dsh --profile web
 
 | DSH 版本 | 状态 | 说明 |
 | --- | --- | --- |
-| `0.1.7-rc.2` | ✅ 构建与验收基线 | `typecheck`、201 项单测、两个 smoke、`verify:package`、`probe:live` 全部通过（`probe:live` 的版本核对需要先重启 DSH，见下文） |
+| `0.2.0-rc.2` | ✅ 构建与验收基线 | `typecheck`、201 项单测、两个 smoke、`verify:package`、`probe:live` 全部通过（`probe:live` 的版本核对需要先重启 DSH，见下文） |
+| `0.1.7-rc.2` | ✅ 可运行（更早的验收基线） | 头部动作槽、二进制后缀声明、只读 Excel 预览都在；但没有 `settings.section` 槽位，因此**设置里没有「SpreadJS 桥」这一页**，没法把活工作簿交给 driver |
 | `0.1.6.x` | ⚪ 未验证 | 没有核对过这个区间的平台：既未逐项跑验收，也不确定它是否已提供下表中的能力 |
-| `0.1.5-rc.3` | ✅ 上一版验收基线 | 插件最初就是对着它构建并验收的；它会忽略「二进制后缀」声明，查看方式列表里仍可能出现纯文本一项；文档头部没有动作槽，因此保存入口只有 `Ctrl+S`，未保存状态靠面板右下角的浮动胶囊 |
+| `0.1.5-rc.3` | ✅ 最早一版验收基线 | 插件最初就是对着它构建并验收的；它会忽略「二进制后缀」声明，查看方式列表里仍可能出现纯文本一项；文档头部没有动作槽，因此保存入口只有 `Ctrl+S`，未保存状态靠面板右下角的浮动胶囊 |
 
-`0.1.7` 起平台提供了三样本插件会用到的能力：文档定义里的**二进制后缀**声明（决定是否还提供纯文本查看方式）、内置的只读 Excel 预览（会与本插件并列出现在查看方式列表里），以及文档头部**官方动作槽** `sidebar.right.tab.document.actions`（「保存 / 另存为」就注册在这里）。插件在 `0.1.5-rc.3` 上照常工作，只是拿不到这三点中的前两点，工具栏上的这两个按钮也不出现。
+`0.1.7` 起平台提供了三样本插件会用到的能力：文档定义里的**二进制后缀**声明（决定是否还提供纯文本查看方式）、内置的只读 Excel 预览（会与本插件并列出现在查看方式列表里），以及文档头部**官方动作槽** `sidebar.right.tab.document.actions`（「保存 / 另存为」就注册在这里）。`0.2.0` 起又多了一样：设置面板的分区账本 **`settings.section`**，「设置 → SpreadJS 桥」就注册在这里；没有它，那一页不出现（插件记一条错误日志后继续工作），其余功能不受影响。插件在 `0.1.5-rc.3` 上照常工作，只是拿不到这三点中的前两点，工具栏上的这两个按钮也不出现。
 
 插件内置 SpreadJS 和 Designer，无需编译。使用已安装的 DSH CLI 安装并启动：
 
@@ -229,7 +230,7 @@ Installed, the AI gains `sjs_live_execute` (edit the sheet you have open) and `s
 #### Requirements
 
 - **This plugin's bridge roster ships with this version (0.2.2).** On an earlier editor the driver installs without complaint and `sjs_live_execute` simply never finds a designer — so use the latest of both.
-- **Both sides need DSH `0.1.7-alpha.1` or later** (a settings namespace derived from the Loader entry is a 0.1.7 idea). This plugin still runs on `0.1.5-rc.3` by itself — see the version table below — but **the pair** does not.
+- **Both sides need DSH `0.2.0-rc.2` or later**: the bridge picker registers into the settings panel's section ledger, `settings.section`, which is a `0.2.0` slot, and the choice itself lives in the settings document (a namespace derived from the Loader entry, which needs `0.1.7`+). On anything earlier this plugin still opens, edits and saves, but **Settings has no SpreadJS bridge page**, so the live workbook cannot be handed to the driver. This plugin still runs on `0.1.5-rc.3` by itself — see the version table below — but **the pair** does not before `0.2.0`.
 - **The driver has requirements of its own**: Chrome or Microsoft Edge on the machine (the engine runs in a real browser process), Node ≥ 22.19, and an embeddable `.ttf` system font for PDF export containing CJK text. Those are the driver's terms; see [its README](https://github.com/GrapeCityXA/dsh-plugin-spreadjs-driver#requirements).
 
 ### Bundled Versions and File Compatibility
@@ -247,11 +248,12 @@ Requires DSH `>=0.1.5-rc.3`. The plugin uses the harness's own right Sidebar and
 
 | DSH version | Status | Notes |
 | --- | --- | --- |
-| `0.1.7-rc.2` | ✅ build and verification baseline | `typecheck`, 201 unit tests, both smokes, `verify:package` and `probe:live` all green (the probe's version check needs DSH restarted first, see below) |
+| `0.2.0-rc.2` | ✅ build and verification baseline | `typecheck`, 201 unit tests, both smokes, `verify:package` and `probe:live` all green (the probe's version check needs DSH restarted first, see below) |
+| `0.1.7-rc.2` | ✅ runs (earlier verification baseline) | The header actions slot, the binary-suffix declaration and the read-only Excel preview are all there; `settings.section` is not, so **Settings has no SpreadJS bridge page** and the live workbook cannot reach a driver |
 | `0.1.6.x` | ⚪ not verified | This range was never checked: neither point-by-point acceptance nor whether it already offers the capabilities below |
-| `0.1.5-rc.3` | ✅ previous verification baseline | The release this plugin was originally built and accepted against; it ignores the binary-suffix declaration, so a plain-text entry may still appear among the viewer choices, and its document header has no actions slot — so `Ctrl+S` is the only Save entry and unsaved work shows in the panel's floating pill |
+| `0.1.5-rc.3` | ✅ first verification baseline | The release this plugin was originally built and accepted against; it ignores the binary-suffix declaration, so a plain-text entry may still appear among the viewer choices, and its document header has no actions slot — so `Ctrl+S` is the only Save entry and unsaved work shows in the panel's floating pill |
 
-From `0.1.7` the platform offers three things this plugin uses: the **binary-suffix** declaration on a document definition (which is what removes the plain-text viewer choice), its own read-only Excel preview (which is listed beside this plugin), and the document header's **actions slot** `sidebar.right.tab.document.actions`, where Save and Save As are registered. The plugin still works on `0.1.5-rc.3`; it simply does not get the first two, and the two header buttons do not appear.
+From `0.1.7` the platform offers three things this plugin uses: the **binary-suffix** declaration on a document definition (which is what removes the plain-text viewer choice), its own read-only Excel preview (which is listed beside this plugin), and the document header's **actions slot** `sidebar.right.tab.document.actions`, where Save and Save As are registered. From `0.2.0` there is one more: the settings panel's section ledger **`settings.section`**, where Settings → SpreadJS bridge registers; without it that page does not appear (the plugin logs one error and carries on) and nothing else changes. The plugin still works on `0.1.5-rc.3`; it simply does not get the first two, and the two header buttons do not appear.
 
 The plugin includes SpreadJS and Designer, with no build step required. With the DSH CLI installed:
 
