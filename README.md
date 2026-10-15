@@ -27,7 +27,7 @@ A DeepSeek Harness Web UI plugin that opens, views, and edits Excel / SpreadJS f
 
 本插件**单独使用就是完整的**：打开、编辑、保存工作簿都不需要别的插件。但配上 driver，它会多出一件单独做不到的事——**让 AI 直接改你屏幕上这份表**。
 
-[`@grapecity-software/dsh-spreadjs-driver`](https://www.npmjs.com/package/@grapecity-software/dsh-spreadjs-driver) 是配套的 driver。它**自己就能用**，带着一整套文件级工具（新建 `/` 导入 `/` 状态 `/` 执行 `/` 导出 `/` 截图 `/` 草稿）和一个 `spreadjs` 编排 skill——但那些工具作用在**工作区里的文件**上，你只能看到结果，看不到过程。把这个编辑器装上并在设置里选中 driver，它就额外拿到一份**活引用**：改的是你正打开的那张表，改完当场就在你眼前。
+[`@grapecity-software/dsh-spreadjs-driver`](https://www.npmjs.com/package/@grapecity-software/dsh-spreadjs-driver) 是配套 driver，必须从本编辑器获取已加载的 Workbook 引用才能执行。它不再创建服务端无头浏览器或独立工作簿；SpreadJS 授权使用前端实际部署域名。
 
 #### 安装
 
@@ -52,13 +52,13 @@ dsh --profile web
 - **名册只认被选中的那个。** 设置里改选别人、或选「不使用」，driver 的**全部**工具与 skill 都会让位。这个设置命名的是「谁来管这里的电子表格」，而不只是「谁暂时拿着这份活文档」。
 - **编辑器始终是守门人。** 名册是候选人列表，不是广播。没有被递到工作簿的插件，没有任何办法去够到它。
 
-装上之后，AI 会多出一件工具 `sjs_live_execute`（改你正打开的表）和一个 `sjs_live_status`（看看现在有没有活的设计器）。driver 其余的工具照旧作用于文件。
+选中 driver 后，AI 获得 `sjs_live_execute` 和 `sjs_live_status`，只操作 editor 提供的实例。新建、导入、导出由 editor 负责。
 
 #### 要求
 
 - **本插件的「桥」名册随本版（0.2.2）一同发布。** 更早的编辑器上装着 driver 不会报错，只是 `sjs_live_execute` 永远找不到设计器——所以两个插件都建议用最新版。
 - **两侧都需要 DSH `0.2.0-rc.2` 或更新**：桥选择页注册在设置面板的分区账本 `settings.section` 上，这个槽位是 `0.2.0` 才有的；选择本身存在设置文档里（命名空间从 Loader 记录 id 派生，需要 `0.1.7` 及以上）。更早的 DSH 上，本插件照常打开、编辑、保存，但**设置里没有「SpreadJS 桥」这一页**，也就没法把活工作簿交给 driver。本插件自身在 `0.1.5-rc.3` 上仍可运行，见下面的版本表——但**这一对**在 `0.2.0` 之前不成。
-- **driver 自己还有前提**：本机装了 Chrome 或 Edge（引擎跑在真实浏览器进程里），Node ≥ 22.19，导出含中日韩文字的 PDF 需要系统里有可嵌入的 `.ttf` 字体。这些是 driver 的要求，细节见[它的 README](https://github.com/GrapeCityXA/dsh-plugin-spreadjs-driver#requirements)。
+- **driver 前提**：Node ≥22.19、同一 web profile 中的 editor 和可用的前端连接。服务端无需安装 Chrome/Edge。
 
 ### 内置版本与文件兼容性
 
@@ -200,7 +200,7 @@ DSH 在标签页被切走时会卸载文档主体，平台也没有可供拦下�
 
 This plugin is **complete on its own**: opening, editing and saving workbooks needs nothing else. Paired with the driver, though, it gains the one thing it cannot do alone — **letting the AI edit the very sheet you have on screen**.
 
-[`@grapecity-software/dsh-spreadjs-driver`](https://www.npmjs.com/package/@grapecity-software/dsh-spreadjs-driver) is that companion driver. It **works by itself**, carrying a full set of file-level tools (create / import / status / execute / export / screenshot / drafts) and a `spreadjs` orchestration skill — but those act on **files in the workspace**, so you see the result and not the work. Add this editor and select the driver in Settings, and it is additionally handed a **live reference**: it edits the workbook you have open, and the change lands in front of you as it happens.
+[`@grapecity-software/dsh-spreadjs-driver`](https://www.npmjs.com/package/@grapecity-software/dsh-spreadjs-driver) requires the loaded Workbook supplied by this editor. It launches no server browser and creates no separate Workbook. SpreadJS runs and is licensed at the editor deployment origin.
 
 #### Install
 
@@ -225,13 +225,13 @@ The editor **owns** the workbook you open; each driver **registers** as a candid
 - **The roster answers to the selection alone.** Choose another bridge — or "None" — and **every** tool and skill the driver registers steps aside. The setting names the plugin that *owns spreadsheets* here, not merely the one holding the live document for the moment.
 - **The editor stays the gatekeeper.** The roster is a list of candidates, not a broadcast. A plugin that was not handed the workbook has no way to reach it.
 
-Installed, the AI gains `sjs_live_execute` (edit the sheet you have open) and `sjs_live_status` (is a designer live right now?). The driver's other tools go on acting on files.
+Selecting the driver enables `sjs_live_execute` and `sjs_live_status` against the editor instance only. New/open/import/export remain editor features.
 
 #### Requirements
 
 - **This plugin's bridge roster ships with this version (0.2.2).** On an earlier editor the driver installs without complaint and `sjs_live_execute` simply never finds a designer — so use the latest of both.
 - **Both sides need DSH `0.2.0-rc.2` or later**: the bridge picker registers into the settings panel's section ledger, `settings.section`, which is a `0.2.0` slot, and the choice itself lives in the settings document (a namespace derived from the Loader entry, which needs `0.1.7`+). On anything earlier this plugin still opens, edits and saves, but **Settings has no SpreadJS bridge page**, so the live workbook cannot be handed to the driver. This plugin still runs on `0.1.5-rc.3` by itself — see the version table below — but **the pair** does not before `0.2.0`.
-- **The driver has requirements of its own**: Chrome or Microsoft Edge on the machine (the engine runs in a real browser process), Node ≥ 22.19, and an embeddable `.ttf` system font for PDF export containing CJK text. Those are the driver's terms; see [its README](https://github.com/GrapeCityXA/dsh-plugin-spreadjs-driver#requirements).
+- **Driver requirements**: Node ≥22.19, the editor in the same web profile, and a working browser connection. No Chrome/Edge installation on the server is required.
 
 ### Bundled Versions and File Compatibility
 

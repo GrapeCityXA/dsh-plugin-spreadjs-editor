@@ -61,9 +61,9 @@ export interface SpreadsheetHostHandle {
   exportAs: (format: ExportFormat) => Promise<void>
   newWorkbook: () => void
   /**
-   * The live workbook this panel is editing, or undefined before the designer
-   * exists. Handed to the spreadjs bridge so an agent can operate on the very
-   * document on screen (see src/client/bridge.ts).
+   * The loaded workbook this panel is editing, or undefined while unavailable,
+   * loading, saving, or after a load failure. Handed to the spreadjs bridge so an
+   * agent can operate on the document on screen (see src/client/bridge.ts).
    */
   getWorkbook: () => unknown | undefined
   /** The SpreadJS namespace, so bridge-injected code can reach enums. */
@@ -349,6 +349,9 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
     const saveRef = useRef<(() => Promise<void>) | undefined>(undefined)
     /** A load is in flight; saving now would export a workbook with no content. */
     const loadInFlightRef = useRef(false)
+    /** Only expose a workbook after its current source finished loading. */
+    const workbookReadyRef = useRef(false)
+    const workbookSourceRef = useRef({ source, load })
     /** One write-back at a time. */
     const saveInFlightRef = useRef(false)
     /** Whether the live workbook holds edits that are not on disk. */
@@ -361,6 +364,11 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
     const [status, setStatus] = useState<LoadStatus>({ kind: 'idle' })
 
     sourceRef.current = source
+    if (workbookSourceRef.current.source !== source || workbookSourceRef.current.load !== load) {
+      workbookSourceRef.current = { source, load }
+      loadSeqRef.current += 1
+      workbookReadyRef.current = false
+    }
     saveRef.current = save
     onDirtyChangeRef.current = onDirtyChange
     onUnsavedRef.current = onUnsaved
@@ -501,6 +509,7 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
         if (current !== undefined && typeof current.destroy === 'function') current.destroy()
         if (typeof designer.destroy === 'function') designer.destroy()
         designerRef.current = null
+        workbookReadyRef.current = false
       }
     }, [ready])
 
@@ -516,6 +525,7 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
       if (!ready || designer === null || source === undefined || load === undefined) {
         if (source === undefined) setStatus({ kind: 'idle' })
         loadInFlightRef.current = false
+        workbookReadyRef.current = false
         return
       }
       const buffer = load.kind === 'buffer' ? load.workbook : undefined
@@ -547,6 +557,7 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
       })().then(() => {
         if (seq !== loadSeqRef.current) return
         loadInFlightRef.current = false
+        workbookReadyRef.current = true
         setStatus({ kind: 'idle' })
         onLoadingChange(false)
         if (buffer !== undefined) {
@@ -561,11 +572,17 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
       }).catch((error: unknown) => {
         if (seq !== loadSeqRef.current) return
         loadInFlightRef.current = false
+        workbookReadyRef.current = false
         const message = error instanceof Error ? error.message : String(error)
         setStatus({ kind: 'error', message })
         onLoadingChange(false)
         onStatus(`Load failed: ${message}`, 'error')
       })
+      return () => {
+        // A finished load for a previous source must not expose its workbook.
+        loadSeqRef.current += 1
+        workbookReadyRef.current = false
+      }
     }, [source, load, ready, onLoadingChange, onStatus])
 
     /**
@@ -680,6 +697,8 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
       if (designer === null) return
       resetWorkbook(designer.getWorkbook())
       loadSeqRef.current += 1
+      loadInFlightRef.current = false
+      workbookReadyRef.current = true
       setStatus({ kind: 'idle' })
       // Resetting the workbook fires changes of its own, and they are not edits to
       // a file: this panel holds a brand-new book that has never been on disk.
@@ -695,7 +714,10 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
         saveAs,
         exportAs,
         newWorkbook,
-        getWorkbook: () => designerRef.current?.getWorkbook(),
+        getWorkbook: () => {
+          if (!workbookReadyRef.current || loadInFlightRef.current || saveInFlightRef.current) return undefined
+          return designerRef.current?.getWorkbook()
+        },
         getNamespace: () => GC,
       }),
       [onLoadingChange, onNewWorkbook, onStatus],

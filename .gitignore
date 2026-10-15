@@ -6,3 +6,5 @@ lib/
 .npm-cache/
 coverage/
 pnpm-debug.log*
+
+.pnpm-store/
