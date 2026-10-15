@@ -41,7 +41,7 @@ dsh plugin --profile web add @grapecity-software/dsh-spreadjs-driver
 dsh --profile web
 ```
 
-装完重启 DSH，打开任意一个表格文件，然后在 **设置 → SpreadJS 桥** 里选中 **SpreadJS Driver**。（没装任何 driver 时这一页只有「不使用」一项，编辑器行为与本功能不存在时完全一样。）
+装完重启 DSH，打开任意一个表格文件，然后在 **设置 → 电子表格编辑器** 里选中 **SpreadJS Driver**。（没装任何 driver 时这一页只有「不使用」一项，编辑器行为与本功能不存在时完全一样。）
 
 > 「装了」不等于「激活」：两个包都必须出现在 profile 的 `dsh.profile.bundles` 里。光 `pnpm add` 或 `dsh plugin add` 不一定替你写进去，装完请开一个真实会话确认工具确实在场。
 
@@ -63,30 +63,27 @@ driver 的状态和执行按调用聊天隔离，并绑定当前文件的加载�
 #### 要求
 
 - **本插件的「桥」名册随本版（0.2.2）一同发布。** 更早的编辑器上装着 driver 不会报错，只是 `sjs_live_execute` 永远找不到设计器——所以两个插件都建议用最新版。
-- **两侧都需要 DSH `0.2.0-rc.2` 或更新**：桥选择页注册在设置面板的分区账本 `settings.section` 上，这个槽位是 `0.2.0` 才有的；选择本身存在设置文档里（命名空间从 Loader 记录 id 派生，需要 `0.1.7` 及以上）。更早的 DSH 上，本插件照常打开、编辑、保存，但**设置里没有「SpreadJS 桥」这一页**，也就没法把活工作簿交给 driver。本插件自身在 `0.1.5-rc.3` 上仍可运行，见下面的版本表——但**这一对**在 `0.2.0` 之前不成。
+- **两侧统一支持 DSH `0.2.0-rc.2`**：桥选择页使用 `settings.section`，选择结果保存在 editor 的设置文档中。开发依赖与宿主 peer 声明均以该 RC 为基线；旧版本和 alpha 不在支持范围内。
 - **driver 前提**：Node ≥22.19、同一 web profile 中的 editor 和可用的前端连接。服务端无需安装 Chrome/Edge。
 
 ### 内置版本与文件兼容性
 
 | 组件 | 内置版本 |
 | --- | --- |
-| SpreadJS | 19.2.0 |
-| SpreadJS Designer | 19.2.0 |
+| SpreadJS | 19.2.1 |
+| SpreadJS Designer | 19.2.1 |
 
 内置版本、授权状态与版权信息在 Designer「设置」标签的「关于」弹窗里。低版本 SpreadJS 可能无法打开本版本保存的 `.sjs` 或 `.ssjson` 文件；与旧版系统交换文件时，建议保留原文件并确认兼容性。
 
 ### 安装
 
-需要 DSH `>=0.1.5-rc.3`。插件使用 DSH 自带的右侧栏，**不需要安装任何第三方侧边栏插件**。
+支持 DSH `0.2.0-rc.2`，需要 Node.js ≥22.19。插件使用 DSH 自带的右侧栏，**不需要安装任何第三方侧边栏插件**。升级 DSH 时请同步升级插件；新的 RC 需重新验证后再调整支持声明。
 
 | DSH 版本 | 状态 | 说明 |
 | --- | --- | --- |
-| `0.2.0-rc.2` | ✅ 构建与验收基线 | `typecheck`、201 项单测、两个 smoke、`verify:package`、`probe:live` 全部通过（`probe:live` 的版本核对需要先重启 DSH，见下文） |
-| `0.1.7-rc.2` | ✅ 可运行（更早的验收基线） | 头部动作槽、二进制后缀声明、只读 Excel 预览都在；但没有 `settings.section` 槽位，因此**设置里没有「SpreadJS 桥」这一页**，没法把活工作簿交给 driver |
-| `0.1.6.x` | ⚪ 未验证 | 没有核对过这个区间的平台：既未逐项跑验收，也不确定它是否已提供下表中的能力 |
-| `0.1.5-rc.3` | ✅ 最早一版验收基线 | 插件最初就是对着它构建并验收的；它会忽略「二进制后缀」声明，查看方式列表里仍可能出现纯文本一项；文档头部没有动作槽，因此保存入口只有 `Ctrl+S`，未保存状态靠面板右下角的浮动胶囊 |
+| `0.2.0-rc.2` | 支持与验证基线 | 类型检查、215 项单测、构建、两个 smoke 与 `verify:package` 通过；运行中的 DSH 仍需重启后执行 `probe:live` 和界面验收 |
 
-`0.1.7` 起平台提供了三样本插件会用到的能力：文档定义里的**二进制后缀**声明（决定是否还提供纯文本查看方式）、内置的只读 Excel 预览（会与本插件并列出现在查看方式列表里），以及文档头部**官方动作槽** `sidebar.right.tab.document.actions`（「保存 / 另存为」就注册在这里）。`0.2.0` 起又多了一样：设置面板的分区账本 **`settings.section`**，「设置 → SpreadJS 桥」就注册在这里；没有它，那一页不出现（插件记一条错误日志后继续工作），其余功能不受影响。插件在 `0.1.5-rc.3` 上照常工作，只是拿不到这三点中的前两点，工具栏上的这两个按钮也不出现。
+该 RC 提供工作簿所需的二进制后缀声明、内置只读预览、文档头部动作槽 `sidebar.right.tab.document.actions` 和设置分区 `settings.section`。本版不再声明兼容旧版 DSH。
 
 插件内置 SpreadJS 和 Designer，无需编译。使用已安装的 DSH CLI 安装并启动：
 
@@ -100,15 +97,15 @@ dsh --profile web
 也可以通过 npx 安装并启动：
 
 ```sh
-npx --yes @deepseek-ai/dsh@latest plugin --profile web add @grapecity-software/dsh-spreadjs-editor
-npx --yes @deepseek-ai/dsh@latest --profile web
+npx --yes @deepseek-ai/dsh@0.2.0-rc.2 plugin --profile web add @grapecity-software/dsh-spreadjs-editor
+npx --yes @deepseek-ai/dsh@0.2.0-rc.2 --profile web
 ```
 
 旧版本用户请参阅[升级说明](CHANGELOG.md)。
 
 ### 保存
 
-保存的正式入口是 **DSH 文档头部自己的工具栏**（打开工作簿后，文件名旁边那颗「保存」）。它注册在 DSH `0.1.7` 起的官方动作槽 `sidebar.right.tab.document.actions` 里，与其它查看器的控件排在一起；有未保存改动时，「保存」前会多一个标记点，像 Excel 标题栏的 `*`。改动写回你打开的那个文件，不会再问你"要不要保存"，因为按下保存本身就是你的意图。
+保存的正式入口是 **DSH 文档头部自己的工具栏**（打开工作簿后，文件名旁边那颗「保存」）。它注册在 DSH 的官方动作槽 `sidebar.right.tab.document.actions` 里，与其它查看器的控件排在一起；有未保存改动时，「保存」前会多一个标记点，像 Excel 标题栏的 `*`。改动写回你打开的那个文件，不会再问你"要不要保存"，因为按下保存本身就是你的意图。
 
 同一份写回也挂在 **`Ctrl+S` 和 Designer 工具栏上的保存按钮**上：插件把 Designer 的 Save 命令重定向到写回，所以这两处按下都不会再弹出下载框。（Designer 自带的「文件」标签页已从 Ribbon 上隐藏，见本节末尾。）
 
@@ -146,7 +143,7 @@ DSH 在标签页被切走时会卸载文档主体，平台也没有可供拦下�
 - **切走再切回不丢。** 有未保存改动的工作簿会在主体卸载前留成一份快照，切回同一个标签页时原样恢复，不需要重新读盘。
 - **关掉标签页也不丢。** 快照同时按文件路径保留；重新打开同一个文件时，只要磁盘上的文件仍是快照写下的那一版，就自动恢复，并在面板右下角的胶囊里说明来源。
 - **文件被外部改过时不默默套用。** 若磁盘上的文件已经变了（Agent 改过、你在别处存过），面板右下角会浮出一个胶囊提示「存在未保存的改动缓存，但文件已在磁盘上被修改」，由你选择**恢复**（用缓存继续，之后保存即写入磁盘）或**丢弃**（重新读盘）。
-- **看得见，而且有两处。** 头部工具栏的「保存」在有未保存改动时带一个标记点（像 Excel 标题栏的 `*`），这是 DSH `0.1.7` 及以上才有的位置；面板右下角另有一个浮动胶囊：有未保存改动时显示「未保存的改动」并带一颗「丢弃」，保存成功后自己消失。它悬浮在表格上方、不占任何布局高度——这是它从「面板顶部常驻一行」改回来的原因——而 `0.1.5/0.1.6` 上文档头部还没有动作槽，这个胶囊就是唯一的状态提示，所以它必须留着。改动只会替换胶囊里的文字与按钮，且它只在有话说时出现。
+- **看得见，而且有两处。** 头部工具栏的「保存」在有未保存改动时带一个标记点（像 Excel 标题栏的 `*`）；面板右下角另有一个浮动胶囊，显示「未保存的改动」与「丢弃」操作。胶囊悬浮在表格上方，不占布局高度，保存成功后消失。
 - **整页关闭会提示。** 刷新或关闭页面时，只要还有未保存的改动（含已留存的缓存），浏览器会弹出一次自己的离开确认。
 - **保存即清空。** 保存成功后，该文件的快照全部清除。
 
@@ -170,13 +167,13 @@ DSH 在标签页被切走时会卸载文档主体，平台也没有可供拦下�
 
 修改后重启 DSH 并刷新网页。
 
-还有一项**不写在这里**：`bridge` 是「SpreadJS 桥」设置页在 Web UI 里写的，代表用户选了哪一个桥。它同样属于本插件的配置，但**不该手写进 patch**——设置页会把写入结果如实报出来（写入被拒或失败时页面会说明），而手写的值不会经过这条检查。既没选过、又在 patch 里留空，含义相同：`bridge: ''` 等于「不使用」。本插件自身的设置页取代了 DSH 从这个 schema 自动生成的那一页，所以不会出现两个入口。
+还有一项**不写在这里**：`bridge` 是「电子表格编辑器」设置页在 Web UI 里写的，代表用户选了哪一个桥。它同样属于本插件的配置，但**不该手写进 patch**——设置页会把写入结果如实报出来（写入被拒或失败时页面会说明），而手写的值不会经过这条检查。既没选过、又在 patch 里留空，含义相同：`bridge: ''` 等于「不使用」。本插件自身的设置页取代了 DSH 从这个 schema 自动生成的那一页，所以不会出现两个入口。
 
 ### 验证
 
 | 命令 | 验证内容 |
 | --- | --- |
-| `npm run typecheck`、`npm test` | 类型契约，以及 201 个单元测试（保存路由的每条守卫、文件地址解析与地址构造、另存为的目标校验、默认名与失败文案、保存命令重定向的每条分支、编辑器主题桥的每条分支、查看器名称与二进制后缀声明的边界、未保存改动的缓存规则与脏状态跟踪的边界、打开时「用文件还是用缓存」的每个分支、面板状态胶囊的状态与操作矩阵、文档头部动作的发布/订阅/命令路由、按钮的尺寸字号颜色规格、「只在表格文件上出现」的判定与注册顺序，隐藏 Designer「文件」Tab 那条规则的两处身份与作用域，以及桥选择的方向与「写入被拒也要报出来」、桥字段是否真的声明为 volatile、名册自身的契约（重复 id 拒绝、disposer 语义、只在真的变化时通知）、名册与设置页在有无 settings 服务时的接线，以及设置页每一行确实是照 DSH 自己设置页的行规格画的） |
+| `npm run typecheck`、`npm test` | 类型契约，以及 215 个单元测试（保存路由的每条守卫、文件地址解析与地址构造、另存为的目标校验、默认名与失败文案、保存命令重定向的每条分支、编辑器主题桥的每条分支、查看器名称与二进制后缀声明的边界、未保存改动的缓存规则与脏状态跟踪的边界、打开时「用文件还是用缓存」的每个分支、面板状态胶囊的状态与操作矩阵、文档头部动作的发布/订阅/命令路由、按钮的尺寸字号颜色规格、「只在表格文件上出现」的判定与注册顺序，隐藏 Designer「文件」Tab 那条规则的两处身份与作用域，以及桥选择的方向与「写入被拒也要报出来」、桥字段是否真的声明为 volatile、名册自身的契约（重复 id 拒绝、disposer 语义、只在真的变化时通知）、名册与设置页在有无 settings 服务时的接线，以及设置页每一行确实是照 DSH 自己设置页的行规格画的） |
 | `node scripts/smoke-client.mjs` | 构建后的浏览器半结构：loader 包装、内联的 SpreadJS 与样式、外部依赖只有 react |
 | `node scripts/smoke-node.mjs` | 构建后的宿主半：路由注册、许可证配置，以及保存路径的真实写盘、冲突与越界拒绝 |
 | `npm run probe:live` | **对着正在运行的 DSH** 跑一遍真实保存：真实 `ctx.fs` 的解析、落盘、冲突守卫、工作区越界；并核对进程里装的是不是本构建（插件版本与内置 SpreadJS 版本） |
@@ -220,7 +217,7 @@ dsh plugin --profile web add @grapecity-software/dsh-spreadjs-driver
 dsh --profile web
 ```
 
-Restart DSH, open any spreadsheet file, then pick **SpreadJS Driver** under **Settings → SpreadJS bridge**. (With no driver installed that page offers only "None", and the editor behaves exactly as it does without the feature.)
+Restart DSH, open any spreadsheet file, then pick **SpreadJS Driver** under **Settings → Spreadsheet Editor**. (With no driver installed that page offers only "None", and the editor behaves exactly as it does without the feature.)
 
 > Installed is not the same as active: both packages have to appear in the profile's `dsh.profile.bundles`. `pnpm add` or `dsh plugin add` does not always write that for you, so after installing, open a real session and confirm the tools are actually there.
 
@@ -240,30 +237,27 @@ Driver status and execution are confined to the calling chat and bound to the cu
 #### Requirements
 
 - **This plugin's bridge roster ships with this version (0.2.2).** On an earlier editor the driver installs without complaint and `sjs_live_execute` simply never finds a designer — so use the latest of both.
-- **Both sides need DSH `0.2.0-rc.2` or later**: the bridge picker registers into the settings panel's section ledger, `settings.section`, which is a `0.2.0` slot, and the choice itself lives in the settings document (a namespace derived from the Loader entry, which needs `0.1.7`+). On anything earlier this plugin still opens, edits and saves, but **Settings has no SpreadJS bridge page**, so the live workbook cannot be handed to the driver. This plugin still runs on `0.1.5-rc.3` by itself — see the version table below — but **the pair** does not before `0.2.0`.
+- **Both plugins support DSH `0.2.0-rc.2`**: the bridge picker uses `settings.section` and stores the choice in the editor settings document. Development dependencies and host peers target this RC; older releases and alpha builds are outside the supported baseline.
 - **Driver requirements**: Node ≥22.19, the editor in the same web profile, and a working browser connection. No Chrome/Edge installation on the server is required.
 
 ### Bundled Versions and File Compatibility
 
 | Component | Bundled version |
 | --- | --- |
-| SpreadJS | 19.2.0 |
-| SpreadJS Designer | 19.2.0 |
+| SpreadJS | 19.2.1 |
+| SpreadJS Designer | 19.2.1 |
 
 The **About** button in the Designer's settings tab shows the bundled versions, the licence state and the copyright. Older SpreadJS versions may not open `.sjs` or `.ssjson` files saved by this version. When exchanging files with older systems, keep the original files and check compatibility.
 
 ### Installation
 
-Requires DSH `>=0.1.5-rc.3`. The plugin uses the harness's own right Sidebar and needs **no third-party sidebar plugin**.
+Supports DSH `0.2.0-rc.2` and requires Node.js ≥22.19. The plugin uses the harness's own right Sidebar and needs **no third-party sidebar plugin**. Update the plugins alongside DSH; a newer RC needs verification before changing the supported baseline.
 
 | DSH version | Status | Notes |
 | --- | --- | --- |
-| `0.2.0-rc.2` | ✅ build and verification baseline | `typecheck`, 201 unit tests, both smokes, `verify:package` and `probe:live` all green (the probe's version check needs DSH restarted first, see below) |
-| `0.1.7-rc.2` | ✅ runs (earlier verification baseline) | The header actions slot, the binary-suffix declaration and the read-only Excel preview are all there; `settings.section` is not, so **Settings has no SpreadJS bridge page** and the live workbook cannot reach a driver |
-| `0.1.6.x` | ⚪ not verified | This range was never checked: neither point-by-point acceptance nor whether it already offers the capabilities below |
-| `0.1.5-rc.3` | ✅ first verification baseline | The release this plugin was originally built and accepted against; it ignores the binary-suffix declaration, so a plain-text entry may still appear among the viewer choices, and its document header has no actions slot — so `Ctrl+S` is the only Save entry and unsaved work shows in the panel's floating pill |
+| `0.2.0-rc.2` | Supported and verified baseline | Typecheck, 215 unit tests, build, both smokes and `verify:package` pass; restart the running DSH before a separate `probe:live` and UI acceptance check |
 
-From `0.1.7` the platform offers three things this plugin uses: the **binary-suffix** declaration on a document definition (which is what removes the plain-text viewer choice), its own read-only Excel preview (which is listed beside this plugin), and the document header's **actions slot** `sidebar.right.tab.document.actions`, where Save and Save As are registered. From `0.2.0` there is one more: the settings panel's section ledger **`settings.section`**, where Settings → SpreadJS bridge registers; without it that page does not appear (the plugin logs one error and carries on) and nothing else changes. The plugin still works on `0.1.5-rc.3`; it simply does not get the first two, and the two header buttons do not appear.
+This RC supplies the binary-suffix declaration, built-in read-only preview, document-header actions slot `sidebar.right.tab.document.actions`, and settings section `settings.section`. This version no longer declares support for older DSH releases.
 
 The plugin includes SpreadJS and Designer, with no build step required. With the DSH CLI installed:
 
@@ -277,15 +271,15 @@ After startup, open `.xlsx`, `.xlsm`, `.csv`, `.sjs`, or `.ssjson` from the righ
 Alternatively, install and start through npx:
 
 ```sh
-npx --yes @deepseek-ai/dsh@latest plugin --profile web add @grapecity-software/dsh-spreadjs-editor
-npx --yes @deepseek-ai/dsh@latest --profile web
+npx --yes @deepseek-ai/dsh@0.2.0-rc.2 plugin --profile web add @grapecity-software/dsh-spreadjs-editor
+npx --yes @deepseek-ai/dsh@0.2.0-rc.2 --profile web
 ```
 
 For upgrades, see the [release notes](CHANGELOG.md).
 
 ### Saving
 
-Save's official entry point is **the harness's own document header** — the Save button beside the file name once a workbook is open. It is registered in the actions slot `sidebar.right.tab.document.actions` that DSH publishes from `0.1.7` on, next to the other viewers' own controls, and it carries a mark while anything is unsaved, like the `*` in Excel's title bar. It writes your changes back to the file you opened, and there is no second prompt, because pressing Save *is* the intent.
+Save's official entry point is **the harness's own document header** — the Save button beside the file name once a workbook is open. It is registered in the actions slot `sidebar.right.tab.document.actions` published by DSH, next to the other viewers' own controls, and it carries a mark while anything is unsaved, like the `*` in Excel's title bar. It writes your changes back to the file you opened, and there is no second prompt, because pressing Save *is* the intent.
 
 The same write-back is also on **`Ctrl+S` and the Save button on the Designer's own toolbar**: the plugin redirects the Designer's Save command, so neither of those reaches a download dialog any more. (The Designer's own File tab is hidden from the ribbon — see the end of this section.)
 
@@ -323,7 +317,7 @@ The harness unmounts a document body when its tab is hidden, and the platform of
 - **Switching away and back keeps the edits.** A dirty workbook is kept as a snapshot just before its body unmounts, and restored as-is when the same tab returns, without re-reading the file.
 - **Closing the tab keeps them too.** The snapshot is also kept under the file's path, so reopening that file restores it — and says so in the pill at the panel's bottom-right — as long as the file on disk is still the version the snapshot was written from.
 - **A file changed elsewhere is never silently replaced.** If the file on disk changed since the snapshot (an agent, another editor), the panel offers it instead in that same pill: **Restore** carries on from the buffer (a later save writes it to disk), **Discard** re-reads the file.
-- **It is visible, in two places.** The header's Save carries a mark while edits are pending (like Excel's title-bar `*`) — a position DSH `0.1.7` and later offer. The panel's own floating pill at the bottom-right shows `Unsaved changes` with a Discard action while edits are pending, and disappears once everything is saved. It hovers over the sheet and costs no layout height — which is why it went back from a permanent row at the top of the panel to a pill — and on `0.1.5`/`0.1.6`, where the document header has no actions slot, it is the only state indicator there is. Editing only swaps the text and the buttons inside it, and it appears only when it has something to say.
+- **It is visible, in two places.** Save in the document header carries a mark while edits are pending, like Excel's title-bar `*`. A floating pill at the bottom-right shows `Unsaved changes` and a Discard action. It costs no layout height and disappears after saving.
 - **Closing the page warns.** A reload or close raises the browser's own prompt once, as long as anything is unsaved or still cached.
 - **Saving clears it.** A successful save drops every snapshot for that file, so reopening starts from disk.
 
@@ -347,13 +341,13 @@ If you have licenses, add the following to the web profile's `cordis.patch.yml`:
 
 Restart DSH and refresh the browser after changing the configuration.
 
-One more field is deliberately **not** in that table: `bridge` is written by the **SpreadJS bridge** page in the Web UI and records which bridge the user chose. It is this plugin's configuration all the same, but it should not be written into the patch by hand — the page reports honestly whether a write was accepted, and a hand-written value never goes through that check. Not having chosen yet and leaving it empty in the patch mean the same thing: `bridge: ''` is "None". This plugin's own page replaces the one DSH would otherwise synthesise from the schema, so there is only ever one entry point.
+One more field is deliberately **not** in that table: `bridge` is written by the **Spreadsheet Editor** page in the Web UI and records which bridge the user chose. It is this plugin's configuration all the same, but it should not be written into the patch by hand — the page reports honestly whether a write was accepted, and a hand-written value never goes through that check. Not having chosen yet and leaving it empty in the patch mean the same thing: `bridge: ''` is "None". This plugin's own page replaces the one DSH would otherwise synthesise from the schema, so there is only ever one entry point.
 
 ### Verification
 
 | Command | What it proves |
 | --- | --- |
-| `npm run typecheck`, `npm test` | The type contract, and 201 unit tests: every save guard, file-address parsing and address building, the Save As target rules, suggested name and failure wording, every branch of the Save-command redirect, every branch of the editor theme bridge, the viewer-name and binary-suffix edge cases, the unsaved-buffer and dirty-tracking rules, every branch of the file-versus-buffer decision at open, the panel state pill's state/action matrix, the document header actions' publication, subscription, command routing, button spec, "spreadsheets only" rule and registration order, both identities plus the scope of the rule that hides the Designer's File tab, the direction of the bridge choice and that a refused write is reported, that the bridge field really is declared volatile, and the registry's own contract (a duplicate id refused, disposer semantics, notifying only on a real change), the wiring of the roster and the settings page with and without a settings service, and that every row of that page is drawn to the harness's own settings-row spec |
+| `npm run typecheck`, `npm test` | The type contract, and 215 unit tests: every save guard, file-address parsing and address building, the Save As target rules, suggested name and failure wording, every branch of the Save-command redirect, every branch of the editor theme bridge, the viewer-name and binary-suffix edge cases, the unsaved-buffer and dirty-tracking rules, every branch of the file-versus-buffer decision at open, the panel state pill's state/action matrix, the document header actions' publication, subscription, command routing, button spec, "spreadsheets only" rule and registration order, both identities plus the scope of the rule that hides the Designer's File tab, the direction of the bridge choice and that a refused write is reported, that the bridge field really is declared volatile, and the registry's own contract (a duplicate id refused, disposer semantics, notifying only on a real change), the wiring of the roster and the settings page with and without a settings service, and that every row of that page is drawn to the harness's own settings-row spec |
 | `node scripts/smoke-client.mjs` | The built browser half's structure: loader wrapper, inlined SpreadJS and styles, react as the only runtime external |
 | `node scripts/smoke-node.mjs` | The built host half: route registration, license config, and the save path writing real bytes plus refusing conflicts and escapes |
 | `npm run probe:live` | A real save against a **running DSH**: the actual `ctx.fs` resolving, writing, refusing a stale base hash, and refusing a workspace escape — plus a check that the process carries *this* build (plugin and bundled SpreadJS versions) |

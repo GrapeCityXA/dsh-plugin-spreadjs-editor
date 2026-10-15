@@ -9,7 +9,7 @@ importers:
   .:
     devDependencies:
       '@deepseek-ai/cordis':
-        specifier: ^4.0.4
+        specifier: ~4.0.4
         version: 4.0.4
       '@deepseek-ai/dsh-client-ui-renderer':
         specifier: 0.2.0-rc.2
@@ -33,68 +33,68 @@ importers:
         specifier: 0.2.0-rc.2
         version: 0.2.0-rc.2(@deepseek-ai/cordis@4.0.4)
       '@deepseek-ai/schemastery':
-        specifier: ^3.18.4
+        specifier: ~3.18.4
         version: 3.18.4
       '@grapecity-software/spread-excelio':
-        specifier: 19.2.0
-        version: 19.2.0
+        specifier: 19.2.1
+        version: 19.2.1
       '@grapecity-software/spread-sheets':
-        specifier: 19.2.0
-        version: 19.2.0
+        specifier: 19.2.1
+        version: 19.2.1
       '@grapecity-software/spread-sheets-barcode':
-        specifier: 19.2.0
-        version: 19.2.0
+        specifier: 19.2.1
+        version: 19.2.1
       '@grapecity-software/spread-sheets-charts':
-        specifier: 19.2.0
-        version: 19.2.0
+        specifier: 19.2.1
+        version: 19.2.1
       '@grapecity-software/spread-sheets-datacharts-addon':
-        specifier: 19.2.0
-        version: 19.2.0
+        specifier: 19.2.1
+        version: 19.2.1
       '@grapecity-software/spread-sheets-designer':
-        specifier: 19.2.0
-        version: 19.2.0
+        specifier: 19.2.1
+        version: 19.2.1
       '@grapecity-software/spread-sheets-designer-resources-cn':
-        specifier: 19.2.0
-        version: 19.2.0
+        specifier: 19.2.1
+        version: 19.2.1
       '@grapecity-software/spread-sheets-formula-panel':
-        specifier: 19.2.0
-        version: 19.2.0
+        specifier: 19.2.1
+        version: 19.2.1
       '@grapecity-software/spread-sheets-ganttsheet':
-        specifier: 19.2.0
-        version: 19.2.0
+        specifier: 19.2.1
+        version: 19.2.1
       '@grapecity-software/spread-sheets-io':
-        specifier: 19.2.0
-        version: 19.2.0
+        specifier: 19.2.1
+        version: 19.2.1
       '@grapecity-software/spread-sheets-languagepackages':
-        specifier: 19.2.0
-        version: 19.2.0
+        specifier: 19.2.1
+        version: 19.2.1
       '@grapecity-software/spread-sheets-pdf':
-        specifier: 19.2.0
-        version: 19.2.0
+        specifier: 19.2.1
+        version: 19.2.1
       '@grapecity-software/spread-sheets-pivot-addon':
-        specifier: 19.2.0
-        version: 19.2.0
+        specifier: 19.2.1
+        version: 19.2.1
       '@grapecity-software/spread-sheets-print':
-        specifier: 19.2.0
-        version: 19.2.0
+        specifier: 19.2.1
+        version: 19.2.1
       '@grapecity-software/spread-sheets-reportsheet-addon':
-        specifier: 19.2.0
-        version: 19.2.0
+        specifier: 19.2.1
+        version: 19.2.1
       '@grapecity-software/spread-sheets-resources-zh':
-        specifier: 19.2.0
-        version: 19.2.0
+        specifier: 19.2.1
+        version: 19.2.1
       '@grapecity-software/spread-sheets-shapes':
-        specifier: 19.2.0
-        version: 19.2.0
+        specifier: 19.2.1
+        version: 19.2.1
       '@grapecity-software/spread-sheets-slicers':
-        specifier: 19.2.0
-        version: 19.2.0
+        specifier: 19.2.1
+        version: 19.2.1
       '@grapecity-software/spread-sheets-sparklines':
-        specifier: 19.2.0
-        version: 19.2.0
+        specifier: 19.2.1
+        version: 19.2.1
       '@grapecity-software/spread-sheets-tablesheet':
-        specifier: 19.2.0
-        version: 19.2.0
+        specifier: 19.2.1
+        version: 19.2.1
       '@types/node':
         specifier: ^22.0.0
         version: 22.20.1
@@ -328,77 +328,77 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@grapecity-software/spread-calc-engine@19.2.0':
-    resolution: {integrity: sha512-UcBMsiqkz4BkM8w8cJ0IX9zgSHWTNz0O8b8RWY2N61D4BwKc25/nKMfVdE9SLh+9RsOcQmS1qUG0UHhrtGfLwQ==}
+  '@grapecity-software/spread-calc-engine@19.2.1':
+    resolution: {integrity: sha512-CUNz2WV4Ppcn7sOq33yKxq0F52Ilu+hkl0YU7t2YeWG1cwjCZ5UbONwuxU7UKepsQHIOG5ohIRKN5kvJeis+ww==}
 
-  '@grapecity-software/spread-common@19.2.0':
-    resolution: {integrity: sha512-hC2FH97pe+zqCM/Q4Ce/Jp/lQPBNRRLMJT/QODAGBkSZbv8R8f0vAXy7DoJ+q+r4ZP4yI9YioKpgmvCu24/KSw==}
+  '@grapecity-software/spread-common@19.2.1':
+    resolution: {integrity: sha512-a0Ez7lmZaYp8ZKNC40VirpED0oztGh/wPe0c9cHqNLPZ/XPtsZoANmjCo0Wl546HeL8OLAO/MjtNdw7zVS7DKg==}
 
-  '@grapecity-software/spread-excelio@19.2.0':
-    resolution: {integrity: sha512-1rM54WX41U++6KLZ1p+aCi5ZDGRej+X+PXHKYYQKVuS2AoIAVmbGV4ASlGftrFEe329MDNbFk6zs0SCU1zvv1A==}
+  '@grapecity-software/spread-excelio@19.2.1':
+    resolution: {integrity: sha512-K1WEFTs/pGbrxNsXzDDPkxVspzpfRPyLH7zynJwFJYZqBAXsxH2FX+WDWvR0c7xfYJi7AsPTIv/JIdatIUbbdg==}
 
-  '@grapecity-software/spread-sheets-barcode@19.2.0':
-    resolution: {integrity: sha512-k+WaIhkkkahZmFEjQqojzJQ+rXJ8furkosudCsXBTAXS+Ies6CcHRiFntCKf5wD6mdgEOEBOSYFVcMZNLUJjJA==}
+  '@grapecity-software/spread-sheets-barcode@19.2.1':
+    resolution: {integrity: sha512-ZIa+7HzSbFQ0QUDysxFfWjs5xxJ9XazQR7rCUrx0aBWhiAHbnJimH/Esn39LQzwjghmzfxFXwTLdpe3+JCutZA==}
 
-  '@grapecity-software/spread-sheets-calc-engine@19.2.0':
-    resolution: {integrity: sha512-y8fmh/UmMeWnSOlfYqnS0wuPh1a5nR4d75D9o0eaFNAZu9V6DAsYGGv17KKMkWBw4/U72W+LELimTKDJBfj6Rg==}
+  '@grapecity-software/spread-sheets-calc-engine@19.2.1':
+    resolution: {integrity: sha512-KmWs3utUMRWbvM1uKJUbsj61/TGISBuVeBvTafCNZwSQfjzQQWLQLH0VKw9L9vhDss0DdLxvXIpw4Pgo/ypOTg==}
 
-  '@grapecity-software/spread-sheets-charts@19.2.0':
-    resolution: {integrity: sha512-dGuI6dsW3BfDizp7kFM4WWjzUdts8GRY4Stc2nXcbMX/BdSV8iG4fQz6KZ6Z9iky0eXtywGU8CJXob3O9VQUWw==}
+  '@grapecity-software/spread-sheets-charts@19.2.1':
+    resolution: {integrity: sha512-7XuB3RDm5ibVf2U8NbiBWy7/vhv/p6m02puiJVWmDEXSV5gLN7SbSKGvEGMDCjI89Qwrtwe2eGmYgcEeCO6nPQ==}
 
-  '@grapecity-software/spread-sheets-core@19.2.0':
-    resolution: {integrity: sha512-LH1Cvi1yUkFQM9sGQj8djxSuwq0LOd5z+P5rrUy682T9uIpJvhUsa6gitSdfcn06+fHeHnc9NH6OzmWMpMhwLQ==}
+  '@grapecity-software/spread-sheets-core@19.2.1':
+    resolution: {integrity: sha512-y3xTiCgj8NFtQQH6V8142uCuMkdYJTLxEao0xfsf9Utz1vbQwj+kp34lmRXwZCrwPkeMPjE5taJoJd889BZCmQ==}
 
-  '@grapecity-software/spread-sheets-datacharts-addon@19.2.0':
-    resolution: {integrity: sha512-z0S7gMBKIMKxx6ckbFdcilhBmTtCXid4PqfA88yJ9I9HKmbsNFL0oWfX8fL999M27krpSvWPMHZu9qxKeHnkSA==}
+  '@grapecity-software/spread-sheets-datacharts-addon@19.2.1':
+    resolution: {integrity: sha512-RSsLLer9rxijhNbA6oEA0MO5hapJc4c3o7QJre5TWcgiMXyPmmpfr4TA0bPGR0QHFuTDb/BGu0Aom40agZViVA==}
 
-  '@grapecity-software/spread-sheets-designer-resources-cn@19.2.0':
-    resolution: {integrity: sha512-/jT6NjDuI/BHv7EqGszsHJTBvy4OrtSP42CEKz1fzLIlh4/eIbjyO3v73hxm2gnwF9oxAyJtFE+7qhYFsA0IYw==}
+  '@grapecity-software/spread-sheets-designer-resources-cn@19.2.1':
+    resolution: {integrity: sha512-f4wHAawXvY37chOlK7PiMA6UtgKo49WQZRRHdhxVeRrSrHRP/wCjk6oo1JpuXUwyyYUf35QarpTo0fyMMfs/3A==}
 
-  '@grapecity-software/spread-sheets-designer@19.2.0':
-    resolution: {integrity: sha512-SxNgxljSD2LqxXxkqec2/wsfVQ9PuTweU6qzDKLZseL5TOiOP4BNDENOQnOv2DV3LpBtUiaOR4+dJguebkfC2Q==}
+  '@grapecity-software/spread-sheets-designer@19.2.1':
+    resolution: {integrity: sha512-Yahd8e4lTMwZtizThDdTnBDJa1l/osrr2HGiNdrsh9huBN/XVvbYkh1utxZQ83847144H8WopV/HfpO74kJddw==}
 
-  '@grapecity-software/spread-sheets-formula-panel@19.2.0':
-    resolution: {integrity: sha512-Uk895EV/9h2jezf+9l2X6q342ZosBaNeNw+Stljas5MJd57L0yWGUm2DfHAERNJoruMPLd64KMxWOwjSRs18lQ==}
+  '@grapecity-software/spread-sheets-formula-panel@19.2.1':
+    resolution: {integrity: sha512-jpqUqT1knUts7dpod1XUI9QsJXlNLV65Az2SUuAEUHxRuG1spIYi5f5tA8vWQM8c+jgJZtRiR1JU/pkrVSp81g==}
 
-  '@grapecity-software/spread-sheets-ganttsheet@19.2.0':
-    resolution: {integrity: sha512-sNHyMdXTStMSVVp7Hw7iKXIzflYqzY7klmxb0x0772BB+nVK5XPxE/BpvDKWFz84O/KXyIwOjGirEfN2DUaP4g==}
+  '@grapecity-software/spread-sheets-ganttsheet@19.2.1':
+    resolution: {integrity: sha512-u0MwPHp3g6Agvv1RnLpaQUzdVN5aFeX8WGQ1gy+bxoXOvN1b1H0dx5yoXC7bL2Tta3JLCRK47VR/S5ldTZ9RNw==}
 
-  '@grapecity-software/spread-sheets-io@19.2.0':
-    resolution: {integrity: sha512-gehASeqfookjM0w74IWu5p0uf2BGh4LwJJuiflxbdcY9RxHh3+lQCTtSYsuOtamRF5gkxHF6JYMazMoRcOwnoQ==}
+  '@grapecity-software/spread-sheets-io@19.2.1':
+    resolution: {integrity: sha512-i+Rnda/cFTVOHoWVKRL/fabOa7CUx593CgsKZ14O4ZLCtQNzZLV+up3Hjcf+IZdI4Q+4FQoo+MAx8xJ+wXkJCw==}
 
-  '@grapecity-software/spread-sheets-languagepackages@19.2.0':
-    resolution: {integrity: sha512-Bro19fQB/8akQ9t4iwY2jN+ixiM8GAhoA/f1r47AUATTGYzgZvoJ2ZBhQLmue1uJnRG0/ZRv1wSGtrCzM4DkLw==}
+  '@grapecity-software/spread-sheets-languagepackages@19.2.1':
+    resolution: {integrity: sha512-l6YRVzX3R3NfuOHLXWihLOmiiBHTfPZ5bP44YT6r04Vgh8d3aE4UhVEM0C21/wC3+3DFND42JDscjFA/ICLixQ==}
 
-  '@grapecity-software/spread-sheets-pdf@19.2.0':
-    resolution: {integrity: sha512-PbtNNTIAzEka2gS8ijI/606JCRc/vbReDOyaClUJ4gPImnnDES3SFzdgyZoItNNH0Q3BfCEbz2x6P1mFS82C0g==}
+  '@grapecity-software/spread-sheets-pdf@19.2.1':
+    resolution: {integrity: sha512-NpS7wuoj1wBbReJ9ZtBfpZYDFw0Cb+7NAFJ6xmgdmlziS2x3NctC0uYYodlqIvkkaurPoBgUGndEhvNnXlo3fg==}
 
-  '@grapecity-software/spread-sheets-pivot-addon@19.2.0':
-    resolution: {integrity: sha512-Uk7lZ9H2FwmYpohT1f9NBlZ8Qkdz9BPTwWS5IXRwpdaym5mE/+nmI+O5+m5Yv0LvsangPpafH2ut70UxBgXq6Q==}
+  '@grapecity-software/spread-sheets-pivot-addon@19.2.1':
+    resolution: {integrity: sha512-S1nd2BZkDOGNeHV10bw5u9xA/X4o7nrXUhpjbIuiBrTWzMIAk35EU1A8SGTJLtqqPLuwQrc/FdFK6//3F/aX5g==}
 
-  '@grapecity-software/spread-sheets-print@19.2.0':
-    resolution: {integrity: sha512-jGYOlithgd1vX9pHOpipORKLml9SrWr+ul8rWbhzQaYT0QoEFejmRQKeQyGwzLtMM0Cj6cBMcv1LnRrmrAgQMg==}
+  '@grapecity-software/spread-sheets-print@19.2.1':
+    resolution: {integrity: sha512-dwzKxIR7Pf7mWE11kqw9zSQ1PC0knP3YnVZTOeLrqjXIvqYdSuiVc+Oq97kBUyqA/EMSh+iuLj9JUYH0EuseKA==}
 
-  '@grapecity-software/spread-sheets-reportsheet-addon@19.2.0':
-    resolution: {integrity: sha512-zOqj9HAb0qh+OF0uVOUWtiROoZKtb28V/Tij4FF9HSQpkVpcV3CWmCdLCk2eqkuWNE5/+FfB32HTA42RzqA9RQ==}
+  '@grapecity-software/spread-sheets-reportsheet-addon@19.2.1':
+    resolution: {integrity: sha512-zy93NAilpaI9oFdrG5XXPVr7IBqwzOc2TsTEjTa/sOVexfyTUh81jDfwfff0Kd3DGoXUbKP8qakp6TQCwerNKw==}
 
-  '@grapecity-software/spread-sheets-resources-zh@19.2.0':
-    resolution: {integrity: sha512-esgfrvFHY6G2of/DVF/tvslD9EG5alkb0WeWE1Y2B8KYz6PPg7kyEnv1GcDRoyz1TqOu+i8k3lSglJBOO+Rd1Q==}
+  '@grapecity-software/spread-sheets-resources-zh@19.2.1':
+    resolution: {integrity: sha512-6b2Jk23sEmdhQSfLjEJuQWk1PuNDdBhSbjCpQWP/YKd4Zx+Yx+71xMpAerMpfCo5IHSXPFDhBPDSEeYj1vF1iQ==}
 
-  '@grapecity-software/spread-sheets-shapes@19.2.0':
-    resolution: {integrity: sha512-CF0Qyu6H3O1X3LqkNRJPJCqyjLR//V8hk7d+esW44GUIlkexIt798s+/bEl2FNrCx/n9W3oPIFe4bpC5JJlxRg==}
+  '@grapecity-software/spread-sheets-shapes@19.2.1':
+    resolution: {integrity: sha512-Hyz22YlsKeoBP8cwmJY/4CscAZQ2SJa0Mv2FgjJ7vaH4sK5TJXwMM7b9jtQNZ8uKCq0Uzx49afBiwim+9CJ/Aw==}
 
-  '@grapecity-software/spread-sheets-slicers@19.2.0':
-    resolution: {integrity: sha512-DNFAEe97dQxdad9/HOCY3d5dkrcX1nMbv9bYT4YzIGPIB/QynHAE9BgDHCdqx2WToLWox2DnHZ4kqUvTC5X7VA==}
+  '@grapecity-software/spread-sheets-slicers@19.2.1':
+    resolution: {integrity: sha512-avXYnPYMdPJezQ7rwxSABU5f7p9Z8M5E9lCSUSkFF2jKP84ci97y/8Jv0kQY25Eqi4OONbDe+KWDWF1attt32w==}
 
-  '@grapecity-software/spread-sheets-sparklines@19.2.0':
-    resolution: {integrity: sha512-IFQgUcr1moMGPr+Y9V+Dq8tdf9/NFqFMrV+koGD6BA6ypqGH1gewakhJ8uUC0DhZe4QPiUmZ72JHtUrBy4QJcw==}
+  '@grapecity-software/spread-sheets-sparklines@19.2.1':
+    resolution: {integrity: sha512-6DmkXwIaM0q6Caq0RwLrawYqFBdImczM0JnCBTovAKgJpAxhNL2Q0l1WzsXuAqkRp+EaIKtgt5Gxo3nD35SHbg==}
 
-  '@grapecity-software/spread-sheets-tablesheet@19.2.0':
-    resolution: {integrity: sha512-ssvVja9ZcLYsx/qE7qKJ2kFNzXHWgnCVEjfl5/9++vOkF032YLK4e0ewO4Wy/JZEjU5Cewuq64m15pZQC59L6Q==}
+  '@grapecity-software/spread-sheets-tablesheet@19.2.1':
+    resolution: {integrity: sha512-xP4erRBYeXiBB3tilxdFjkgs3D9S8LKpHt8M4ZdN/xoxav98Bk3K6P4nf35CsUepyeGGwgY79gv/yfh8x5r9Cw==}
 
-  '@grapecity-software/spread-sheets@19.2.0':
-    resolution: {integrity: sha512-CPkfLMo6h4/Jbn1ONOGJvc3pibogwvgDLFHSv4YtHTC51aTRgN7TFdUfBdpZAasPhug1K42BaHopU/KIbRpAgg==}
+  '@grapecity-software/spread-sheets@19.2.1':
+    resolution: {integrity: sha512-57o5mCPl5M6whxSMjiuHSf+6TkpX0N/55l2UzYVfHUekOj4RmpmzwDfvEMrtcXqc6tD897ZLvaRaOiHmhf+Rgg==}
 
   '@jridgewell/sourcemap-codec@1.6.0':
     resolution: {integrity: sha512-T7jf+5zgsZHwNJ4lvQ7/aezbyk0nNX+zJVWpmHA7VYsEx7a7qr5Rg5IbtJFqkgze5Y2sruq1RUY8Q837Od7iFw==}
@@ -1393,105 +1393,105 @@ snapshots:
   '@esbuild/win32-x64@0.28.2':
     optional: true
 
-  '@grapecity-software/spread-calc-engine@19.2.0':
+  '@grapecity-software/spread-calc-engine@19.2.1':
     dependencies:
-      '@grapecity-software/spread-common': 19.2.0
+      '@grapecity-software/spread-common': 19.2.1
 
-  '@grapecity-software/spread-common@19.2.0': {}
+  '@grapecity-software/spread-common@19.2.1': {}
 
-  '@grapecity-software/spread-excelio@19.2.0':
+  '@grapecity-software/spread-excelio@19.2.1':
     dependencies:
-      '@grapecity-software/spread-sheets': 19.2.0
+      '@grapecity-software/spread-sheets': 19.2.1
 
-  '@grapecity-software/spread-sheets-barcode@19.2.0':
+  '@grapecity-software/spread-sheets-barcode@19.2.1':
     dependencies:
-      '@grapecity-software/spread-sheets': 19.2.0
+      '@grapecity-software/spread-sheets': 19.2.1
 
-  '@grapecity-software/spread-sheets-calc-engine@19.2.0':
+  '@grapecity-software/spread-sheets-calc-engine@19.2.1':
     dependencies:
-      '@grapecity-software/spread-calc-engine': 19.2.0
-      '@grapecity-software/spread-common': 19.2.0
-      '@grapecity-software/spread-sheets-core': 19.2.0
+      '@grapecity-software/spread-calc-engine': 19.2.1
+      '@grapecity-software/spread-common': 19.2.1
+      '@grapecity-software/spread-sheets-core': 19.2.1
 
-  '@grapecity-software/spread-sheets-charts@19.2.0':
+  '@grapecity-software/spread-sheets-charts@19.2.1':
     dependencies:
-      '@grapecity-software/spread-sheets': 19.2.0
-      '@grapecity-software/spread-sheets-shapes': 19.2.0
+      '@grapecity-software/spread-sheets': 19.2.1
+      '@grapecity-software/spread-sheets-shapes': 19.2.1
 
-  '@grapecity-software/spread-sheets-core@19.2.0':
+  '@grapecity-software/spread-sheets-core@19.2.1':
     dependencies:
-      '@grapecity-software/spread-common': 19.2.0
+      '@grapecity-software/spread-common': 19.2.1
 
-  '@grapecity-software/spread-sheets-datacharts-addon@19.2.0':
+  '@grapecity-software/spread-sheets-datacharts-addon@19.2.1':
     dependencies:
-      '@grapecity-software/spread-sheets': 19.2.0
-      '@grapecity-software/spread-sheets-shapes': 19.2.0
+      '@grapecity-software/spread-sheets': 19.2.1
+      '@grapecity-software/spread-sheets-shapes': 19.2.1
 
-  '@grapecity-software/spread-sheets-designer-resources-cn@19.2.0': {}
+  '@grapecity-software/spread-sheets-designer-resources-cn@19.2.1': {}
 
-  '@grapecity-software/spread-sheets-designer@19.2.0': {}
+  '@grapecity-software/spread-sheets-designer@19.2.1': {}
 
-  '@grapecity-software/spread-sheets-formula-panel@19.2.0':
+  '@grapecity-software/spread-sheets-formula-panel@19.2.1':
     dependencies:
-      '@grapecity-software/spread-sheets': 19.2.0
+      '@grapecity-software/spread-sheets': 19.2.1
 
-  '@grapecity-software/spread-sheets-ganttsheet@19.2.0':
+  '@grapecity-software/spread-sheets-ganttsheet@19.2.1':
     dependencies:
-      '@grapecity-software/spread-sheets': 19.2.0
-      '@grapecity-software/spread-sheets-tablesheet': 19.2.0
+      '@grapecity-software/spread-sheets': 19.2.1
+      '@grapecity-software/spread-sheets-tablesheet': 19.2.1
 
-  '@grapecity-software/spread-sheets-io@19.2.0':
+  '@grapecity-software/spread-sheets-io@19.2.1':
     dependencies:
-      '@grapecity-software/spread-sheets': 19.2.0
+      '@grapecity-software/spread-sheets': 19.2.1
 
-  '@grapecity-software/spread-sheets-languagepackages@19.2.0':
+  '@grapecity-software/spread-sheets-languagepackages@19.2.1':
     dependencies:
-      '@grapecity-software/spread-sheets': 19.2.0
+      '@grapecity-software/spread-sheets': 19.2.1
 
-  '@grapecity-software/spread-sheets-pdf@19.2.0':
+  '@grapecity-software/spread-sheets-pdf@19.2.1':
     dependencies:
-      '@grapecity-software/spread-sheets': 19.2.0
-      '@grapecity-software/spread-sheets-print': 19.2.0
+      '@grapecity-software/spread-sheets': 19.2.1
+      '@grapecity-software/spread-sheets-print': 19.2.1
 
-  '@grapecity-software/spread-sheets-pivot-addon@19.2.0':
+  '@grapecity-software/spread-sheets-pivot-addon@19.2.1':
     dependencies:
-      '@grapecity-software/spread-sheets': 19.2.0
-      '@grapecity-software/spread-sheets-shapes': 19.2.0
+      '@grapecity-software/spread-sheets': 19.2.1
+      '@grapecity-software/spread-sheets-shapes': 19.2.1
 
-  '@grapecity-software/spread-sheets-print@19.2.0':
+  '@grapecity-software/spread-sheets-print@19.2.1':
     dependencies:
-      '@grapecity-software/spread-sheets': 19.2.0
+      '@grapecity-software/spread-sheets': 19.2.1
 
-  '@grapecity-software/spread-sheets-reportsheet-addon@19.2.0':
+  '@grapecity-software/spread-sheets-reportsheet-addon@19.2.1':
     dependencies:
-      '@grapecity-software/spread-sheets': 19.2.0
-      '@grapecity-software/spread-sheets-print': 19.2.0
+      '@grapecity-software/spread-sheets': 19.2.1
+      '@grapecity-software/spread-sheets-print': 19.2.1
 
-  '@grapecity-software/spread-sheets-resources-zh@19.2.0':
+  '@grapecity-software/spread-sheets-resources-zh@19.2.1':
     dependencies:
-      '@grapecity-software/spread-sheets': 19.2.0
+      '@grapecity-software/spread-sheets': 19.2.1
 
-  '@grapecity-software/spread-sheets-shapes@19.2.0':
+  '@grapecity-software/spread-sheets-shapes@19.2.1':
     dependencies:
-      '@grapecity-software/spread-sheets': 19.2.0
+      '@grapecity-software/spread-sheets': 19.2.1
 
-  '@grapecity-software/spread-sheets-slicers@19.2.0':
+  '@grapecity-software/spread-sheets-slicers@19.2.1':
     dependencies:
-      '@grapecity-software/spread-sheets': 19.2.0
-      '@grapecity-software/spread-sheets-shapes': 19.2.0
+      '@grapecity-software/spread-sheets': 19.2.1
+      '@grapecity-software/spread-sheets-shapes': 19.2.1
 
-  '@grapecity-software/spread-sheets-sparklines@19.2.0':
+  '@grapecity-software/spread-sheets-sparklines@19.2.1':
     dependencies:
-      '@grapecity-software/spread-calc-engine': 19.2.0
-      '@grapecity-software/spread-common': 19.2.0
-      '@grapecity-software/spread-sheets-calc-engine': 19.2.0
-      '@grapecity-software/spread-sheets-core': 19.2.0
+      '@grapecity-software/spread-calc-engine': 19.2.1
+      '@grapecity-software/spread-common': 19.2.1
+      '@grapecity-software/spread-sheets-calc-engine': 19.2.1
+      '@grapecity-software/spread-sheets-core': 19.2.1
 
-  '@grapecity-software/spread-sheets-tablesheet@19.2.0':
+  '@grapecity-software/spread-sheets-tablesheet@19.2.1':
     dependencies:
-      '@grapecity-software/spread-sheets': 19.2.0
+      '@grapecity-software/spread-sheets': 19.2.1
 
-  '@grapecity-software/spread-sheets@19.2.0': {}
+  '@grapecity-software/spread-sheets@19.2.1': {}
 
   '@jridgewell/sourcemap-codec@1.6.0': {}
 

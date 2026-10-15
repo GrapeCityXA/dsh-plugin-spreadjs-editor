@@ -2,6 +2,15 @@
 
 ## 0.2.2（未发布）
 
+### 2026-10-15 依赖与支持范围更新 / Dependency and support update
+
+- 统一支持 DSH `0.2.0-rc.2`，宿主 peers 与开发依赖对齐该 RC，Node.js 最低版本为 22.19；不再声明兼容旧版 DSH，也不追随 alpha。以下更早记录中的旧版兼容结论不适用于当前支持范围。
+- 中文版 SpreadJS、Designer、IO、语言资源及全部扩展由 `19.2.0` 升级至 `19.2.1`；授权与 Workbook 仍由 editor 持有，无 editor/driver 包间依赖。
+- 当前验证：类型检查、215 项单测、构建、两个 smoke、独立安装包检查通过。真实 DSH 界面与 `probe:live` 需要重启并刷新后另行验收。
+- Both plugins target DSH `0.2.0-rc.2`; host peers and development dependencies use that RC and require Node.js 22.19+. Earlier DSH compatibility claims below are historical and no longer part of the supported baseline; alpha builds are not targeted.
+- Upgraded the complete Chinese SpreadJS / Designer / IO / resources / extension suite from `19.2.0` to `19.2.1`. Workbook ownership and licensing stay in the editor, without editor/driver package dependencies.
+- Verified typecheck, 215 unit tests, build, both smokes and the standalone package check. Live DSH UI acceptance and `probe:live` remain separate checks after restarting and refreshing.
+
 ### 中文
 
 - **切走标签页不再丢掉未保存的改动**：DSH 在标签页被切走时会卸载文档主体，此前这等于销毁工作簿——未保存的编辑就此消失，而且没有任何提示。平台也没有能拦下的关闭钩子（关闭是同步的，文档定义里没有任何生命周期或否决点），所以这里不做「确认离开」的拦截，改为一律不丢：脏工作簿在主体卸载前留成快照，切回来即恢复；标签页真正关闭后，快照按文件路径继续保留，重新打开同一文件时可以恢复；若文件在磁盘上已被改动，则不会默默套用快照，而是给出「恢复 / 丢弃」两个选择。整页刷新或关闭时浏览器会提示一次。保存成功即清空该文件的全部快照。
