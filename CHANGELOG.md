@@ -1,15 +1,34 @@
 # Release Notes / 版本记录
 
-## 0.2.2（未发布）
+## 0.2.3
 
-### 2026-10-15 依赖与支持范围更新 / Dependency and support update
+### 中文
 
-- 统一支持 DSH `0.2.0-rc.2`，宿主 peers 与开发依赖对齐该 RC，Node.js 最低版本为 22.19；不再声明兼容旧版 DSH，也不追随 alpha。以下更早记录中的旧版兼容结论不适用于当前支持范围。
-- 中文版 SpreadJS、Designer、IO、语言资源及全部扩展由 `19.2.0` 升级至 `19.2.1`；授权与 Workbook 仍由 editor 持有，无 editor/driver 包间依赖。
-- 当前验证：类型检查、215 项单测、构建、两个 smoke、独立安装包检查通过。真实 DSH 界面与 `probe:live` 需要重启并刷新后另行验收。
-- Both plugins target DSH `0.2.0-rc.2`; host peers and development dependencies use that RC and require Node.js 22.19+. Earlier DSH compatibility claims below are historical and no longer part of the supported baseline; alpha builds are not targeted.
-- Upgraded the complete Chinese SpreadJS / Designer / IO / resources / extension suite from `19.2.0` to `19.2.1`. Workbook ownership and licensing stay in the editor, without editor/driver package dependencies.
-- Verified typecheck, 215 unit tests, build, both smokes and the standalone package check. Live DSH UI acceptance and `probe:live` remain separate checks after restarting and refreshing.
+**增强 AI 协作与工作簿恢复**
+
+- 完善桥接协议，支持兼容 Driver 接入；由用户在「设置 → 电子表格编辑器」中明确选择。
+- 支持 Driver 请求打开工作区文件，等待工作簿加载完成后执行操作。
+- 增加 AI 执行期间的独占编辑保护，以及关闭、切换后的未保存内容恢复；恢复缓存仅在当前页面生命周期内有效。
+- 按聊天、文件和加载实例隔离任务与恢复缓存；完善取消检查，阻止取消后的后续自动保存。
+- 中文版 SpreadJS、Designer、IO、语言资源及全部扩展升级至 `19.2.1`。
+- 适配 DSH `0.2.0-rc.2`，需要 Node.js ≥22.19。
+
+**升级提示：** 本版支持范围统一为 DSH `0.2.0-rc.2`。请同步升级配套 Driver，使用完整的实例身份、独占锁与恢复协议。低版本 SpreadJS 打开本版保存的文件前，请确认格式兼容性。
+
+### English
+
+**Improve AI collaboration and workbook recovery**
+
+- Extend the bridge contract for compatible drivers, selected explicitly under Settings → Spreadsheet Editor.
+- Allow drivers to request a workspace file and wait until its Workbook is ready.
+- Protect the editor with an exclusive lease during AI work; preserve unsaved snapshots when the editor closes or switches. Recovery lasts only for the current page lifetime.
+- Isolate tasks and recovery by chat, file and load instance; check cancellation before subsequent automatic saves.
+- Upgrade the complete Chinese SpreadJS / Designer / IO / resources / extension suite to `19.2.1`.
+- Target DSH `0.2.0-rc.2` and require Node.js ≥22.19.
+
+**Upgrade notes:** This version supports DSH `0.2.0-rc.2`. Update the companion Driver together for the complete identity, lease and recovery protocol. Check file-format compatibility before opening files saved by this build in an older SpreadJS version.
+
+## 0.2.2
 
 ### 中文
 

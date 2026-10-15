@@ -62,7 +62,7 @@ driver 的状态和执行按调用聊天隔离，并绑定当前文件的加载�
 
 #### 要求
 
-- **本插件的「桥」名册随本版（0.2.2）一同发布。** 更早的编辑器上装着 driver 不会报错，只是 `sjs_live_execute` 永远找不到设计器——所以两个插件都建议用最新版。
+- **请同步升级 editor 与 driver**，以使用完整的实例身份、独占锁和恢复协议。
 - **两侧统一支持 DSH `0.2.0-rc.2`**：桥选择页使用 `settings.section`，选择结果保存在 editor 的设置文档中。开发依赖与宿主 peer 声明均以该 RC 为基线；旧版本和 alpha 不在支持范围内。
 - **driver 前提**：Node ≥22.19、同一 web profile 中的 editor 和可用的前端连接。服务端无需安装 Chrome/Edge。
 
@@ -236,7 +236,7 @@ Driver status and execution are confined to the calling chat and bound to the cu
 
 #### Requirements
 
-- **This plugin's bridge roster ships with this version (0.2.2).** On an earlier editor the driver installs without complaint and `sjs_live_execute` simply never finds a designer — so use the latest of both.
+- **Update the editor and driver together** for the complete instance identity, lease and recovery protocol.
 - **Both plugins support DSH `0.2.0-rc.2`**: the bridge picker uses `settings.section` and stores the choice in the editor settings document. Development dependencies and host peers target this RC; older releases and alpha builds are outside the supported baseline.
 - **Driver requirements**: Node ≥22.19, the editor in the same web profile, and a working browser connection. No Chrome/Edge installation on the server is required.
 

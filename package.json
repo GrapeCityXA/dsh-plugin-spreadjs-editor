@@ -1,6 +1,6 @@
 {
   "name": "@grapecity-software/dsh-spreadjs-editor",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "DSH sidebar SpreadJS editor with binary save, recovery and a selectable bridge for compatible drivers.",
   "keywords": [
     "deepseek-harness",
