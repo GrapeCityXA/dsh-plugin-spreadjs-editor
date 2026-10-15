@@ -115,18 +115,15 @@ function harness(config?: Config, services: Record<string, unknown> = {}) {
   apply(ctx, config)
 
   async function request(url: string, init: RequestInit = {}): Promise<MockResponse> {
-    let finished = false
-    const res = makeRes(() => {
-      finished = true
-    })
+    let finish!: () => void
+    const completed = new Promise<void>(resolve => { finish = resolve })
+    const res = makeRes(finish)
     const req = Readable.from(init.body === undefined ? [] : [Buffer.from(init.body)]) as any
     req.url = url
     req.method = init.method ?? 'GET'
     req.headers = init.headers ?? {}
     await capturedHandler(req, res)
-    if (!finished) {
-      await new Promise<void>((resolve) => setTimeout(resolve, 50))
-    }
+    await completed
     return res as unknown as MockResponse
   }
 

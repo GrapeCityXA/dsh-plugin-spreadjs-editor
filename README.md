@@ -52,7 +52,9 @@ dsh --profile web
 - **名册只认被选中的那个。** 设置里改选别人、或选「不使用」，driver 的**全部**工具与 skill 都会让位。这个设置命名的是「谁来管这里的电子表格」，而不只是「谁暂时拿着这份活文档」。
 - **编辑器始终是守门人。** 名册是候选人列表，不是广播。没有被递到工作簿的插件，没有任何办法去够到它。
 
-选中 driver 后，AI 获得 `sjs_live_execute` 和 `sjs_live_status`，只操作 editor 提供的实例。新建、导入、导出由 editor 负责。
+选中 driver 后，AI 获得 `sjs_live_open`、`sjs_live_execute` 和 `sjs_live_status`。没有打开工作簿时，driver 可以请求 editor 打开文件并等待初始化；新文件可由 driver 从准备好的空白模板复制，Workbook 仍由 editor 创建和持有。
+
+driver 执行期间 editor 会显示操作中提示，禁用 Designer 的鼠标/键盘编辑及冲突的保存、另存为、新建、导出入口。若用户关闭或切换 editor，销毁 Workbook 前会保存当前快照到现有恢复缓存，driver 返回中断；重新打开文件后检查已恢复的部分，再继续任务。该缓存只在当前页面生命周期内有效，不跨页面刷新，也不恢复 JavaScript 的执行位置。快照失败会明确写入控制台日志。
 
 #### 要求
 

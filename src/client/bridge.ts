@@ -20,6 +20,7 @@
  * nothing attaches, and the editor behaves as it does without one.
  */
 import type { Context } from '@deepseek-ai/cordis'
+import { parseSessionFileAddress } from './session-file-address.ts'
 import {
   BRIDGE_REGISTRY_SERVICE,
   createBridgeRegistry,
@@ -42,6 +43,13 @@ export const PROVIDER_ID = 'spreadjs-designer'
  * that unmounts only clears the slot while it still owns it.
  */
 let active: SpreadjsWorkbookProvider | undefined
+const leaseOwners = new Map<string, SpreadjsWorkbookProvider>()
+interface EditorNavigation {
+  mounted: { getSnapshot(): string | undefined }
+  openResource(address: string): void
+}
+let navigation: EditorNavigation | undefined
+let opening = false
 
 /** Offer `provider` to the roster until the returned function is called. */
 export function publishWorkbook(provider: SpreadjsWorkbookProvider): () => void {
@@ -64,15 +72,56 @@ const DESIGNER: SpreadjsWorkbookProvider = {
   getWorkbook: () => active?.getWorkbook(),
   getNamespace: () => active?.getNamespace?.(),
   getActivePath: () => active?.getActivePath?.(),
-  save: async () => {
+  getSessionId: () => navigation?.mounted.getSnapshot(),
+  openWorkbook: async (address: string, timeoutMs: number) => {
+    const file = parseSessionFileAddress(address)
+    const owner = navigation
+    if (file === undefined || owner === undefined || owner.mounted.getSnapshot() !== file.sessionId) {
+      throw new Error('The requested session must be visible in the DSH web UI')
+    }
+    if (opening || active?.isDriverBusy?.()) throw new Error('The editor is already busy')
+    opening = true
+    try {
+      owner.openResource(address)
+      const deadline = Date.now() + timeoutMs
+      while (Date.now() < deadline) {
+        if (navigation !== owner || owner.mounted.getSnapshot() !== file.sessionId) {
+          throw new Error('The editor session changed while opening the workbook')
+        }
+        if (active?.getActivePath?.() === address && active.getWorkbook() != null) return
+        await new Promise(resolve => setTimeout(resolve, 50))
+      }
+      throw new Error('The editor did not finish loading the requested workbook in time')
+    } finally {
+      opening = false
+    }
+  },
+  acquireDriverLease: () => {
     const provider = active
+    if (provider?.acquireDriverLease === undefined) throw new Error('the editor does not support Driver leases')
+    const lease = provider.acquireDriverLease()
+    leaseOwners.set(lease, provider)
+    return lease
+  },
+  releaseDriverLease: (lease: string) => {
+    const owner = leaseOwners.get(lease)
+    leaseOwners.delete(lease)
+    owner?.releaseDriverLease?.(lease)
+  },
+  isDriverBusy: () => active?.isDriverBusy?.() ?? false,
+  getDriverLeaseSignal: (lease: string) => leaseOwners.get(lease)?.getDriverLeaseSignal?.(lease),
+  save: async (lease?: string) => {
+    const provider = active
+    if (lease !== undefined && leaseOwners.get(lease) !== provider) {
+      throw new Error('the editor holding this Driver lease is no longer active')
+    }
     // Rejects when there is nobody to save through. The optional chaining this
     // replaces resolved successfully in that case, which told the agent a file
     // had been written when no write was even attempted.
     if (provider === undefined || provider.save === undefined) {
       throw new Error('no designer panel is showing a workbook, so there is nothing to save')
     }
-    await provider.save()
+    await provider.save(lease)
   },
 }
 
@@ -86,6 +135,14 @@ const DESIGNER: SpreadjsWorkbookProvider = {
 export function provideBridgeRegistry(ctx: Context): SpreadjsBridgeRegistry {
   const registry = createBridgeRegistry()
   ctx.provide(BRIDGE_REGISTRY_SERVICE, registry)
+  ctx.inject(['sidebarRight'], (scope) => {
+    scope.effect(() => {
+      const service = scope.get('sidebarRight') as EditorNavigation | undefined
+      if (typeof service?.openResource !== 'function' || typeof service.mounted?.getSnapshot !== 'function') return () => {}
+      navigation = service
+      return () => { if (navigation === service) navigation = undefined }
+    }, 'dsh-spreadjs-editor: workbook navigation')
+  })
 
   ctx.effect(() => {
     let attachedTo: SpreadjsBridgeEntry | undefined

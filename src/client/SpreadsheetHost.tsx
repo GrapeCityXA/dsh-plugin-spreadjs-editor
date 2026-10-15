@@ -45,7 +45,7 @@ export type ExportFormat = 'xlsx' | 'sjs' | 'ssjson' | 'csv'
 export type StatusTone = 'idle' | 'busy' | 'error'
 
 export interface SpreadsheetHostHandle {
-  save: () => Promise<void>
+  save: (lease?: string) => Promise<void>
   /**
    * Write the workbook to a workspace path other than the one it was opened from.
    *
@@ -68,6 +68,10 @@ export interface SpreadsheetHostHandle {
   getWorkbook: () => unknown | undefined
   /** The SpreadJS namespace, so bridge-injected code can reach enums. */
   getNamespace: () => unknown
+  acquireDriverLease: () => string
+  releaseDriverLease: (lease: string) => void
+  isDriverBusy: () => boolean
+  getDriverLeaseSignal: (lease: string) => AbortSignal | undefined
 }
 
 /** Result of one write-back operation. */
@@ -151,6 +155,7 @@ export interface SpreadsheetHostProps {
    * to the document, which is the half that knows the address.
    */
   onUnsaved: (workbook: object) => void
+  onDriverBusyChange: (busy: boolean) => void
 }
 
 type LoadStatus = { kind: 'idle' } | { kind: 'loading' } | { kind: 'error'; message: string }
@@ -336,7 +341,7 @@ function workbookBlob(spread: any, path: string, format?: ExportFormat): Promise
 }
 
 export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHostProps>(
-  function SpreadsheetHost({ source, load, licenseKey, designerLicenseKey = '', ready, fileAccess, onStatus, onLoadingChange, onNewWorkbook, onDirtyChange, onUnsaved }, ref) {
+  function SpreadsheetHost({ source, load, licenseKey, designerLicenseKey = '', ready, fileAccess, onStatus, onLoadingChange, onNewWorkbook, onDirtyChange, onUnsaved, onDriverBusyChange }, ref) {
     const hostRef = useRef<HTMLDivElement | null>(null)
     const designerRef = useRef<DesignerLike | null>(null)
     const loadSeqRef = useRef(0)
@@ -346,7 +351,7 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
      * bridge both hold this panel at arm's length and outlive a render, so they
      * must call through a ref rather than capture one closure forever.
      */
-    const saveRef = useRef<(() => Promise<void>) | undefined>(undefined)
+    const saveRef = useRef<((lease?: string) => Promise<void>) | undefined>(undefined)
     /** A load is in flight; saving now would export a workbook with no content. */
     const loadInFlightRef = useRef(false)
     /** Only expose a workbook after its current source finished loading. */
@@ -354,6 +359,9 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
     const workbookSourceRef = useRef({ source, load })
     /** One write-back at a time. */
     const saveInFlightRef = useRef(false)
+    const driverLeaseRef = useRef<string | undefined>(undefined)
+    const driverControllerRef = useRef<AbortController | undefined>(undefined)
+    const loadDeferredRef = useRef(false)
     /** Whether the live workbook holds edits that are not on disk. */
     const dirtyRef = useRef(false)
     /** The edit watch over the current workbook, stopped with it. */
@@ -361,7 +369,10 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
     /** The newest reporters; both outlive a render, like the save redirect above. */
     const onDirtyChangeRef = useRef(onDirtyChange)
     const onUnsavedRef = useRef(onUnsaved)
+    const onDriverBusyChangeRef = useRef(onDriverBusyChange)
     const [status, setStatus] = useState<LoadStatus>({ kind: 'idle' })
+    const [driverBusy, setDriverBusy] = useState(false)
+    const [loadRetry, setLoadRetry] = useState(0)
 
     sourceRef.current = source
     if (workbookSourceRef.current.source !== source || workbookSourceRef.current.load !== load) {
@@ -372,6 +383,7 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
     saveRef.current = save
     onDirtyChangeRef.current = onDirtyChange
     onUnsavedRef.current = onUnsaved
+    onDriverBusyChangeRef.current = onDriverBusyChange
 
     /**
      * The workbook has edits that are not on disk.
@@ -493,23 +505,28 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
         dirtyWatchRef.current?.stop()
         dirtyWatchRef.current = null
         const current = designer.getWorkbook()
-        if (dirtyRef.current && current !== undefined) {
-          // The body is leaving with edits that never reached the file. Hand the
-          // workbook over *before* destroying it: the document keeps it under this
-          // tab and under the file's path, so switching back — or reopening the
-          // file later — gets the edits back instead of starting from disk.
-          try {
+        designerRef.current = null
+        workbookReadyRef.current = false
+        loadSeqRef.current += 1
+        const lease = driverLeaseRef.current
+        try {
+          if ((dirtyRef.current || lease !== undefined) && current !== undefined) {
+            // Snapshot before destruction so reopening can recover partial edits.
             onUnsavedRef.current(current.toJSON())
             console.info('[dsh-spreadjs-editor] kept unsaved changes before unmounting the editor')
-          } catch (error) {
-            console.error('[dsh-spreadjs-editor] could not keep the unsaved workbook:', error)
           }
+        } catch (error) {
+          console.error('[dsh-spreadjs-editor] could not keep the unsaved workbook before unmount:', error)
+        } finally {
           dirtyRef.current = false
+          if (lease !== undefined) onDriverBusyChangeRef.current(false)
+          driverLeaseRef.current = undefined
+          driverControllerRef.current?.abort()
+          driverControllerRef.current = undefined
+          loadDeferredRef.current = false
         }
         if (current !== undefined && typeof current.destroy === 'function') current.destroy()
         if (typeof designer.destroy === 'function') designer.destroy()
-        designerRef.current = null
-        workbookReadyRef.current = false
       }
     }, [ready])
 
@@ -522,6 +539,12 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
     // whole workbook on every tab switch, which is the cost the buffer avoids.
     useEffect(() => {
       const designer = designerRef.current
+      // A file refresh must not load into the same instance an async script is
+      // still using. Withdraw it immediately, then snapshot and reload on release.
+      if (designer !== null && driverLeaseRef.current !== undefined) {
+        loadDeferredRef.current = true
+        return
+      }
       if (!ready || designer === null || source === undefined || load === undefined) {
         if (source === undefined) setStatus({ kind: 'idle' })
         loadInFlightRef.current = false
@@ -583,7 +606,7 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
         loadSeqRef.current += 1
         workbookReadyRef.current = false
       }
-    }, [source, load, ready, onLoadingChange, onStatus])
+    }, [source, load, ready, onLoadingChange, onStatus, loadRetry])
 
     /**
      * Write the workbook back to the file it came from.
@@ -601,10 +624,13 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
      * A still-loading workbook is refused rather than skipped, on purpose: it has
      * no content yet, so exporting it would overwrite the file with an empty book.
      */
-    async function save(): Promise<void> {
+    async function save(lease?: string): Promise<void> {
+      if (lease !== driverLeaseRef.current) {
+        throw new WorkbookNotReadyError('The Driver currently owns this workbook')
+      }
       const designer = designerRef.current
       const current = sourceRef.current
-      if (designer === null || current === undefined) {
+      if (designer === null || current === undefined || !workbookReadyRef.current) {
         throw new WorkbookNotReadyError('The workbook is not ready yet')
       }
       if (loadInFlightRef.current) {
@@ -618,6 +644,9 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
       onStatus(`Saving ${current.name}…`, 'busy')
       try {
         const blob = await workbookBlob(designer.getWorkbook(), current.name)
+        if (designerRef.current !== designer || sourceRef.current !== current || !workbookReadyRef.current) {
+          throw new WorkbookNotReadyError('The editor closed or changed workbooks before saving')
+        }
         const result = await fileAccess.save(blob, current)
         // What is on disk is now the workbook in front of the user, so there is
         // nothing left that a buffer would have to keep.
@@ -645,6 +674,49 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
       }
     }
 
+    function acquireDriverLease(): string {
+      if (designerRef.current === null || !workbookReadyRef.current || loadInFlightRef.current) {
+        throw new WorkbookNotReadyError('The workbook is not ready for Driver work')
+      }
+      if (driverLeaseRef.current !== undefined || saveInFlightRef.current) {
+        throw new WorkbookNotReadyError('The workbook is already busy')
+      }
+      // Finish any pending cell input before handing the instance to the Driver.
+      const sheet = designerRef.current.getWorkbook()?.getActiveSheet?.()
+      if (sheet?.endEdit?.() === false) throw new WorkbookNotReadyError('Finish editing the current cell first')
+      const lease = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : `driver-${String(Date.now())}-${String(Math.random()).slice(2)}`
+      driverLeaseRef.current = lease
+      driverControllerRef.current = new AbortController()
+      setDriverBusy(true)
+      if (typeof document !== 'undefined' && hostRef.current?.contains(document.activeElement)) {
+        (document.activeElement as HTMLElement).blur()
+      }
+      if (hostRef.current !== null) hostRef.current.inert = true
+      onDriverBusyChangeRef.current(true)
+      return lease
+    }
+
+    function releaseDriverLease(lease: string): void {
+      if (driverLeaseRef.current !== lease) return
+      if (loadDeferredRef.current) {
+        try {
+          const workbook = designerRef.current?.getWorkbook()
+          if (workbook !== undefined) onUnsavedRef.current(workbook.toJSON())
+        } catch (error) {
+          console.error('[dsh-spreadjs-editor] could not keep the Driver workbook before reload:', error)
+        }
+        loadDeferredRef.current = false
+        setLoadRetry(current => current + 1)
+      }
+      driverLeaseRef.current = undefined
+      driverControllerRef.current = undefined
+      if (hostRef.current !== null) hostRef.current.inert = false
+      setDriverBusy(false)
+      onDriverBusyChangeRef.current(false)
+    }
+
     /**
      * Write the workbook to another workspace path (Save As).
      *
@@ -655,6 +727,7 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
      * about to show that very file.
      */
     async function saveAs(path: string): Promise<void> {
+      if (driverLeaseRef.current !== undefined) throw new WorkbookNotReadyError('The Driver currently owns this workbook')
       const designer = designerRef.current
       if (designer === null) throw new WorkbookNotReadyError('The workbook is not ready yet')
       // Same guard as save(): a workbook that is still loading has no content, and
@@ -674,6 +747,7 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
     }
 
     async function exportAs(format: ExportFormat): Promise<void> {
+      if (driverLeaseRef.current !== undefined) throw new WorkbookNotReadyError('The Driver currently owns this workbook')
       const designer = designerRef.current
       if (designer === null) return
       const path = sourceRef.current?.name ?? 'workbook.sjs'
@@ -693,6 +767,7 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
     }
 
     function newWorkbook(): void {
+      if (driverLeaseRef.current !== undefined) throw new WorkbookNotReadyError('The Driver currently owns this workbook')
       const designer = designerRef.current
       if (designer === null) return
       resetWorkbook(designer.getWorkbook())
@@ -719,6 +794,10 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
           return designerRef.current?.getWorkbook()
         },
         getNamespace: () => GC,
+        acquireDriverLease,
+        releaseDriverLease,
+        isDriverBusy: () => driverLeaseRef.current !== undefined,
+        getDriverLeaseSignal: (lease: string) => lease === driverLeaseRef.current ? driverControllerRef.current?.signal : undefined,
       }),
       [onLoadingChange, onNewWorkbook, onStatus],
     )
@@ -726,6 +805,11 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
     return (
       <div className="dsh-spreadjs-host">
         <div ref={hostRef} />
+        {driverBusy ? (
+          <div className="dsh-spreadjs-driver-lock" role="status" aria-live="polite">
+            <div className="dsh-spreadjs-driver-lock-message">{editorText('driver.working')}</div>
+          </div>
+        ) : null}
         {source === undefined ? (
           <div className="dsh-spreadjs-empty">{editorText('empty.newWorkbook')}</div>
         ) : null}

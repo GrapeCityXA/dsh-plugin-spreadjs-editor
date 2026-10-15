@@ -62,8 +62,20 @@ export interface SpreadjsWorkbookProvider {
   getNamespace?(): unknown
   /** Absolute path of the open file, when there is one. */
   getActivePath?(): string | undefined
+  /** Session currently visible in the host; permits opening before a panel exists. */
+  getSessionId?(): string | undefined
+  /** Open through the owner's public sidebar navigation and wait for its workbook. */
+  openWorkbook?(address: string, timeoutMs: number): Promise<void>
   /** Ask the owner to persist the live workbook to its file. */
-  save?(): Promise<void>
+  save?(lease?: string): Promise<void>
+  /** Acquire an exclusive lease while a bridge is executing against the workbook. */
+  acquireDriverLease?(): string
+  /** Release a lease acquired by this provider. */
+  releaseDriverLease?(lease: string): void
+  /** Whether the editor is currently owned by a bridge. */
+  isDriverBusy?(): boolean
+  /** Aborted by the owner after snapshotting an instance that is being destroyed. */
+  getDriverLeaseSignal?(lease: string): AbortSignal | undefined
 }
 
 /**

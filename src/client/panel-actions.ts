@@ -23,7 +23,7 @@ export interface SpreadsheetPanel {
   canSave(): boolean
   /** Whether the mounted workbook holds edits that are not on disk. */
   isDirty(): boolean
-  /** Whether a load or a save is already in flight. */
+  /** Whether a load, save or exclusive Driver operation is in flight. */
   isBusy(): boolean
   /** Write the workbook back to its file. */
   save(): void
@@ -125,12 +125,12 @@ export function actionsVisible(panel: PanelSnapshot): boolean {
 
 /** Save the panel on screen, if there is one and it can be saved. */
 export function saveActivePanel(): void {
-  active?.save()
+  if (active?.canSave() && !active.isBusy()) active.save()
 }
 
 /** Ask the panel on screen for a Save As target, if there is one. */
 export function saveAsActivePanel(): void {
-  active?.requestSaveAs()
+  if (active?.canSave() && !active.isBusy()) active.requestSaveAs()
 }
 
 /** Drop all state. Only tests need this: the page's lifetime is the real scope. */

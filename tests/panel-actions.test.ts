@@ -29,6 +29,14 @@ function panel(initial: { canSave?: boolean; dirty?: boolean; busy?: boolean } =
 beforeEach(() => { resetPanelActions() })
 
 describe('what the document header can ask of the panel', () => {
+  it('refuses header actions while the owner is busy', () => {
+    const { value, save, requestSaveAs } = panel({ busy: true })
+    publishPanel(value)
+    saveActivePanel()
+    saveAsActivePanel()
+    expect(save).not.toHaveBeenCalled()
+    expect(requestSaveAs).not.toHaveBeenCalled()
+  })
   it('reports nothing and does nothing while no panel is mounted', () => {
     expect(panelSnapshot()).toEqual({ available: false, dirty: false, busy: false })
     expect(() => {

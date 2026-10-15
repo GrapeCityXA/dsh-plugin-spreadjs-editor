@@ -118,6 +118,38 @@
   background: var(--dsw-alias-bg-base);
 }
 
+/* The Driver owns the live workbook while this veil is present.  It both tells
+   the user why the sheet is unavailable and prevents mouse input from reaching
+   SpreadJS while the Driver is executing against the same instance. */
+.dsh-spreadjs-driver-lock {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--dsw-alias-bg-mask-2);
+  pointer-events: auto;
+  user-select: none;
+}
+
+/* Pair primary text with an opaque theme surface so worksheet content cannot
+   reduce the message's contrast, in either the light or dark palette. */
+.dsh-spreadjs-driver-lock-message {
+  box-sizing: border-box;
+  max-width: calc(100% - 48px);
+  padding: 14px 20px;
+  border: 1px solid var(--dsw-alias-border-l3, #646464);
+  border-radius: var(--dsw-radius-sm, 8px);
+  background: var(--dsw-alias-bg-layer-2, #fff);
+  color: var(--dsw-alias-label-primary, #1a1a1a);
+  box-shadow: var(--dsw-elevation-soft, 0 4px 16px #0003);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.6;
+  text-align: center;
+}
+
 /* Unsaved work floats as a pill over the sheet instead of holding a row of the
  * panel's own column.
  *

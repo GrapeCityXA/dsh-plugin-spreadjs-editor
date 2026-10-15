@@ -156,6 +156,8 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
    */
   const dirtyRef = useRef(false)
   const busyRef = useRef(false)
+  const driverBusyRef = useRef(false)
+  const driverBaselineRef = useRef<string | undefined>(undefined)
   /** The pending "this message fades" timer, if one is running. */
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [licenseKey, setLicenseKey] = useState('')
@@ -165,6 +167,7 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
   const [statusTone, setStatusTone] = useState<StatusTone>('idle')
   /** The workbook is being read into the Designer; Save must wait for it. */
   const [loading, setLoading] = useState(false)
+  const [driverBusy, setDriverBusy] = useState(false)
   /** The mounted workbook holds edits that are not on disk. */
   const [dirty, setDirty] = useState(false)
   /**
@@ -213,6 +216,13 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
     refreshPanel()
   }, [])
 
+  const handleDriverBusyChange = useCallback((next: boolean) => {
+    if (next) driverBaselineRef.current = baselineRef.current
+    driverBusyRef.current = next
+    setDriverBusy(next)
+    refreshPanel()
+  }, [])
+
   /** The host is leaving with edits: keep them under this tab and this file. */
   const handleUnsaved = useCallback((workbook: object) => {
     if (address === undefined) return
@@ -221,7 +231,7 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
       tabId,
       // The hash is what lets a later body tell whether this buffer still fits the
       // file it came from; it is undefined only if the read beat the hashing.
-      baseline: baselineRef.current,
+      baseline: driverBusyRef.current ? driverBaselineRef.current : baselineRef.current,
       workbook,
       at: Date.now(),
     })
@@ -308,6 +318,14 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
     getWorkbook: () => hostRef.current?.getWorkbook(),
     getNamespace: () => hostRef.current?.getNamespace(),
     getActivePath: () => resourceAddress,
+    acquireDriverLease: () => {
+      const host = hostRef.current
+      if (host === null) throw new WorkbookNotReadyError('No editor is showing a workbook')
+      return host.acquireDriverLease()
+    },
+    releaseDriverLease: (lease: string) => { hostRef.current?.releaseDriverLease(lease) },
+    isDriverBusy: () => driverBusyRef.current,
+    getDriverLeaseSignal: (lease: string) => hostRef.current?.getDriverLeaseSignal(lease),
     // The one caller that must hear the truth. Whoever holds this promise is
     // driving the editor from outside the page — an agent asking for the file to
     // be written — so a failure has to reject, not resolve: a resolved save
@@ -315,12 +333,12 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
     // describe a file that was never written. A panel that has since unmounted
     // is a failure too, and the optional call this replaces turned exactly that
     // case into a success.
-    save: async () => {
+    save: async (lease?: string) => {
       const host = hostRef.current
       if (host === null) {
         throw new WorkbookNotReadyError('No editor is showing a workbook, so there is nothing to save')
       }
-      await host.save()
+      await host.save(lease)
     },
   }), [resourceAddress])
 
@@ -332,12 +350,16 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
   useEffect(() => publishPanel({
     canSave: () => address !== undefined && hostRef.current !== null,
     isDirty: () => dirtyRef.current,
-    isBusy: () => busyRef.current,
+    isBusy: () => busyRef.current || driverBusyRef.current,
     // The second of the two callers allowed to drop the failure: the header's
     // Save button runs through panel-actions.ts, whose contract is `() => void`.
     // The user sees the outcome in the panel's status line either way.
-    save: () => { void hostRef.current?.save().catch(() => {}) },
+    save: () => {
+      if (driverBusyRef.current) return
+      void hostRef.current?.save().catch(() => {})
+    },
     requestSaveAs: () => {
+      if (driverBusyRef.current) return
       setSaveAsError('')
       setSaveAsOpen(true)
     },
@@ -422,6 +444,7 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
 
   /** Keep the buffer the user was offered, and put it in the Designer. */
   const restoreOffered = useCallback(() => {
+    if (driverBusyRef.current) return
     const buffer = offered
     if (buffer === undefined) return
     setHeld(buffer)
@@ -442,6 +465,7 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
    * the markers and leave the discarded edits on screen.
    */
   const discardEdits = useCallback(() => {
+    if (driverBusyRef.current) return
     if (address === undefined) return
     console.info(`[dsh-spreadjs-editor] discarded unsaved changes for ${address.path}; reloading from disk`)
     forgetPath(address.path)
@@ -551,9 +575,10 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
   }
 
   return (
-    <div className="dsh-spreadjs-panel" role="region" aria-busy={loading} aria-label={`SpreadJS: ${source.name}`}>
+    <div className="dsh-spreadjs-panel" role="region" aria-busy={loading || driverBusy} aria-label={`SpreadJS: ${source.name}`}>
       <div className="dsh-spreadjs-editor">
         <SpreadsheetHost
+          key={resourceAddress}
           ref={hostRef}
           source={source}
           load={load}
@@ -566,6 +591,7 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
           onNewWorkbook={noop}
           onDirtyChange={handleDirtyChange}
           onUnsaved={handleUnsaved}
+          onDriverBusyChange={handleDriverBusyChange}
         />
       </div>
       {statusLine === undefined && status === ''
@@ -579,14 +605,14 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
                   <span className="dsh-spreadjs-chip-text">{editorText(statusLine.key)}</span>
                   {statusLine.canRestore
                     ? (
-                      <button type="button" className="dsh-spreadjs-chip-action" onClick={restoreOffered}>
+                      <button type="button" className="dsh-spreadjs-chip-action" disabled={driverBusy} onClick={restoreOffered}>
                         {editorText('unsaved.restore')}
                       </button>
                     )
                     : null}
                   {statusLine.canDiscard
                     ? (
-                      <button type="button" className="dsh-spreadjs-chip-action" onClick={discardEdits}>
+                      <button type="button" className="dsh-spreadjs-chip-action" disabled={driverBusy} onClick={discardEdits}>
                         {editorText('unsaved.discard')}
                       </button>
                     )
@@ -605,7 +631,7 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
             // the only thing the prompt takes from the panel.
             key={address?.path ?? ''}
             initialPath={saveAsInitialPath}
-            busy={saveAsBusy}
+            busy={saveAsBusy || driverBusy}
             error={saveAsError}
             onSubmit={path => { void confirmSaveAs(path) }}
             onCancel={() => setSaveAsOpen(false)}
