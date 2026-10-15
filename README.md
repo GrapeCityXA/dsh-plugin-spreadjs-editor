@@ -56,6 +56,8 @@ dsh --profile web
 
 driver 执行期间 editor 会显示操作中提示，禁用 Designer 的鼠标/键盘编辑及冲突的保存、另存为、新建、导出入口。若用户关闭或切换 editor，销毁 Workbook 前会保存当前快照到现有恢复缓存，driver 返回中断；重新打开文件后检查已恢复的部分，再继续任务。该缓存只在当前页面生命周期内有效，不跨页面刷新，也不恢复 JavaScript 的执行位置。快照失败会明确写入控制台日志。
 
+driver 的状态和执行按调用聊天隔离，并绑定当前文件的加载实例；重新加载即更新实例身份。恢复缓存使用完整聊天资源地址，不同聊天的同名文件不会互相恢复或清理。取消或超时后阻止后续自动保存；异步导出结束、写回之前再次检查任务权限。忽略取消信号的脚本仍持有编辑锁，直到结束或实例被销毁。已发送的写入可能完成，因此取消不能保证回滚。两侧插件需同时更新以支持实例身份协议。
+
 #### 要求
 
 - **本插件的「桥」名册随本版（0.2.2）一同发布。** 更早的编辑器上装着 driver 不会报错，只是 `sjs_live_execute` 永远找不到设计器——所以两个插件都建议用最新版。
@@ -227,7 +229,9 @@ The editor **owns** the workbook you open; each driver **registers** as a candid
 - **The roster answers to the selection alone.** Choose another bridge — or "None" — and **every** tool and skill the driver registers steps aside. The setting names the plugin that *owns spreadsheets* here, not merely the one holding the live document for the moment.
 - **The editor stays the gatekeeper.** The roster is a list of candidates, not a broadcast. A plugin that was not handed the workbook has no way to reach it.
 
-Selecting the driver enables `sjs_live_execute` and `sjs_live_status` against the editor instance only. New/open/import/export remain editor features.
+Selecting the driver enables `sjs_live_open`, `sjs_live_execute` and `sjs_live_status`. The driver can copy a template and ask this editor to open and initialize it. Import/export and Workbook ownership remain editor features.
+
+Driver status and execution are confined to the calling chat and bound to the current loaded-document identity, renewed on every reload. Recovery snapshots use the full session resource address, so same-named files in different chats cannot restore or clear each other's buffers. Cancellation/timeout prevent subsequent automatic saves; the editor rechecks permission after export and before write-back. Scripts ignoring cancellation retain their edit lock until they settle or the instance is destroyed. A write already sent may complete; cancellation cannot guarantee rollback. Update both plugins for the identity protocol.
 
 #### Requirements
 

@@ -13,7 +13,7 @@
  * - the tab's **own** buffer wins outright and needs no hashing: that tab never
  *   closed, so its edits are exactly as current as the file it is reading — the
  *   state a tab that stayed on screen would be in;
- * - a buffer kept for the file's **path** outlived its tab, so it is only applied
+ * - a buffer kept for the full **session resource address** outlived its tab, so it is only applied
  *   once the hash says the file on disk is still the version it was written from.
  *   Otherwise it is offered, never applied behind the user's back — unless no hash
  *   can be had at all (no secure context), which is decided the same cautious way
@@ -58,22 +58,22 @@ function held(snapshot: WorkbookSnapshot, from: HeldBuffer['from']): HeldBuffer 
 }
 
 /**
- * Decide what `tabId` should open `path` with.
+ * Decide what `tabId` should open this session resource with.
  *
  * @param tabId - the tab occurrence asking; its own buffer, if any, wins.
- * @param path - the file's path inside the session.
+ * @param resourceAddress - full file address, including chat identity.
  * @param diskHash - the current file's content hash, or {@link HASH_PENDING} /
  *   {@link HASH_UNAVAILABLE}.
  * @returns what to load, or `deferred` while the hash is pending.
  */
-export function decideLoad(tabId: string, path: string, diskHash: string): LoadOutcome {
-  const mine = tabWorkbook(tabId, path)
+export function decideLoad(tabId: string, resourceAddress: string, diskHash: string): LoadOutcome {
+  const mine = tabWorkbook(tabId, resourceAddress)
   if (mine !== undefined) return { kind: 'buffer', buffer: held(mine, 'tab') }
 
-  if (!hasRecoveryBuffer(path)) return { kind: 'file' }
+  if (!hasRecoveryBuffer(resourceAddress)) return { kind: 'file' }
   if (diskHash === HASH_PENDING) return { kind: 'deferred' }
 
-  const recovery = recoverableWorkbook(path, diskHash === HASH_UNAVAILABLE ? undefined : diskHash)
+  const recovery = recoverableWorkbook(resourceAddress, diskHash === HASH_UNAVAILABLE ? undefined : diskHash)
   if (recovery === undefined) return { kind: 'file' }
   return recovery.matches
     ? { kind: 'buffer', buffer: held(recovery.snapshot, 'recovery') }

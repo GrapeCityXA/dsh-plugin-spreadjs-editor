@@ -45,7 +45,7 @@ export type ExportFormat = 'xlsx' | 'sjs' | 'ssjson' | 'csv'
 export type StatusTone = 'idle' | 'busy' | 'error'
 
 export interface SpreadsheetHostHandle {
-  save: (lease?: string) => Promise<void>
+  save: (lease?: string, options?: { signal?: AbortSignal; beforeWrite?: () => Promise<void> }) => Promise<void>
   /**
    * Write the workbook to a workspace path other than the one it was opened from.
    *
@@ -66,6 +66,7 @@ export interface SpreadsheetHostHandle {
    * agent can operate on the document on screen (see src/client/bridge.ts).
    */
   getWorkbook: () => unknown | undefined
+  getInstanceId: () => string | undefined
   /** The SpreadJS namespace, so bridge-injected code can reach enums. */
   getNamespace: () => unknown
   acquireDriverLease: () => string
@@ -120,7 +121,7 @@ export interface SpreadsheetSource {
 
 /** Write-back seam: where an edited workbook goes. */
 export interface SpreadsheetFileAccess {
-  save(blob: Blob, source: SpreadsheetSource): Promise<SpreadsheetSaveResult>
+  save(blob: Blob, source: SpreadsheetSource, signal?: AbortSignal): Promise<SpreadsheetSaveResult>
   /**
    * Write bytes to a workspace path chosen right now, as Save As does.
    *
@@ -356,6 +357,7 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
     const loadInFlightRef = useRef(false)
     /** Only expose a workbook after its current source finished loading. */
     const workbookReadyRef = useRef(false)
+    const instanceIdRef = useRef<string | undefined>(undefined)
     const workbookSourceRef = useRef({ source, load })
     /** One write-back at a time. */
     const saveInFlightRef = useRef(false)
@@ -581,6 +583,7 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
         if (seq !== loadSeqRef.current) return
         loadInFlightRef.current = false
         workbookReadyRef.current = true
+        instanceIdRef.current = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `instance-${Date.now()}-${Math.random()}`
         setStatus({ kind: 'idle' })
         onLoadingChange(false)
         if (buffer !== undefined) {
@@ -624,7 +627,8 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
      * A still-loading workbook is refused rather than skipped, on purpose: it has
      * no content yet, so exporting it would overwrite the file with an empty book.
      */
-    async function save(lease?: string): Promise<void> {
+    async function save(lease?: string, options?: { signal?: AbortSignal; beforeWrite?: () => Promise<void> }): Promise<void> {
+      options?.signal?.throwIfAborted()
       if (lease !== driverLeaseRef.current) {
         throw new WorkbookNotReadyError('The Driver currently owns this workbook')
       }
@@ -644,10 +648,13 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
       onStatus(`Saving ${current.name}…`, 'busy')
       try {
         const blob = await workbookBlob(designer.getWorkbook(), current.name)
+        // Export may be asynchronous. Check permission again just before write-back.
+        await options?.beforeWrite?.()
+        options?.signal?.throwIfAborted()
         if (designerRef.current !== designer || sourceRef.current !== current || !workbookReadyRef.current) {
           throw new WorkbookNotReadyError('The editor closed or changed workbooks before saving')
         }
-        const result = await fileAccess.save(blob, current)
+        const result = await fileAccess.save(blob, current, options?.signal)
         // What is on disk is now the workbook in front of the user, so there is
         // nothing left that a buffer would have to keep.
         markWorkbookClean()
@@ -794,6 +801,7 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
           return designerRef.current?.getWorkbook()
         },
         getNamespace: () => GC,
+        getInstanceId: () => workbookReadyRef.current && !loadInFlightRef.current && !saveInFlightRef.current ? instanceIdRef.current : undefined,
         acquireDriverLease,
         releaseDriverLease,
         isDriverBusy: () => driverLeaseRef.current !== undefined,

@@ -72,6 +72,7 @@ const DESIGNER: SpreadjsWorkbookProvider = {
   getWorkbook: () => active?.getWorkbook(),
   getNamespace: () => active?.getNamespace?.(),
   getActivePath: () => active?.getActivePath?.(),
+  getWorkbookIdentity: () => active?.getWorkbookIdentity?.(),
   getSessionId: () => navigation?.mounted.getSnapshot(),
   openWorkbook: async (address: string, timeoutMs: number) => {
     const file = parseSessionFileAddress(address)
@@ -110,7 +111,7 @@ const DESIGNER: SpreadjsWorkbookProvider = {
   },
   isDriverBusy: () => active?.isDriverBusy?.() ?? false,
   getDriverLeaseSignal: (lease: string) => leaseOwners.get(lease)?.getDriverLeaseSignal?.(lease),
-  save: async (lease?: string) => {
+  save: async (lease?: string, options?: { signal?: AbortSignal; beforeWrite?: () => Promise<void> }) => {
     const provider = active
     if (lease !== undefined && leaseOwners.get(lease) !== provider) {
       throw new Error('the editor holding this Driver lease is no longer active')
@@ -121,7 +122,7 @@ const DESIGNER: SpreadjsWorkbookProvider = {
     if (provider === undefined || provider.save === undefined) {
       throw new Error('no designer panel is showing a workbook, so there is nothing to save')
     }
-    await provider.save(lease)
+    await provider.save(lease, options)
   },
 }
 

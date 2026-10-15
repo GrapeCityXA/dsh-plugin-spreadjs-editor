@@ -6,7 +6,7 @@ const PATH = 'books/plan.xlsx'
 
 /** A buffer as the host hands one over. */
 function keep(tabId: string, baseline: string | undefined): void {
-  stashWorkbook({ path: PATH, tabId, baseline, workbook: { wb: tabId }, at: 1 })
+  stashWorkbook({ resourceAddress: PATH, tabId, baseline, workbook: { wb: tabId }, at: 1 })
 }
 
 beforeEach(() => { resetUnsavedWork() })
@@ -70,5 +70,13 @@ describe('what a body opens with', () => {
   it('does not confuse one file with another', () => {
     keep('tab-1', 'hash-1')
     expect(decideLoad('tab-2', 'books/other.xlsx', 'hash-1')).toEqual({ kind: 'file' })
+  })
+
+  it('isolates identical filenames and disk hashes in different chats', () => {
+    const first = 'dsh-resource://file/session/chat-A/sales.xlsx'
+    const second = 'dsh-resource://file/session/chat-B/sales.xlsx'
+    stashWorkbook({ resourceAddress: first, tabId: 'A', baseline: 'same-template', workbook: { owner: 'A' }, at: 1 })
+    expect(decideLoad('B', second, 'same-template')).toEqual({ kind: 'file' })
+    expect(decideLoad('A-reopened', first, 'same-template')).toMatchObject({ kind: 'buffer', buffer: { workbook: { owner: 'A' } } })
   })
 })

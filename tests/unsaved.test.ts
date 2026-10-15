@@ -15,7 +15,7 @@ import {
 } from '../src/client/unsaved.ts'
 
 function snapshot(over: Partial<WorkbookSnapshot> = {}): WorkbookSnapshot {
-  return { path: 'books/plan.xlsx', tabId: 'tab-1', baseline: 'hash-1', workbook: { sheets: {} }, at: 7, ...over }
+  return { resourceAddress: 'books/plan.xlsx', tabId: 'tab-1', baseline: 'hash-1', workbook: { sheets: {} }, at: 7, ...over }
 }
 
 /** The two members of `window` the unload guard uses. */
@@ -112,8 +112,8 @@ describe('unsaved work', () => {
   })
 
   it('leaves other files alone when one is saved', () => {
-    stashWorkbook(snapshot({ path: 'books/plan.xlsx', tabId: 'tab-1' }))
-    stashWorkbook(snapshot({ path: 'books/other.xlsx', tabId: 'tab-2' }))
+    stashWorkbook(snapshot({ resourceAddress: 'books/plan.xlsx', tabId: 'tab-1' }))
+    stashWorkbook(snapshot({ resourceAddress: 'books/other.xlsx', tabId: 'tab-2' }))
     forgetPath('books/plan.xlsx')
     expect(hasRecoveryBuffer('books/other.xlsx')).toBe(true)
     expect(tabWorkbook('tab-2', 'books/other.xlsx')).toBeDefined()
@@ -146,6 +146,18 @@ describe('unsaved work', () => {
 
     stop()
     expect(win.count('beforeunload')).toBe(0)
+  })
+
+  it('saving or discarding one chat cannot remove another chat snapshot', () => {
+    const first = 'dsh-resource://file/session/chat-A/sales.xlsx'
+    const second = 'dsh-resource://file/session/chat-B/sales.xlsx'
+    stashWorkbook(snapshot({ resourceAddress: first, tabId: 'A' }))
+    stashWorkbook(snapshot({ resourceAddress: second, tabId: 'B' }))
+    forgetPath(second)
+    expect(hasRecoveryBuffer(first)).toBe(true)
+    expect(tabWorkbook('A', first)).toBeDefined()
+    expect(hasRecoveryBuffer(second)).toBe(false)
+    expect(tabWorkbook('A', second)).toBeUndefined()
   })
 
   it('returns a no-op guard where there is no window to warn', () => {

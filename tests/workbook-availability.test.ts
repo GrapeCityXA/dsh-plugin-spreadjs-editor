@@ -104,6 +104,39 @@ describe('editor Workbook availability for drivers', () => {
     unmount()
   })
 
+  it('a revoked save permission after export prevents write-back', async () => {
+    const { host, props, unmount } = await loadedHost()
+    const lease = host.acquireDriverLease()
+    let finishExport!: (blob: Blob) => void
+    h.workbook.export = (ok: (blob: Blob) => void) => { finishExport = ok }
+    const abort = new AbortController()
+    const saving = host.save(lease, { signal: abort.signal, beforeWrite: async () => { abort.signal.throwIfAborted() } })
+    abort.abort()
+    finishExport(new Blob(['{}']))
+    await expect(saving).rejects.toThrow()
+    expect(props.fileAccess.save).not.toHaveBeenCalled()
+    expect(host.isDriverBusy()).toBe(true)
+    host.releaseDriverLease(lease)
+    unmount()
+  })
+
+  it('renewing contents in the same Workbook object changes its instance identity', async () => {
+    const { host, props, unmount } = await loadedHost()
+    const firstId = host.getInstanceId()
+    expect(firstId).toBeTruthy()
+    const workbook = host.getWorkbook()
+    props.load = { kind: 'buffer', workbook: { replacement: true } }
+    h.refIndex = 0; h.effectIndex = 0
+    ;(SpreadsheetHost as unknown as (props: SpreadsheetHostProps, ref: any) => unknown)(props, { current: null })
+    expect(host.getInstanceId()).toBeUndefined()
+    for (const effect of h.pending.splice(0)) effect()
+    await settle()
+    expect(host.getWorkbook()).toBe(workbook)
+    expect(host.getInstanceId()).toBeTruthy()
+    expect(host.getInstanceId()).not.toBe(firstId)
+    unmount()
+  })
+
   it.each([false, true])('unmount revokes the lease even when snapshot fails=%s', async (fail) => {
     const { host, props, unmount } = await loadedHost()
     const lease = host.acquireDriverLease()
@@ -130,7 +163,7 @@ describe('editor Workbook availability for drivers', () => {
   it('a closed Driver workbook is recovered from the existing cache on a new tab', async () => {
     resetUnsavedWork()
     const first = await loadedHost()
-    first.props.onUnsaved = snapshot => stashWorkbook({ path: 'book.ssjson', tabId: 'old', baseline: 'disk', workbook: snapshot, at: Date.now() })
+    first.props.onUnsaved = snapshot => stashWorkbook({ resourceAddress: 'book.ssjson', tabId: 'old', baseline: 'disk', workbook: snapshot, at: Date.now() })
     // Refresh the callback ref exactly as a component render does.
     h.refIndex = 0; h.effectIndex = 0
     ;(SpreadsheetHost as unknown as (props: SpreadsheetHostProps, ref: any) => unknown)(first.props, { current: null })

@@ -227,7 +227,7 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
   const handleUnsaved = useCallback((workbook: object) => {
     if (address === undefined) return
     stashWorkbook({
-      path: address.path,
+      resourceAddress,
       tabId,
       // The hash is what lets a later body tell whether this buffer still fits the
       // file it came from; it is undefined only if the read beat the hashing.
@@ -235,7 +235,7 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
       workbook,
       at: Date.now(),
     })
-  }, [address, tabId])
+  }, [address, resourceAddress, tabId])
 
   // Record the freshness token of what was opened. A save compares it with the
   // file on disk, so an edit made elsewhere between opening and saving surfaces
@@ -269,7 +269,7 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
       return
     }
     const path = address.path
-    const outcome = decideLoad(tabId, path, diskHash)
+    const outcome = decideLoad(tabId, resourceAddress, diskHash)
     if (outcome.kind === 'deferred') return
     if (outcome.kind === 'buffer') {
       // One line per open, next to the file menu's and the about button's: the
@@ -286,7 +286,7 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
     setHeld(undefined)
     setOffered(outcome.kind === 'offer' ? outcome.buffer : undefined)
     setDecision({ tabId, path, bytes, load: { kind: 'file' } })
-  }, [address, bytes, tabId, diskHash])
+  }, [address, resourceAddress, bytes, tabId, diskHash])
 
   // Follow the harness palette for the panel's own copy.
   useEffect(() => {
@@ -318,6 +318,10 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
     getWorkbook: () => hostRef.current?.getWorkbook(),
     getNamespace: () => hostRef.current?.getNamespace(),
     getActivePath: () => resourceAddress,
+    getWorkbookIdentity: () => {
+      const instanceId = hostRef.current?.getInstanceId()
+      return address === undefined || instanceId === undefined ? undefined : { sessionId: address.sessionId, file: resourceAddress, instanceId }
+    },
     acquireDriverLease: () => {
       const host = hostRef.current
       if (host === null) throw new WorkbookNotReadyError('No editor is showing a workbook')
@@ -333,12 +337,12 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
     // describe a file that was never written. A panel that has since unmounted
     // is a failure too, and the optional call this replaces turned exactly that
     // case into a success.
-    save: async (lease?: string) => {
+    save: async (lease?: string, options?: { signal?: AbortSignal; beforeWrite?: () => Promise<void> }) => {
       const host = hostRef.current
       if (host === null) {
         throw new WorkbookNotReadyError('No editor is showing a workbook, so there is nothing to save')
       }
-      await host.save(lease)
+      await host.save(lease, options)
     },
   }), [resourceAddress])
 
@@ -396,6 +400,7 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
     blob: Blob,
     path: string | undefined,
     base: string | undefined,
+    signal?: AbortSignal,
   ): Promise<SaveResponse> => {
     if (address === undefined || path === undefined) {
       throw new Error('This document has no file address to write to.')
@@ -407,10 +412,12 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
       body: await contentHash(written),
     })
     if (base !== undefined) params.set('base', base)
+    signal?.throwIfAborted()
     const response = await fetch(`/spreadjs/api/save?${params.toString()}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/octet-stream' },
       body: blob,
+      ...(signal === undefined ? {} : { signal }),
     })
     const body = await response.json().catch(() => null) as SaveResponse | null
     if (!response.ok || body?.ok !== true) {
@@ -426,12 +433,12 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
   }, [address])
 
   const fileAccess = useMemo<SpreadsheetFileAccess>(() => ({
-    save: async (blob, target): Promise<SpreadsheetSaveResult> => {
-      const written = await writeWorkbook(blob, target.path, baselineRef.current)
+    save: async (blob, target, signal): Promise<SpreadsheetSaveResult> => {
+      const written = await writeWorkbook(blob, target.path, baselineRef.current, signal)
       baselineRef.current = written.hash ?? await contentHash(new Uint8Array(await blob.arrayBuffer()))
       // What is on disk is now exactly what this panel holds, so every buffer kept
       // for this file is spent — including one restored from a tab that is gone.
-      forgetPath(target.path ?? '')
+      forgetPath(resourceAddress)
       return 'saved'
     },
     saveTo: async (blob, path): Promise<void> => {
@@ -440,7 +447,7 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
       // path takes over and hashes what is there.
       await writeWorkbook(blob, path, undefined)
     },
-  }), [writeWorkbook])
+  }), [writeWorkbook, resourceAddress])
 
   /** Keep the buffer the user was offered, and put it in the Designer. */
   const restoreOffered = useCallback(() => {
@@ -468,14 +475,14 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
     if (driverBusyRef.current) return
     if (address === undefined) return
     console.info(`[dsh-spreadjs-editor] discarded unsaved changes for ${address.path}; reloading from disk`)
-    forgetPath(address.path)
+    forgetPath(resourceAddress)
     setHeld(undefined)
     setOffered(undefined)
     setDirty(false)
     setTabDirty(tabId, false)
     setDecision(current => current === undefined ? current : { ...current, load: { kind: 'file' } })
     handleStatus(editorText('unsaved.dropped'), 'idle')
-  }, [address, tabId, handleStatus])
+  }, [address, resourceAddress, tabId, handleStatus])
 
   /**
    * Write the workbook to a new workspace path, then move this tab onto it.
@@ -509,7 +516,7 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
     // The write is done: everything after this point reports it, never undoes it.
     setSaveAsBusy(false)
     const writtenFrom = address.path
-    forgetPath(writtenFrom)
+    forgetPath(resourceAddress)
     setSaveAsOpen(false)
     handleStatus(`${editorText('saveAs.done')}${target}`, 'idle')
     console.info(`[dsh-spreadjs-editor] saved ${writtenFrom} as ${target}`)
@@ -525,7 +532,7 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
       // A failed navigation is not a failed save, and must not be reported as one.
       console.warn('[dsh-spreadjs-editor] could not open the file just written:', error)
     }
-  }, [address, handleStatus, tabActions])
+  }, [address, resourceAddress, handleStatus, tabActions])
 
   const noop = useCallback(() => {}, [])
 

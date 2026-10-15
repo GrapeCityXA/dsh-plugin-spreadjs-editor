@@ -16,18 +16,18 @@
  * - a live dirty flag per tab drives the "未保存" marker and the page-close guard;
  * - a dirty body that unmounts leaves a snapshot keyed by its tab, read back when
  *   the same tab mounts again, so switching away and back keeps the edits;
- * - that snapshot is kept by path as well, so once the tab record is gone,
+ * - that snapshot is kept by full session resource address as well, so once the tab record is gone,
  *   reopening the file can offer the buffer back instead of starting from disk.
  *
- * The path-keyed copy is dropped when the file is saved or the user discards it,
+ * The resource-keyed copy is dropped when the file is saved or the user discards it,
  * and it is only offered when the file it came from is still the version on disk
  * (`baseline`) — a stale buffer never silently replaces someone else's edit.
  */
 
 /** A dirty workbook's serialized contents, and what identifies the buffer. */
 export interface WorkbookSnapshot {
-  /** Path inside the session, exactly as the file address carried it. */
-  readonly path: string
+  /** Full session resource address; identical relative paths in different chats are distinct. */
+  readonly resourceAddress: string
   /** The tab occurrence whose body wrote this buffer. */
   readonly tabId: string
   /** Hash of the bytes on disk when this buffer was written, or undefined if unknown yet. */
@@ -45,12 +45,12 @@ const dirtyTabs = new Set<string>()
 const byTab = new Map<string, WorkbookSnapshot>()
 
 /**
- * The last snapshot written for a file, by path. This one outlives the tab: it is
+ * The last snapshot for a full session resource address. This outlives the tab:
  * what makes "close the tab, reopen the file" recoverable.
  */
-const byPath = new Map<string, WorkbookSnapshot>()
+const byResource = new Map<string, WorkbookSnapshot>()
 
-/** One path's recoverable buffer, and whether the file on disk still fits it. */
+/** One resource's recoverable buffer, and whether the file on disk still fits it. */
 export interface RecoverableWorkbook {
   readonly snapshot: WorkbookSnapshot
   /**
@@ -76,57 +76,58 @@ export function isTabDirty(tabId: string): boolean {
  * body, a buffer waiting for its tab to come back, or a recoverable buffer.
  */
 export function hasUnsavedWork(): boolean {
-  return dirtyTabs.size > 0 || byTab.size > 0 || byPath.size > 0
+  return dirtyTabs.size > 0 || byTab.size > 0 || byResource.size > 0
 }
 
 /**
  * Keep a dirty workbook's snapshot.
  *
  * Written under both keys on purpose: the tab key serves "switched away and
- * back", the path key serves "closed and reopened".
+ * back", the resource key serves "closed and reopened" within the same chat.
  */
 export function stashWorkbook(snapshot: WorkbookSnapshot): void {
   byTab.set(snapshot.tabId, snapshot)
-  byPath.set(snapshot.path, snapshot)
+  byResource.set(snapshot.resourceAddress, snapshot)
 }
 
 /**
  * The snapshot this tab left behind, if it left one for that same file.
  *
- * Snapshots under other tab ids for the same path belong to tab occurrences that
+ * Snapshots under other tab ids for the same resource belong to tab occurrences that
  * are over — the platform hands out a fresh id per occurrence — so they are
  * dropped here rather than lingering: this is also what keeps a buffer written
  * during the unmount that follows a tab's `signal` abort from accumulating.
  */
-export function tabWorkbook(tabId: string, path: string): WorkbookSnapshot | undefined {
+export function tabWorkbook(tabId: string, resourceAddress: string): WorkbookSnapshot | undefined {
   for (const [key, snapshot] of byTab) {
-    if (snapshot.path === path && key !== tabId) byTab.delete(key)
+    if (snapshot.resourceAddress === resourceAddress && key !== tabId) byTab.delete(key)
   }
-  return byTab.get(tabId)
+  const snapshot = byTab.get(tabId)
+  return snapshot?.resourceAddress === resourceAddress ? snapshot : undefined
 }
 
 /**
- * The recoverable buffer for `path`, with whether it still fits the file on disk.
- * @param path - file path inside the session.
+ * The recoverable buffer for a resource, with whether it still fits the file on disk.
+ * @param resourceAddress - full session resource address, including chat identity.
  * @param baseline - hash of the bytes this panel is showing, as read from disk.
  */
-export function recoverableWorkbook(path: string, baseline: string | undefined): RecoverableWorkbook | undefined {
-  const snapshot = byPath.get(path)
+export function recoverableWorkbook(resourceAddress: string, baseline: string | undefined): RecoverableWorkbook | undefined {
+  const snapshot = byResource.get(resourceAddress)
   if (snapshot === undefined) return undefined
   return { snapshot, matches: snapshot.baseline === baseline }
 }
 
 /**
- * Whether any buffer is kept for `path` at all, whatever version of the file it
+ * Whether any buffer is kept for this full resource address, whatever version it
  * was written from. This is what lets a body that has no buffer to reconcile skip
  * hashing the file it is about to open.
  */
-export function hasRecoveryBuffer(path: string): boolean {
-  return byPath.has(path)
+export function hasRecoveryBuffer(resourceAddress: string): boolean {
+  return byResource.has(resourceAddress)
 }
 
 /**
- * Forget one tab's buffer. The path-keyed copy survives, by design.
+ * Forget one tab's buffer. The resource-keyed copy survives, by design.
  */
 export function forgetTab(tabId: string): void {
   dirtyTabs.delete(tabId)
@@ -137,10 +138,10 @@ export function forgetTab(tabId: string): void {
  * Forget everything remembered for one file: it was saved, or the user chose to
  * discard the buffer.
  */
-export function forgetPath(path: string): void {
-  byPath.delete(path)
+export function forgetPath(resourceAddress: string): void {
+  byResource.delete(resourceAddress)
   for (const [key, snapshot] of byTab) {
-    if (snapshot.path === path) byTab.delete(key)
+    if (snapshot.resourceAddress === resourceAddress) byTab.delete(key)
   }
 }
 
@@ -168,5 +169,5 @@ export function watchUnloadGuard(): () => void {
 export function resetUnsavedWork(): void {
   dirtyTabs.clear()
   byTab.clear()
-  byPath.clear()
+  byResource.clear()
 }

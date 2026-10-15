@@ -33,7 +33,7 @@ describe('editor workbook bridge', () => {
     disposers.push(publishWorkbook(owner))
     const lease = provider.acquireDriverLease!()
     await provider.save!(lease)
-    expect(owner.save).toHaveBeenCalledWith(lease)
+    expect(owner.save).toHaveBeenCalledWith(lease, undefined)
     const replacement = { ...owner, id: 'second', save: vi.fn(async () => {}), releaseDriverLease: vi.fn() }
     disposers.push(publishWorkbook(replacement))
     await expect(provider.save!(lease)).rejects.toThrow(/no longer active/)
