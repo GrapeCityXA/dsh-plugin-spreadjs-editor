@@ -50,7 +50,7 @@ export const BRIDGE_REGISTRY_SERVICE = 'spreadjsBridgeRegistry'
  * serialized document.
  */
 export interface SpreadjsWorkbookProvider {
-  /** Stable identity, used to address one attached workbook among several. */
+  /** Stable provider identity, unique among attached providers in the page. */
   readonly id: string
   /** The live workbook, or undefined when nothing is open. */
   getWorkbook(): unknown | undefined
@@ -60,7 +60,7 @@ export interface SpreadjsWorkbookProvider {
    * Without it, code that needs an enum cannot run.
    */
   getNamespace?(): unknown
-  /** Absolute path of the open file, when there is one. */
+  /** Full session file resource address of the open document. */
   getActivePath?(): string | undefined
   /** Identity of this loaded document, renewed whenever its contents are loaded again. */
   getWorkbookIdentity?(): { sessionId: string; file: string; instanceId: string } | undefined

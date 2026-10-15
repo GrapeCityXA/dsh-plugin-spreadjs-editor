@@ -27,7 +27,9 @@ A DeepSeek Harness Web UI plugin that opens, views, and edits Excel / SpreadJS f
 
 本插件**单独使用就是完整的**：打开、编辑、保存工作簿都不需要别的插件。但配上 driver，它会多出一件单独做不到的事——**让 AI 直接改你屏幕上这份表**。
 
-[`@grapecity-software/dsh-spreadjs-driver`](https://www.npmjs.com/package/@grapecity-software/dsh-spreadjs-driver) 是配套 driver，必须从本编辑器获取已加载的 Workbook 引用才能执行。它不再创建服务端无头浏览器或独立工作簿；SpreadJS 授权使用前端实际部署域名。
+本编辑器通过公开的[SpreadJS 桥接契约](docs/bridge-contract.md)支持其他 driver：driver 登记到 `spreadjsBridgeRegistry`，由用户选择后获取真实 Workbook 引用，无需依赖本 editor 的 npm 包。配套 [`@grapecity-software/dsh-spreadjs-driver`](https://www.npmjs.com/package/@grapecity-software/dsh-spreadjs-driver) 是其中一种实现，也能接入其他符合该契约的 SpreadJS editor。使用同一引擎之外，还需遵守实例身份、独占锁、取消和保存协议，并核对 SpreadJS 版本及模块支持。
+
+本包不依赖任何 driver。SpreadJS、Designer 及扩展作为开发/构建依赖内联进浏览器产物，实例和授权始终由 editor 管理；DSH 与 React peers 由宿主提供。配套 Driver 不再包含 SpreadJS、Designer 或无头浏览器引擎。第三方 driver 使用自己的唯一 id；如需从服务端读取本 editor 的选择，设置文档命名空间为 `spreadjs-editor`，字段为 `bridge`。
 
 #### 安装
 
@@ -204,7 +206,9 @@ DSH 在标签页被切走时会卸载文档主体，平台也没有可供拦下�
 
 This plugin is **complete on its own**: opening, editing and saving workbooks needs nothing else. Paired with the driver, though, it gains the one thing it cannot do alone — **letting the AI edit the very sheet you have on screen**.
 
-[`@grapecity-software/dsh-spreadjs-driver`](https://www.npmjs.com/package/@grapecity-software/dsh-spreadjs-driver) requires the loaded Workbook supplied by this editor. It launches no server browser and creates no separate Workbook. SpreadJS runs and is licensed at the editor deployment origin.
+This editor supports other drivers through the public [SpreadJS bridge contract](docs/bridge-contract.md). A driver registers into `spreadjsBridgeRegistry` and receives the real Workbook only after explicit user selection, without an npm dependency on this editor. The companion [`@grapecity-software/dsh-spreadjs-driver`](https://www.npmjs.com/package/@grapecity-software/dsh-spreadjs-driver) is one implementation and can consume other compatible SpreadJS editors. Compatibility also requires document identity, leases, cancellation and save semantics, plus supported SpreadJS versions/modules.
+
+This package depends on no driver. SpreadJS, Designer and extensions are build/dev dependencies inlined into the browser bundle; the editor owns the instance and licensing. DSH and React peers are supplied by the host. The companion Driver bundles no SpreadJS, Designer or headless engine. Third-party drivers use their own unique ids; the host-side selection document for this editor is namespace `spreadjs-editor`, field `bridge`.
 
 #### Install
 

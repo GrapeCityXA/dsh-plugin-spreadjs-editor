@@ -24,6 +24,7 @@ try {
     'package/cordis.patch.yml',
     'package/package.json',
     'package/CHANGELOG.md',
+    'package/docs/bridge-contract.md',
   ]
   const missing = required.filter(file => !files.has(file))
   if (missing.length > 0) {
@@ -49,6 +50,8 @@ try {
     assert.equal(manifest.scripts?.[hook], undefined, `package must not use install-time hook ${hook}`)
   }
   assert.equal(Object.keys(manifest.dependencies ?? {}).length, 0)
+  assert.equal(manifest.peerDependencies?.['@grapecity-software/dsh-spreadjs-driver'], undefined,
+    'editor must remain independently installable without a driver')
 
   // Give the consumer the bare specifiers the node half actually imports, the
   // way a profile gives them to a plugin installed into it.

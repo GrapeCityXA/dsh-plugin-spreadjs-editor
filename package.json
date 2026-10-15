@@ -1,7 +1,7 @@
 {
   "name": "@grapecity-software/dsh-spreadjs-editor",
   "version": "0.2.2",
-  "description": "DeepSeek Harness Web UI plugin: SpreadJS workbook editor for the harness's own right Sidebar, with binary save.",
+  "description": "DSH sidebar SpreadJS editor with binary save, recovery and a selectable bridge for compatible drivers.",
   "keywords": [
     "deepseek-harness",
     "dsh",
@@ -26,6 +26,7 @@
     "lib/licenses",
     "cordis.patch.yml",
     "README.md",
+    "docs/bridge-contract.md",
     "CHANGELOG.md",
     "LICENSE",
     "THIRD_PARTY_NOTICES.md"
