@@ -161,30 +161,10 @@ export function connectBridgeSetting(
   const off = scope.subscribe(sync)
   sync()
 
-  // A choice that names nothing is not a choice.
-  //
-  // The value survives the plugin it names: uninstall the chosen bridge and the
-  // id stays in the settings document, pointing at something no longer on the
-  // roster. Every other plugin reads that id to decide whether it should step
-  // aside, so a stale one would leave the user with none of them present.
-  //
-  // Cleared only when the roster has entries and none of them is the chosen id.
-  // An EMPTY roster means nothing has registered yet — reporting every saved
-  // choice as dangling during boot would clear the very setting this exists to
-  // protect, and would also throw away a choice that a reinstall should restore.
-  const dropDangling = (): void => {
-    const chosen = registry.selected()
-    if (chosen === undefined || chosen === '') return
-    const roster = registry.list()
-    if (roster.length === 0) return
-    if (roster.some(entry => entry.id === chosen)) return
-    console.warn(
-      `[dsh-spreadjs-editor] the chosen bridge ${JSON.stringify(chosen)} is not on the roster; clearing the choice`,
-    )
-    choose(undefined)
-  }
-
-  const offRoster = registry.subscribe(dropDangling)
+  // Registration has no "roster complete" event: another bridge may arrive
+  // before the selected one at startup, or remain while it temporarily reloads.
+  // Preserve the saved id until the user changes it. The registry exposes no
+  // current bridge while it is absent, and Settings explains that state.
 
   return {
     choose,
@@ -201,7 +181,6 @@ export function connectBridgeSetting(
     dispose(): void {
       listeners.clear()
       off()
-      offRoster()
     },
   }
 }

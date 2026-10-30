@@ -67,4 +67,34 @@ describe('editor workbook bridge', () => {
     switchSession()
     await expect(opening).rejects.toThrow(/session changed/)
   })
+
+  it('does not navigate for an opening request that was already cancelled', async () => {
+    const { provider, navigation } = bridge()
+    const controller = new AbortController()
+    controller.abort(new Error('Opening cancelled'))
+    await expect(provider.openWorkbook!('dsh-resource://file/session/chat/new.xlsx', 1000, { signal: controller.signal })).rejects.toThrow('Opening cancelled')
+    expect(navigation.openResource).not.toHaveBeenCalled()
+  })
+
+  it('cancels the readiness wait and releases the opening lock for the next request', async () => {
+    vi.useFakeTimers()
+    try {
+      const { provider, navigation } = bridge()
+      const controller = new AbortController()
+      const address = 'dsh-resource://file/session/chat/new.xlsx'
+      const opening = provider.openWorkbook!(address, 60_000, { signal: controller.signal })
+      const rejected = expect(opening).rejects.toThrow('Opening cancelled')
+      controller.abort(new Error('Opening cancelled'))
+      await rejected
+      expect(vi.getTimerCount()).toBe(0)
+
+      navigation.openResource.mockImplementation(() => {
+        disposers.push(publishWorkbook({ id: 'editor', getActivePath: () => address, getWorkbook: () => ({}) }))
+      })
+      await expect(provider.openWorkbook!(address, 1000)).resolves.toBeUndefined()
+      expect(navigation.openResource).toHaveBeenCalledTimes(2)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })

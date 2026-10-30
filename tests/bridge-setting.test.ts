@@ -201,21 +201,54 @@ describe('a choice that cannot be stored is reported, not swallowed', () => {
   })
 })
 
-describe('a choice that names nothing is not a choice', () => {
-  it('drops a stored id once the roster arrives without it', async () => {
+describe('saved choices survive asynchronous bridge registration', () => {
+  it('keeps the selected bridge when another bridge registers first', async () => {
     const registry = createBridgeRegistry()
-    const { forms, set } = makeForms('uninstalled-long-ago')
+    const { forms, set } = makeForms('spreadjs-driver')
     const setting = connectBridgeSetting(forms, registry)
-    const quiet = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
-    // The real order: the plugin connects its setting during load, and the
-    // providers register afterwards. That later arrival is what settles the
-    // question of whether the saved id still names anything.
-    registry.register(makeEntry('still-here'))
+    registry.register(makeEntry('another-driver'))
+    await Promise.resolve()
+    expect(registry.selected()).toBe('spreadjs-driver')
+    expect(registry.current()).toBeUndefined()
+    expect(setting.persisted()).toBe('spreadjs-driver')
+    expect(set).not.toHaveBeenCalled()
 
-    await vi.waitFor(() => { expect(set).toHaveBeenCalledWith(BRIDGE_FIELD, NO_BRIDGE) })
+    const driver = makeEntry('spreadjs-driver')
+    registry.register(driver)
+    expect(registry.current()).toBe(driver)
+    expect(set).not.toHaveBeenCalled()
+  })
+
+  it('restores a temporarily unloaded selection while another bridge stays registered', () => {
+    const registry = createBridgeRegistry()
+    registry.register(makeEntry('another-driver'))
+    const remove = registry.register(makeEntry('spreadjs-driver'))
+    const { forms, set } = makeForms('spreadjs-driver')
+    connectBridgeSetting(forms, registry)
+
+    remove()
+    expect(registry.selected()).toBe('spreadjs-driver')
+    expect(registry.current()).toBeUndefined()
+    const replacement = makeEntry('spreadjs-driver')
+    registry.register(replacement)
+
+    expect(registry.current()).toBe(replacement)
+    expect(set).not.toHaveBeenCalled()
+  })
+
+  it('keeps an explicit None choice when the unavailable bridge later registers', async () => {
+    const registry = createBridgeRegistry()
+    const { forms, set } = makeForms('spreadjs-driver')
+    const setting = connectBridgeSetting(forms, registry)
+    setting.choose(undefined)
+    registry.register(makeEntry('spreadjs-driver'))
+    await Promise.resolve()
+
+    expect(registry.selected()).toBeUndefined()
+    expect(registry.current()).toBeUndefined()
     expect(setting.persisted()).toBe(NO_BRIDGE)
-    quiet.mockRestore()
+    expect(set).toHaveBeenCalledExactlyOnceWith(BRIDGE_FIELD, NO_BRIDGE)
   })
 
   it('keeps a stored id while the roster is still empty', async () => {

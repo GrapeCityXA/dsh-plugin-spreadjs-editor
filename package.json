@@ -1,6 +1,6 @@
 {
   "name": "@grapecity-software/dsh-spreadjs-editor",
-  "version": "0.2.3",
+  "version": "0.2.6",
   "description": "DSH sidebar SpreadJS editor with binary save, recovery and a selectable bridge for compatible drivers.",
   "keywords": [
     "deepseek-harness",
@@ -44,7 +44,8 @@
     "verify:package": "node scripts/verify-package.mjs"
   },
   "engines": {
-    "node": ">=22.19.0"
+    "node": ">=22.19.0",
+    "dsh": ">=0.2.1-rc.3 <0.3.0-0"
   },
   "publishConfig": {
     "access": "public"
@@ -55,7 +56,7 @@
   },
   "dsh": {
     "engines": {
-      "dsh": "0.2.0-rc.2"
+      "dsh": ">=0.2.1-rc.3 <0.3.0-0"
     },
     "bundle": {
       "patch": "./cordis.patch.yml"
@@ -71,50 +72,50 @@
     }
   },
   "peerDependencies": {
-    "@deepseek-ai/cordis": "~4.0.4",
-    "@deepseek-ai/schemastery": "~3.18.4",
-    "@deepseek-ai/dsh-client-ui-renderer": "0.2.0-rc.2",
-    "@deepseek-ai/dsh-client-ui-sidebar-documentpreview": "0.2.0-rc.2",
-    "@deepseek-ai/dsh-client-ui-slots": "0.2.0-rc.2",
-    "@deepseek-ai/dsh-client-ui-theme": "0.2.0-rc.2",
+    "@deepseek-ai/cordis": "~4.0.5",
+    "@deepseek-ai/dsh-client-ui-renderer": ">=0.2.1-rc.3 <0.3.0-0",
+    "@deepseek-ai/dsh-client-ui-sidebar-documentpreview": ">=0.2.1-rc.3 <0.3.0-0",
+    "@deepseek-ai/dsh-client-ui-slots": ">=0.2.1-rc.3 <0.3.0-0",
+    "@deepseek-ai/dsh-client-ui-theme": ">=0.2.1-rc.3 <0.3.0-0",
+    "@deepseek-ai/schemastery": "~3.18.5",
     "react": "^18.0.0"
   },
   "devDependencies": {
+    "@deepseek-ai/cordis": "~4.0.5",
+    "@deepseek-ai/dsh-client-ui-renderer": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-client-ui-settings": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-client-ui-sidebar-documentpreview": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-client-ui-sidebar-right": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-client-ui-slots": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-client-ui-theme": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-host-webserver": "0.2.1-rc.4",
+    "@deepseek-ai/schemastery": "~3.18.5",
     "@grapecity-software/spread-excelio": "19.2.1",
     "@grapecity-software/spread-sheets": "19.2.1",
-    "@grapecity-software/spread-sheets-io": "19.2.1",
-    "@grapecity-software/spread-sheets-resources-zh": "19.2.1",
+    "@grapecity-software/spread-sheets-barcode": "19.2.1",
+    "@grapecity-software/spread-sheets-charts": "19.2.1",
+    "@grapecity-software/spread-sheets-datacharts-addon": "19.2.1",
     "@grapecity-software/spread-sheets-designer": "19.2.1",
     "@grapecity-software/spread-sheets-designer-resources-cn": "19.2.1",
+    "@grapecity-software/spread-sheets-formula-panel": "19.2.1",
+    "@grapecity-software/spread-sheets-ganttsheet": "19.2.1",
+    "@grapecity-software/spread-sheets-io": "19.2.1",
+    "@grapecity-software/spread-sheets-languagepackages": "19.2.1",
+    "@grapecity-software/spread-sheets-pdf": "19.2.1",
+    "@grapecity-software/spread-sheets-pivot-addon": "19.2.1",
+    "@grapecity-software/spread-sheets-print": "19.2.1",
+    "@grapecity-software/spread-sheets-reportsheet-addon": "19.2.1",
+    "@grapecity-software/spread-sheets-resources-zh": "19.2.1",
     "@grapecity-software/spread-sheets-shapes": "19.2.1",
-    "@grapecity-software/spread-sheets-charts": "19.2.1",
     "@grapecity-software/spread-sheets-slicers": "19.2.1",
     "@grapecity-software/spread-sheets-sparklines": "19.2.1",
-    "@grapecity-software/spread-sheets-print": "19.2.1",
-    "@grapecity-software/spread-sheets-pdf": "19.2.1",
-    "@grapecity-software/spread-sheets-barcode": "19.2.1",
-    "@grapecity-software/spread-sheets-formula-panel": "19.2.1",
-    "@grapecity-software/spread-sheets-pivot-addon": "19.2.1",
     "@grapecity-software/spread-sheets-tablesheet": "19.2.1",
-    "@grapecity-software/spread-sheets-datacharts-addon": "19.2.1",
-    "@grapecity-software/spread-sheets-ganttsheet": "19.2.1",
-    "@grapecity-software/spread-sheets-reportsheet-addon": "19.2.1",
-    "@grapecity-software/spread-sheets-languagepackages": "19.2.1",
-    "tsdown": "^0.22.0",
-    "typescript": "^5.9.0",
-    "unrun": "^0.3.1",
-    "@deepseek-ai/cordis": "~4.0.4",
-    "@deepseek-ai/schemastery": "~3.18.4",
-    "@deepseek-ai/dsh-client-ui-renderer": "0.2.0-rc.2",
-    "@deepseek-ai/dsh-client-ui-slots": "0.2.0-rc.2",
-    "@deepseek-ai/dsh-client-ui-sidebar-right": "0.2.0-rc.2",
-    "@deepseek-ai/dsh-client-ui-sidebar-documentpreview": "0.2.0-rc.2",
-    "@deepseek-ai/dsh-client-ui-theme": "0.2.0-rc.2",
-    "@deepseek-ai/dsh-client-ui-settings": "0.2.0-rc.2",
-    "@deepseek-ai/dsh-host-webserver": "0.2.0-rc.2",
     "@types/node": "^22.0.0",
     "@types/react": "^18.3.0",
     "react": "^18.2.0",
+    "tsdown": "^0.22.0",
+    "typescript": "^5.9.0",
+    "unrun": "^0.3.1",
     "vitest": "^3.0.0"
   },
   "license": "MIT"

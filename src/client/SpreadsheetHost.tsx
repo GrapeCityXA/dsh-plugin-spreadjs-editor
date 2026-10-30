@@ -57,7 +57,8 @@ export interface SpreadsheetHostHandle {
    * A rejected write propagates: the caller is showing a dialog and has to say what
    * went wrong, which is also where a conflict becomes a sentence about the name.
    */
-  saveAs: (path: string) => Promise<void>
+  /** Returns false when newer edits remain after the copy was written. */
+  saveAs: (path: string) => Promise<boolean>
   exportAs: (format: ExportFormat) => Promise<void>
   newWorkbook: () => void
   /**
@@ -156,6 +157,8 @@ export interface SpreadsheetHostProps {
    * to the document, which is the half that knows the address.
    */
   onUnsaved: (workbook: object) => void
+  /** The current live revision was written back; its recovery buffer is spent. */
+  onSaved?: () => void
   onDriverBusyChange: (busy: boolean) => void
 }
 
@@ -342,10 +345,12 @@ function workbookBlob(spread: any, path: string, format?: ExportFormat): Promise
 }
 
 export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHostProps>(
-  function SpreadsheetHost({ source, load, licenseKey, designerLicenseKey = '', ready, fileAccess, onStatus, onLoadingChange, onNewWorkbook, onDirtyChange, onUnsaved, onDriverBusyChange }, ref) {
+  function SpreadsheetHost({ source, load, licenseKey, designerLicenseKey = '', ready, fileAccess, onStatus, onLoadingChange, onNewWorkbook, onDirtyChange, onUnsaved, onSaved, onDriverBusyChange }, ref) {
     const hostRef = useRef<HTMLDivElement | null>(null)
     const designerRef = useRef<DesignerLike | null>(null)
     const loadSeqRef = useRef(0)
+    /** Native imports mutate this same workbook asynchronously and cannot overlap. */
+    const loadTailRef = useRef<Promise<void>>(Promise.resolve())
     const sourceRef = useRef(source)
     /**
      * The newest write-back. The Designer's own Save command and the driver
@@ -366,11 +371,14 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
     const loadDeferredRef = useRef(false)
     /** Whether the live workbook holds edits that are not on disk. */
     const dirtyRef = useRef(false)
+    /** Edits after an export started still need saving when its write finishes. */
+    const editRevisionRef = useRef(0)
     /** The edit watch over the current workbook, stopped with it. */
     const dirtyWatchRef = useRef<DirtyWatch | null>(null)
     /** The newest reporters; both outlive a render, like the save redirect above. */
     const onDirtyChangeRef = useRef(onDirtyChange)
     const onUnsavedRef = useRef(onUnsaved)
+    const onSavedRef = useRef(onSaved)
     const onDriverBusyChangeRef = useRef(onDriverBusyChange)
     const [status, setStatus] = useState<LoadStatus>({ kind: 'idle' })
     const [driverBusy, setDriverBusy] = useState(false)
@@ -385,6 +393,7 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
     saveRef.current = save
     onDirtyChangeRef.current = onDirtyChange
     onUnsavedRef.current = onUnsaved
+    onSavedRef.current = onSaved
     onDriverBusyChangeRef.current = onDriverBusyChange
 
     /**
@@ -397,6 +406,7 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
      */
     function markWorkbookDirty(): void {
       if (loadInFlightRef.current) return
+      editRevisionRef.current += 1
       dirtyRef.current = true
       onDirtyChangeRef.current(true)
     }
@@ -405,6 +415,12 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
     function markWorkbookClean(): void {
       dirtyRef.current = false
       onDirtyChangeRef.current(false)
+    }
+
+    function markExportSaved(revision: number, loadSequence: number): boolean {
+      if (editRevisionRef.current !== revision || loadSeqRef.current !== loadSequence) return false
+      markWorkbookClean()
+      return true
     }
 
     // SpreadJS and Designer require separate license keys and both must be set
@@ -559,7 +575,12 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
       setStatus({ kind: 'loading' })
       onLoadingChange(true)
       onStatus(buffer === undefined ? `Loading ${source.name}…` : 'Restoring unsaved changes…', 'busy')
-      void (async () => {
+      const previousLoad = loadTailRef.current
+      const pendingLoad = (async () => {
+        await previousLoad
+        // Older pending imports may finish, but only the newest queued request
+        // may start another mutation of this Designer's shared Workbook.
+        if (seq !== loadSeqRef.current || designerRef.current !== designer) return
         const spread = designer.getWorkbook()
         if (spread === undefined) throw new Error('Designer workbook is not available')
         spread.suspendPaint()
@@ -579,7 +600,10 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
         }
         if (seq !== loadSeqRef.current) return
         spread.refresh?.()
-      })().then(() => {
+      })()
+      // A failed native import must not block the next requested load forever.
+      loadTailRef.current = pendingLoad.catch(() => {})
+      void pendingLoad.then(() => {
         if (seq !== loadSeqRef.current) return
         loadInFlightRef.current = false
         workbookReadyRef.current = true
@@ -644,6 +668,8 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
         throw new WorkbookNotReadyError('Another save is already running')
       }
       saveInFlightRef.current = true
+      const revision = editRevisionRef.current
+      const loadSequence = loadSeqRef.current
       onLoadingChange(true)
       onStatus(`Saving ${current.name}…`, 'busy')
       try {
@@ -651,19 +677,20 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
         // Export may be asynchronous. Check permission again just before write-back.
         await options?.beforeWrite?.()
         options?.signal?.throwIfAborted()
-        if (designerRef.current !== designer || sourceRef.current !== current || !workbookReadyRef.current) {
+        if (designerRef.current !== designer || sourceRef.current !== current || loadSeqRef.current !== loadSequence || !workbookReadyRef.current) {
           throw new WorkbookNotReadyError('The editor closed or changed workbooks before saving')
         }
         const result = await fileAccess.save(blob, current, options?.signal)
-        // What is on disk is now the workbook in front of the user, so there is
-        // nothing left that a buffer would have to keep.
-        markWorkbookClean()
         if (result === 'download') {
           onStatus(`Saved ${current.name} as download`, 'idle')
           throw new WorkbookNotWrittenError(
             `${current.name} was downloaded, not written back — there is no file to write it to`,
           )
         }
+        // Saving does not lock the Designer. A newer edit or replacement loaded
+        // while exporting/writing is not represented by these bytes.
+        const currentRevisionSaved = markExportSaved(revision, loadSequence)
+        if (currentRevisionSaved) onSavedRef.current?.()
         onStatus(`Saved ${current.name}`, 'idle')
       } catch (error) {
         // The refusal above already worded itself in the status line; anything
@@ -733,20 +760,28 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
      * because the edits are now on disk under the new path — the document half is
      * about to show that very file.
      */
-    async function saveAs(path: string): Promise<void> {
+    async function saveAs(path: string): Promise<boolean> {
       if (driverLeaseRef.current !== undefined) throw new WorkbookNotReadyError('The Driver currently owns this workbook')
       const designer = designerRef.current
-      if (designer === null) throw new WorkbookNotReadyError('The workbook is not ready yet')
+      const current = sourceRef.current
+      if (designer === null || current === undefined || !workbookReadyRef.current) {
+        throw new WorkbookNotReadyError('The workbook is not ready yet')
+      }
       // Same guard as save(): a workbook that is still loading has no content, and
       // writing it now would put an empty book where a file used to be.
       if (loadInFlightRef.current) throw new WorkbookNotReadyError('The workbook is still loading')
       if (saveInFlightRef.current) throw new WorkbookNotReadyError('Another save is already running')
       saveInFlightRef.current = true
+      const revision = editRevisionRef.current
+      const loadSequence = loadSeqRef.current
       onLoadingChange(true)
       try {
         const blob = await workbookBlob(designer.getWorkbook(), path)
+        if (designerRef.current !== designer || sourceRef.current !== current || loadSeqRef.current !== loadSequence || !workbookReadyRef.current) {
+          throw new WorkbookNotReadyError('The editor closed or changed workbooks before saving')
+        }
         await fileAccess.saveTo(blob, path)
-        markWorkbookClean()
+        return markExportSaved(revision, loadSequence)
       } finally {
         saveInFlightRef.current = false
         onLoadingChange(false)

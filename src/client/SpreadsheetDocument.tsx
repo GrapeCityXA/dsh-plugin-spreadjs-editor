@@ -139,6 +139,13 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
   const resourceAddress = props.resourceAddress
   const content = props.content as DocumentContent | undefined
   const address = useMemo(() => parseSessionFileAddress(resourceAddress), [resourceAddress])
+  // A completed upload may outlive this body. It must not clear a snapshot left
+  // by unmount, update a replacement document's baseline, or navigate a new tab.
+  const lifetime = useMemo(() => ({ active: true }), [resourceAddress])
+  useEffect(() => {
+    lifetime.active = true
+    return () => { lifetime.active = false }
+  }, [lifetime])
   const bytes = content?.kind === 'bytes' ? content.data : undefined
   const source = useMemo<SpreadsheetSource | undefined>(() => {
     if (address === undefined || bytes === undefined) return undefined
@@ -435,10 +442,11 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
   const fileAccess = useMemo<SpreadsheetFileAccess>(() => ({
     save: async (blob, target, signal): Promise<SpreadsheetSaveResult> => {
       const written = await writeWorkbook(blob, target.path, baselineRef.current, signal)
-      baselineRef.current = written.hash ?? await contentHash(new Uint8Array(await blob.arrayBuffer()))
-      // What is on disk is now exactly what this panel holds, so every buffer kept
-      // for this file is spent — including one restored from a tab that is gone.
-      forgetPath(resourceAddress)
+      if (lifetime.active) {
+        baselineRef.current = written.hash ?? await contentHash(new Uint8Array(await blob.arrayBuffer()))
+      }
+      // The Host decides whether these bytes still represent the live revision.
+      // Clearing recovery here would erase a newer snapshot kept during upload.
       return 'saved'
     },
     saveTo: async (blob, path): Promise<void> => {
@@ -447,7 +455,11 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
       // path takes over and hashes what is there.
       await writeWorkbook(blob, path, undefined)
     },
-  }), [writeWorkbook, resourceAddress])
+  }), [writeWorkbook, lifetime])
+
+  const handleSaved = useCallback(() => {
+    if (lifetime.active) forgetPath(resourceAddress)
+  }, [lifetime, resourceAddress])
 
   /** Keep the buffer the user was offered, and put it in the Designer. */
   const restoreOffered = useCallback(() => {
@@ -501,9 +513,11 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
     }
     setSaveAsBusy(true)
     setSaveAsError('')
+    let currentRevisionSaved: boolean
     try {
-      await host.saveAs(target)
+      currentRevisionSaved = await host.saveAs(target)
     } catch (error) {
+      if (!lifetime.active) return
       const failure = error instanceof SaveConflictError
         ? 'conflict'
         : error instanceof WorkbookNotReadyError
@@ -513,11 +527,16 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
       setSaveAsBusy(false)
       return
     }
+    if (!lifetime.active) return
     // The write is done: everything after this point reports it, never undoes it.
     setSaveAsBusy(false)
     const writtenFrom = address.path
-    forgetPath(resourceAddress)
     setSaveAsOpen(false)
+    if (!currentRevisionSaved) {
+      handleStatus(`${editorText('saveAs.done')}${target}. ${editorText('saveAs.newerEdits')}`, 'idle')
+      return
+    }
+    forgetPath(resourceAddress)
     handleStatus(`${editorText('saveAs.done')}${target}`, 'idle')
     console.info(`[dsh-spreadjs-editor] saved ${writtenFrom} as ${target}`)
     if (tabActions === undefined) {
@@ -532,7 +551,7 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
       // A failed navigation is not a failed save, and must not be reported as one.
       console.warn('[dsh-spreadjs-editor] could not open the file just written:', error)
     }
-  }, [address, resourceAddress, handleStatus, tabActions])
+  }, [address, resourceAddress, handleStatus, tabActions, lifetime])
 
   const noop = useCallback(() => {}, [])
 
@@ -598,6 +617,7 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
           onNewWorkbook={noop}
           onDirtyChange={handleDirtyChange}
           onUnsaved={handleUnsaved}
+          onSaved={handleSaved}
           onDriverBusyChange={handleDriverBusyChange}
         />
       </div>

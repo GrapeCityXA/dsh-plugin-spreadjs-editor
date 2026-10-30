@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createHash } from 'node:crypto'
-import { readFile, mkdtemp, rm } from 'node:fs/promises'
+import { readFile, mkdtemp, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, sep } from 'node:path'
 import { Readable } from 'node:stream'
@@ -370,6 +370,62 @@ describe('POST /spreadjs/api/save', () => {
       expect(JSON.parse(res.body).error.code).toBe('conflict')
       // The guard refused before writing: the target was never created on disk.
       await expect(readFile(join(root, 'book.xlsx'))).rejects.toThrow()
+    })
+  })
+
+  it('preserves the file when its metadata cannot be read', async () => {
+    await withRoot(async root => {
+      const original = new Uint8Array([1, 1, 1])
+      const path = join(root, 'book.xlsx')
+      await writeFile(path, original)
+      const fs = makeFsService(root)
+      fs.stat.mockRejectedValue(Object.assign(new Error('Permission denied'), { code: 'EACCES' }))
+      const { request } = harness(undefined, { ...services(root), fs })
+      const body = new Uint8Array([2, 2, 2])
+      const res = await request(saveUrl({ sessionId: 's1', path: 'book.xlsx', body: sha256(body) }), {
+        method: 'POST', headers: LOOPBACK, body,
+      })
+      expect(res.status).toBe(500)
+      expect(new Uint8Array(await readFile(path))).toEqual(original)
+    })
+  })
+
+  it.each([false, true])('allows only one concurrent save based on the same file state (exists: %s)', async exists => {
+    await withRoot(async root => {
+      const original = new Uint8Array([1, 1, 1])
+      const path = join(root, 'book.xlsx')
+      if (exists) await writeFile(path, original)
+      const fs = {
+        ...makeFsService(root),
+        stat: async (target: Target) => {
+          try {
+            const info = await stat(target.displayPath)
+            return { type: info.isFile() ? 'file' : 'directory', size: info.size }
+          } catch (error) {
+            if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined
+            throw error
+          }
+        },
+        readBytes: async (target: Target) => readFile(target.displayPath),
+      }
+      const { request } = harness(undefined, { ...services(root), fs })
+      const bodies = Array.from({ length: 8 }, (_, index) => new Uint8Array([index + 2]))
+      const responses = await Promise.all(bodies.map(body => request(saveUrl({
+        sessionId: 's1', path: 'book.xlsx', body: sha256(body),
+        ...(exists ? { base: sha256(original) } : {}),
+      }), { method: 'POST', headers: LOOPBACK, body })))
+      const winners = responses.flatMap((response, index) => response.status === 200 ? [index] : [])
+      expect(winners).toHaveLength(1)
+      expect(responses.filter(response => response.status === 409)).toHaveLength(bodies.length - 1)
+      expect(new Uint8Array(await readFile(path))).toEqual(bodies[winners[0]!])
+
+      // A failed freshness check must release the queue for later valid saves.
+      const next = new Uint8Array([99])
+      const res = await request(saveUrl({
+        sessionId: 's1', path: 'book.xlsx', body: sha256(next), base: sha256(bodies[winners[0]!]!),
+      }), { method: 'POST', headers: LOOPBACK, body: next })
+      expect(res.status).toBe(200)
+      expect(new Uint8Array(await readFile(path))).toEqual(next)
     })
   })
 })

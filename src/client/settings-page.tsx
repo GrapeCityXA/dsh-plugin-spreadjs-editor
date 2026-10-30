@@ -73,8 +73,9 @@ export function bridgeSettingsPage(
       { id: undefined, title: editorText('settings.none') },
     ]
 
-    // Only the "none" row: no bridge is installed, so there is no choice to make.
-    if (options.length === 1) {
+    // A missing saved bridge remains a choice until the user changes it. Even
+    // with an empty roster, keep "none" available so that choice can be cleared.
+    if (options.length === 1 && chosen === undefined) {
       return (
         <div className="dsh-spreadjs-settings">
           <p className="dsh-spreadjs-settings-hint">{editorText('settings.empty')}</p>
@@ -83,6 +84,7 @@ export function bridgeSettingsPage(
     }
 
     const index = options.findIndex(option => option.id === chosen)
+    const missing = chosen !== undefined && index < 0
 
     /**
      * Move the selection `delta` rows, wrapping at both ends.
@@ -93,7 +95,8 @@ export function bridgeSettingsPage(
      * render will draw has not reached the DOM yet at this point.
      */
     const move = (delta: number): void => {
-      const next = (index + delta + options.length) % options.length
+      const current = index < 0 ? (delta > 0 ? -1 : 0) : index
+      const next = (current + delta + options.length) % options.length
       const option = options[next]
       if (option === undefined) return
       setting.choose(option.id)
@@ -115,6 +118,11 @@ export function bridgeSettingsPage(
         <p className="dsh-spreadjs-settings-hint" id="dsh-spreadjs-bridge-hint">
           {editorText('settings.hint')}
         </p>
+        {missing ? (
+          <p className="dsh-spreadjs-settings-warning" role="status">
+            {editorText('settings.unavailable')} <code>{chosen}</code>
+          </p>
+        ) : null}
         {/* Only after a write that did not land. Silently showing the choice as
             made is what let a never-persisted setting look like a working one
             until the next start, when it was simply gone. */}
@@ -137,7 +145,7 @@ export function bridgeSettingsPage(
               aria-checked={option.id === chosen}
               // A roving tab stop: the group is one stop and the arrows move
               // inside it, which is what a radio group is expected to do.
-              tabIndex={option.id === chosen ? 0 : -1}
+              tabIndex={position === (index < 0 ? 0 : index) ? 0 : -1}
               ref={element => { rows.current[position] = element }}
               className="dsh-spreadjs-settings-row"
               onClick={() => { setting.choose(option.id) }}

@@ -67,7 +67,7 @@ export interface SpreadjsWorkbookProvider {
   /** Session currently visible in the host; permits opening before a panel exists. */
   getSessionId?(): string | undefined
   /** Open through the owner's public sidebar navigation and wait for its workbook. */
-  openWorkbook?(address: string, timeoutMs: number): Promise<void>
+  openWorkbook?(address: string, timeoutMs: number, options?: { signal?: AbortSignal }): Promise<void>
   /** Ask the owner to persist the live workbook to its file. */
   save?(lease?: string, options?: { signal?: AbortSignal; beforeWrite?: () => Promise<void> }): Promise<void>
   /** Acquire an exclusive lease while a bridge is executing against the workbook. */

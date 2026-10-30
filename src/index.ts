@@ -367,6 +367,24 @@ async function replaceFile(targetPath: string, bytes: Uint8Array): Promise<void>
   }
 }
 
+/** Keep the freshness check and replacement together for saves to one file. */
+const pendingSaves = new Map<string, Promise<void>>()
+
+async function withSaveLock(targetPath: string, save: () => Promise<void>): Promise<void> {
+  const key = process.platform === 'win32' ? targetPath.toLowerCase() : targetPath
+  const previous = pendingSaves.get(key)
+  let release!: () => void
+  const pending = new Promise<void>(resolve => { release = resolve })
+  pendingSaves.set(key, pending)
+  await previous
+  try {
+    await save()
+  } finally {
+    release()
+    if (pendingSaves.get(key) === pending) pendingSaves.delete(key)
+  }
+}
+
 /**
  * Save one workbook posted by the document panel.
  *
@@ -417,21 +435,26 @@ async function handleSave(
     throw new HttpError(400, 'hash_mismatch', 'The uploaded bytes do not match the declared body hash')
   }
 
-  const existing = await fs.stat(target).catch(() => undefined)
-  if (existing !== undefined) {
-    if (existing.type !== 'file') throw new HttpError(400, 'not_a_file', `${target.displayPath} is not a regular file`)
-    if (baseHash === null || baseHash === '') {
-      throw new HttpError(409, 'conflict', 'The file already exists but the editor did not state what it opened')
+  const targetPath = fs.processPath(target)
+  await withSaveLock(targetPath, async () => {
+    // Only an absent stat result means a new file. Permission and I/O failures
+    // must abort the save rather than bypass the existing-file guard.
+    const existing = await fs.stat(target)
+    if (existing !== undefined) {
+      if (existing.type !== 'file') throw new HttpError(400, 'not_a_file', `${target.displayPath} is not a regular file`)
+      if (baseHash === null || baseHash === '') {
+        throw new HttpError(409, 'conflict', 'The file already exists but the editor did not state what it opened')
+      }
+      const current = await fs.readBytes(target, undefined, limit)
+      if (sha256Hex(current) !== baseHash.toLowerCase()) {
+        throw new HttpError(409, 'conflict', 'The file changed on disk since it was opened; nothing was written')
+      }
+    } else if (baseHash !== null && baseHash !== '') {
+      throw new HttpError(409, 'conflict', 'The editor expected an existing file but none is there')
     }
-    const current = await fs.readBytes(target, undefined, limit)
-    if (sha256Hex(current) !== baseHash.toLowerCase()) {
-      throw new HttpError(409, 'conflict', 'The file changed on disk since it was opened; nothing was written')
-    }
-  } else if (baseHash !== null && baseHash !== '') {
-    throw new HttpError(409, 'conflict', 'The editor expected an existing file but none is there')
-  }
 
-  await replaceFile(fs.processPath(target), bytes)
+    await replaceFile(targetPath, bytes)
+  })
   sendJson(res, 200, { ok: true, hash, path: target.displayPath })
 }
 

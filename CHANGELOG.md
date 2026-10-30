@@ -1,5 +1,51 @@
 # Release Notes / 版本记录
 
+## 0.2.6
+
+### 中文
+
+**放宽 DSH 兼容范围，修复保存与恢复中的数据丢失风险**
+
+- DSH 兼容声明和 UI peer 范围调整为 `>=0.2.1-rc.3 <0.3.0-0`，开发依赖继续固定在 `0.2.1-rc.4`。同一范围内的 patch 和 RC 不再要求逐个发布插件；扩展到新的 DSH 次版本前先验证 API 和运行行为。
+- 保存期间继续编辑时，新改动仍标为未保存；关闭或切换标签页后，稍后完成的旧保存不会清除新留下的恢复快照。
+- 另存为只写入了较早内容时，保留当前文件和后续改动，并提示继续保存；文档已关闭或切走时，不再因旧任务完成而自动跳转。
+- 串行载入同一工作簿，避免旧加载最后完成并覆盖新内容。载入失败或导出期间工作簿发生切换、重新加载时，拒绝写入过时内容。
+- 在同一宿主进程内，串行执行同一文件的冲突检查与写回，拒绝基于旧文件版本的后续保存；读取文件状态失败时停止写入。
+- 保留延迟加载或临时重载的桥选择，避免其他桥先注册时清空用户设置；设置页会提示所选桥暂不可用，并允许改选或选择「不使用」。
+- 打开工作簿支持取消信号：导航前拒绝已取消的请求，取消后停止加载等待并释放打开锁。
+
+**升级说明：** 建议与 Driver `0.1.4` 配套升级，完成打开任务的取消处理。恢复快照仍仅在当前页面生命周期内有效；取消不会撤销已发生的导航或已发送的写入。
+
+**验证：** 类型检查、240 项单测、构建、两个 smoke 和独立离线包安装校验通过；用户在 DSH `0.2.1-rc.4` dev 环境做过基本回归，未发现问题。rc.3、rc.4、rc.5 相关 UI API 包实现比对无差异，桌面运行验证基线为 rc.4。
+
+### English
+
+**Broaden DSH compatibility and fix save and recovery data-loss risks**
+
+- Declare DSH and UI peer compatibility as `>=0.2.1-rc.3 <0.3.0-0`, keeping development dependencies pinned to `0.2.1-rc.4`. Patch and RC updates within this range no longer require individual plugin releases; verify APIs and runtime behavior before supporting a new DSH minor.
+- Keep edits made during a save marked as unsaved. An earlier upload finishing after a tab closes or switches no longer clears its newer recovery snapshot.
+- Keep the current file and later edits when Save As wrote an older revision, and explain that another save is needed. A completed Save As no longer navigates after its document has closed or switched away.
+- Serialize imports into one Workbook so an older load cannot overwrite newer contents. Refuse stale exports after a load failure, workbook switch or reload.
+- Serialize conflict checks and writes to each file within the same host process, rejecting subsequent saves based on an outdated version. Stop writes when file metadata cannot be read.
+- Preserve bridge selections during delayed registration and temporary reloads. Settings explains unavailable selections and lets users choose another bridge or None.
+- Accept cancellation signals when opening workbooks: refuse cancelled requests before navigation, stop readiness waits and release the opening lock.
+
+**Upgrade notes:** Update together with Driver `0.1.4` for complete opening cancellation support. Recovery snapshots remain limited to the current page lifetime. Cancellation does not undo navigation or writes already sent.
+
+**Validation:** Typecheck, 240 tests, build, both smokes and an independent offline package installation passed. The user completed basic development desktop checks on DSH `0.2.1-rc.4` without finding issues. Relevant UI API implementations compare without differences across rc.3, rc.4 and rc.5; desktop runtime validation is on rc.4.
+
+## 0.2.5
+
+- 将 DSH 开发依赖、宿主 peer 与兼容声明更新至 `0.2.1-rc.4`，补齐安装器读取的顶层 `engines.dsh`，解决在该 RC 中安装时的版本不兼容拦截。
+- 用户已确认 DSH `0.2.1-rc.4` 的 dev 环境运行正常。请配套使用 Driver `0.1.3`。
+- Target DSH `0.2.1-rc.4` in development dependencies, host peers and compatibility declarations, including the top-level `engines.dsh` read by the installer, so this RC accepts the plugin.
+- The user confirmed the DSH `0.2.1-rc.4` development environment works. Use companion Driver `0.1.3`.
+
+## 0.2.4
+
+- 更新 editor 与配套 driver 的 DSH 支持基线至 `0.2.1-rc.2`，并升级对应的 Cordis、Schemastery 与 UI/host 开发依赖。
+- Move the editor and companion driver support baseline to DSH `0.2.1-rc.2`, and update the matching Cordis, Schemastery and UI/host development dependencies.
+
 ## 0.2.3
 
 ### 中文

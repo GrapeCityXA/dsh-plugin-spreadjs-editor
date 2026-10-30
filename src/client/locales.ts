@@ -45,6 +45,7 @@ export type EditorTextKey =
   | 'saveAs.suffix'
   | 'saveAs.done'
   | 'saveAs.exists'
+  | 'saveAs.newerEdits'
   | 'unsaved.dirty'
   | 'unsaved.restored'
   | 'unsaved.stale'
@@ -56,6 +57,7 @@ export type EditorTextKey =
   | 'settings.hint'
   | 'settings.empty'
   | 'settings.none'
+  | 'settings.unavailable'
   | 'settings.notSavedRefused'
   | 'settings.notSavedFailed'
 
@@ -93,6 +95,7 @@ const FALLBACK_TEXT: Record<EditorTextKey, string> = {
   'saveAs.suffix': '副本',
   'saveAs.done': '已另存为 ',
   'saveAs.exists': '目标文件已存在，请换一个名字',
+  'saveAs.newerEdits': '副本已保存，但保存期间的新修改仍在当前文件中，请继续保存。',
   'unsaved.dirty': '未保存的改动',
   'unsaved.restored': '已恢复本会话中未保存的改动。',
   'unsaved.stale': '存在未保存的改动缓存，但文件已在磁盘上被修改。',
@@ -106,6 +109,7 @@ const FALLBACK_TEXT: Record<EditorTextKey, string> = {
   'settings.hint': '选择由哪个插件驱动你正打开的那张表。被选中的插件会接管那份文档，且仅在它打开期间。',
   'settings.empty': '还没有安装任何桥。桥是让 AI 直接改你正打开的那张表的插件；没有它，这个编辑器照样能打开和保存文件。',
   'settings.none': '不使用',
+  'settings.unavailable': '已选择的桥当前不可用；它加载后会自动连接，也可以选择其他桥或「不使用」。',
   'settings.notSavedRefused': '宿主没有接受这次更改，所以它只在你刷新前有效。',
   'settings.notSavedFailed': '这次更改没能保存，所以它只在你刷新前有效。',
 }
@@ -135,6 +139,7 @@ const DICTIONARIES: { zh: Record<string, string>; en: Record<string, string> } =
     'settings.hint': 'Choose which plugin drives the spreadsheet you have open. The chosen one is handed that document, and only while it is open.',
     'settings.empty': 'No bridge is installed. A bridge is what lets the agent edit the workbook you have open; without one, this editor still opens and saves files.',
     'settings.none': 'None',
+    'settings.unavailable': 'The selected bridge is currently unavailable. It will reconnect when loaded; you can also choose another bridge or None.',
     'settings.notSavedRefused': 'The host did not accept this change, so it applies only until you reload.',
     'settings.notSavedFailed': 'This change could not be saved, so it applies only until you reload.',
     'saveAs.saving': 'Saving…',
@@ -144,6 +149,7 @@ const DICTIONARIES: { zh: Record<string, string>; en: Record<string, string> } =
     'saveAs.suffix': 'copy',
     'saveAs.done': 'Saved as ',
     'saveAs.exists': 'That file already exists; choose another name',
+    'saveAs.newerEdits': 'The copy was saved, but newer edits remain in the current file. Save again to keep them.',
     'unsaved.dirty': 'Unsaved changes',
     'unsaved.restored': 'Restored unsaved changes from this session.',
     'unsaved.stale': 'An unsaved buffer exists, but the file changed on disk.',

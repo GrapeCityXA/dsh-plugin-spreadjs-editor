@@ -5,6 +5,7 @@ const h = vi.hoisted(() => ({
   refs: [] as Array<{ current: any }>, effects: [] as Array<{ deps: any[]; cleanup?: () => void }>,
   pending: [] as Array<() => void>, refIndex: 0, effectIndex: 0,
   fromJSON: vi.fn(), workbook: undefined as any,
+  markDirty: undefined as (() => void) | undefined,
 }))
 vi.mock('react', () => ({
   forwardRef: (render: any) => render,
@@ -49,7 +50,13 @@ vi.mock('../src/client/styles.ts', () => ({ setEditorTheme() {} }))
 vi.mock('../src/client/ds-theme.ts', () => ({ harnessThemeIsDark: () => false, onHarnessThemeChange: () => () => {} }))
 vi.mock('../src/client/about.ts', () => ({ installDesignerAbout: () => ({ installed: true }) }))
 vi.mock('../src/client/designer-save-command.ts', () => ({ redirectDesignerSave: () => true, registerDesignerSaveTarget: () => () => {} }))
-vi.mock('../src/client/workbook-dirty.ts', () => ({ resolveDirtyEvents: () => [], watchWorkbookChanges: () => ({ stop() {} }) }))
+vi.mock('../src/client/workbook-dirty.ts', () => ({
+  resolveDirtyEvents: () => [],
+  watchWorkbookChanges: (_workbook: unknown, onDirty: () => void) => {
+    h.markDirty = onDirty
+    return { stop() {} }
+  },
+}))
 
 import { SpreadsheetHost, type SpreadsheetHostHandle, type SpreadsheetHostProps } from '../src/client/SpreadsheetHost.tsx'
 import { stashWorkbook, resetUnsavedWork } from '../src/client/unsaved.ts'
@@ -72,8 +79,8 @@ describe('editor Workbook availability for drivers', () => {
       source: { name: 'book.ssjson', path: 'book.ssjson', bytes: new Uint8Array() },
       load: { kind: 'buffer', workbook: {} }, ready: true, licenseKey: '',
       fileAccess: { save: vi.fn(async () => 'saved' as const), saveTo: vi.fn(async () => {}) },
-      onStatus() {}, onLoadingChange() {}, onNewWorkbook() {}, onDirtyChange() {},
-      onUnsaved: vi.fn(), onDriverBusyChange: vi.fn(),
+      onStatus() {}, onLoadingChange() {}, onNewWorkbook() {}, onDirtyChange: vi.fn(),
+      onUnsaved: vi.fn(), onSaved: vi.fn(), onDriverBusyChange: vi.fn(),
     }
     h.refIndex = 0; h.effectIndex = 0
     ;(SpreadsheetHost as unknown as (props: SpreadsheetHostProps, ref: any) => unknown)(props, ref)
@@ -81,6 +88,92 @@ describe('editor Workbook availability for drivers', () => {
     await settle()
     return { host: ref.current!, props, unmount: () => { for (const effect of h.effects) effect?.cleanup?.() } }
   }
+
+  it.each(['save', 'saveAs'] as const)('keeps edits made during %s dirty and recoverable', async (operation) => {
+    const { host, props, unmount } = await loadedHost()
+    const write = deferred()
+    props.fileAccess.save = vi.fn(() => write.promise.then(() => 'saved' as const))
+    props.fileAccess.saveTo = vi.fn(() => write.promise)
+    const saving = operation === 'save' ? host.save() : host.saveAs('copy.ssjson')
+    await settle()
+    // Export has finished, but the host has not confirmed the write. The Designer
+    // remains editable, and this later edit is absent from the exported bytes.
+    h.markDirty!()
+    write.resolve()
+    const result = await saving
+    if (operation === 'saveAs') expect(result).toBe(false)
+    expect(props.onDirtyChange).toHaveBeenLastCalledWith(true)
+    expect(props.onSaved).not.toHaveBeenCalled()
+    unmount()
+    expect(props.onUnsaved).toHaveBeenCalledWith({ cells: ['AI edit'] })
+  })
+
+  it('marks an unchanged workbook clean after saving', async () => {
+    const { host, props, unmount } = await loadedHost()
+    await host.save()
+    expect(props.onDirtyChange).toHaveBeenLastCalledWith(false)
+    expect(props.onSaved).toHaveBeenCalledOnce()
+    unmount()
+    expect(props.onUnsaved).not.toHaveBeenCalled()
+  })
+
+  it.each(['save', 'saveAs'] as const)('does not clear recovery when %s completes after unmount', async (operation) => {
+    const { host, props, unmount } = await loadedHost()
+    const write = deferred()
+    props.fileAccess.save = vi.fn(() => write.promise.then(() => 'saved' as const))
+    props.fileAccess.saveTo = vi.fn(() => write.promise)
+    const saving = operation === 'save' ? host.save() : host.saveAs('copy.ssjson')
+    await settle()
+    unmount()
+    write.resolve()
+    const result = await saving
+    if (operation === 'saveAs') expect(result).toBe(false)
+    expect(props.onSaved).not.toHaveBeenCalled()
+    expect(props.onUnsaved).toHaveBeenCalledOnce()
+    expect(props.onDirtyChange).toHaveBeenLastCalledWith(true)
+  })
+
+  it('refuses Save As after a failed load', async () => {
+    const { host, props, unmount } = await loadedHost()
+    h.fromJSON.mockRejectedValueOnce(new Error('invalid workbook'))
+    props.load = { kind: 'buffer', workbook: { invalid: true } }
+    h.refIndex = 0; h.effectIndex = 0
+    ;(SpreadsheetHost as unknown as (props: SpreadsheetHostProps, ref: any) => unknown)(props, { current: null })
+    for (const effect of h.pending.splice(0)) effect()
+    await settle()
+    await expect(host.saveAs('copy.ssjson')).rejects.toThrow(/not ready/)
+    expect(props.fileAccess.saveTo).not.toHaveBeenCalled()
+    unmount()
+  })
+
+  it('refuses Save As when the editor unmounts during export', async () => {
+    const { host, props, unmount } = await loadedHost()
+    let finishExport!: (blob: Blob) => void
+    h.workbook.export = (ok: (blob: Blob) => void) => { finishExport = ok }
+    const saving = host.saveAs('copy.ssjson')
+    unmount()
+    finishExport(new Blob(['{}']))
+    await expect(saving).rejects.toThrow(/closed or changed/)
+    expect(props.fileAccess.saveTo).not.toHaveBeenCalled()
+  })
+
+  it.each(['save', 'saveAs'] as const)('refuses stale %s bytes when the same source reloads during export', async (operation) => {
+    const { host, props, unmount } = await loadedHost()
+    let finishExport!: (blob: Blob) => void
+    h.workbook.export = (ok: (blob: Blob) => void) => { finishExport = ok }
+    const saving = operation === 'save' ? host.save() : host.saveAs('copy.ssjson')
+    props.load = { kind: 'buffer', workbook: { latest: true } }
+    h.refIndex = 0; h.effectIndex = 0
+    ;(SpreadsheetHost as unknown as (props: SpreadsheetHostProps, ref: any) => unknown)(props, { current: null })
+    for (const effect of h.pending.splice(0)) effect()
+    await settle()
+    finishExport(new Blob(['obsolete export']))
+    await expect(saving).rejects.toThrow(/closed or changed/)
+    expect(props.fileAccess.save).not.toHaveBeenCalled()
+    expect(props.fileAccess.saveTo).not.toHaveBeenCalled()
+    expect(props.onSaved).not.toHaveBeenCalled()
+    unmount()
+  })
 
   it('leases are exclusive, guard every write entry, and only their holder can save', async () => {
     const { host, props, unmount } = await loadedHost()
@@ -134,6 +227,29 @@ describe('editor Workbook availability for drivers', () => {
     expect(host.getWorkbook()).toBe(workbook)
     expect(host.getInstanceId()).toBeTruthy()
     expect(host.getInstanceId()).not.toBe(firstId)
+    unmount()
+  })
+
+  it('a slow obsolete load cannot overwrite a newer completed load', async () => {
+    const { host, props, unmount } = await loadedHost()
+    const first = deferred()
+    let contents = 'initial'
+    h.fromJSON.mockImplementationOnce(() => first.promise.then(() => { contents = 'obsolete' }))
+    h.fromJSON.mockImplementationOnce(async () => { contents = 'latest' })
+    const reload = (workbook: object) => {
+      props.load = { kind: 'buffer', workbook }
+      h.refIndex = 0; h.effectIndex = 0
+      ;(SpreadsheetHost as unknown as (props: SpreadsheetHostProps, ref: any) => unknown)(props, { current: null })
+      for (const effect of h.pending.splice(0)) effect()
+    }
+    reload({ obsolete: true })
+    await settle()
+    reload({ latest: true })
+    await settle()
+    first.resolve()
+    await settle()
+    expect(contents).toBe('latest')
+    expect(host.getWorkbook()).toBe(h.workbook)
     unmount()
   })
 
@@ -230,7 +346,7 @@ describe('editor Workbook availability for drivers', () => {
     const old = deferred(); h.fromJSON.mockReturnValueOnce(old.promise)
     props.load = { kind: 'buffer', workbook: {} }; render()
     expect(ref.current!.getWorkbook()).toBeUndefined() // before the load effect runs
-    flush()
+    flush(); await settle()
     const failed = deferred(); h.fromJSON.mockReturnValueOnce(failed.promise)
     props.source = { name: 'other.ssjson', bytes: new Uint8Array() }
     props.load = { kind: 'buffer', workbook: {} }; render(); flush()

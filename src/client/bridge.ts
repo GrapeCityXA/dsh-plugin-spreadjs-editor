@@ -51,6 +51,24 @@ interface EditorNavigation {
 let navigation: EditorNavigation | undefined
 let opening = false
 
+/** Wait for another readiness check, stopping promptly when the caller cancels. */
+function waitForWorkbook(signal?: AbortSignal): Promise<void> {
+  if (signal?.aborted) return Promise.reject(signal.reason)
+  return new Promise((resolve, reject) => {
+    const finish = (): void => {
+      signal?.removeEventListener('abort', abort)
+      resolve()
+    }
+    const timer = setTimeout(finish, 50)
+    const abort = (): void => {
+      clearTimeout(timer)
+      signal?.removeEventListener('abort', abort)
+      reject(signal?.reason)
+    }
+    signal?.addEventListener('abort', abort, { once: true })
+  })
+}
+
 /** Offer `provider` to the roster until the returned function is called. */
 export function publishWorkbook(provider: SpreadjsWorkbookProvider): () => void {
   active = provider
@@ -74,7 +92,8 @@ const DESIGNER: SpreadjsWorkbookProvider = {
   getActivePath: () => active?.getActivePath?.(),
   getWorkbookIdentity: () => active?.getWorkbookIdentity?.(),
   getSessionId: () => navigation?.mounted.getSnapshot(),
-  openWorkbook: async (address: string, timeoutMs: number) => {
+  openWorkbook: async (address: string, timeoutMs: number, options?: { signal?: AbortSignal }) => {
+    options?.signal?.throwIfAborted()
     const file = parseSessionFileAddress(address)
     const owner = navigation
     if (file === undefined || owner === undefined || owner.mounted.getSnapshot() !== file.sessionId) {
@@ -86,11 +105,12 @@ const DESIGNER: SpreadjsWorkbookProvider = {
       owner.openResource(address)
       const deadline = Date.now() + timeoutMs
       while (Date.now() < deadline) {
+        options?.signal?.throwIfAborted()
         if (navigation !== owner || owner.mounted.getSnapshot() !== file.sessionId) {
           throw new Error('The editor session changed while opening the workbook')
         }
         if (active?.getActivePath?.() === address && active.getWorkbook() != null) return
-        await new Promise(resolve => setTimeout(resolve, 50))
+        await waitForWorkbook(options?.signal)
       }
       throw new Error('The editor did not finish loading the requested workbook in time')
     } finally {

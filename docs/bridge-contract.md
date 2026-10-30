@@ -25,6 +25,8 @@ interface SpreadjsBridgeRegistry {
 
 Registration rejects duplicate ids. Registration and subscription return idempotent disposers; selection changes notify subscribers. `selected()` preserves the user's saved id even before its entry registers; `current()` returns that entry only when registered. An empty selection hands out no Workbook. Drivers must drop references when detached, stop advertising them, and revalidate before using them.
 
+The saved selection remains intact when its entry is absent, including delayed registration and temporary unloads. Registration order never clears that preference: Settings displays an unavailable selection and lets the user replace it or explicitly select None.
+
 The editor persists its selected driver id in its DSH settings document's `bridge` field; `''` or an absent value means no driver. Browser registry selection mirrors that document. The bundled Driver's host reads only the explicitly configured `editorSettingsNamespace`, default `spreadjs-editor`, to register its tools and skill. A third-party editor uses its own namespace, declares a writable/volatile `bridge` field, and emits the normal DSH `settings/document-updated` event when changed. Set the Driver config to that namespace and restart DSH; do not impersonate another editor's settings document.
 
 ```yaml
@@ -51,7 +53,9 @@ interface SpreadjsWorkbookProvider {
     instanceId: string
   } | undefined
   getSessionId?(): string | undefined
-  openWorkbook?(address: string, timeoutMs: number): Promise<void>
+  openWorkbook?(address: string, timeoutMs: number, options?: {
+    signal?: AbortSignal
+  }): Promise<void>
   acquireDriverLease?(): string
   releaseDriverLease?(lease: string): void
   isDriverBusy?(): boolean
@@ -73,7 +77,7 @@ interface SpreadjsWorkbookProvider {
 | Exclusive lease | Refuse acquisition while loading/saving/busy; finish pending cell input. Block concurrent user edits and conflicting owner operations until release. | Required for execution, including reads. Lease release must be idempotent and bound to its original owner. |
 | Owner teardown signal | Provide a lease AbortSignal; preserve any recoverable partial state, then abort it before destroying the instance. | Required for prompt interruption when the owner closes during an awaiting script. |
 | Save | Validate lease ownership; export, await `beforeWrite`, check `signal` before write-back and pass it to cancellable I/O. Reject failures and downloads that did not write the original file. | Required only for `save:true`; omitting it must not report a successful write. |
-| Navigation | Advertise the visible chat via `getSessionId()` even without a Workbook. `openWorkbook` opens through the owner's navigation and resolves only when the requested resource is ready; reject session changes, timeout and load failure. | Required only for `sjs_live_open`; no browser-side Workbook creation by the driver. |
+| Navigation | Advertise the visible chat via `getSessionId()` even without a Workbook. `openWorkbook` opens through the owner's navigation and resolves only when the requested resource is ready; reject cancellation, session changes, timeout and load failure. Check `signal` before navigating and stop readiness waits when it aborts. | Required only for `sjs_live_open`; no browser-side Workbook creation by the driver. |
 
 Navigation must not destroy a leased instance without preserving partial state and aborting its owner signal. Recovery data belongs to the editor and is keyed by the full chat resource address; a snapshot is not a resumable JavaScript execution. The bundled Editor retains snapshots only for the current page lifetime. Other editors may provide durable recovery, but drivers must not assume it.
 

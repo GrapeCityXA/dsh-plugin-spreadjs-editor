@@ -36,8 +36,8 @@ A DeepSeek Harness Web UI plugin that opens, views, and edits Excel / SpreadJS f
 两个插件都装在**同一个 web profile** 下——driver 的活工作簿能力只存在于 Web UI 里：
 
 ```sh
-dsh plugin --profile web add @grapecity-software/dsh-spreadjs-editor
-dsh plugin --profile web add @grapecity-software/dsh-spreadjs-driver
+dsh plugin --profile web add @grapecity-software/dsh-spreadjs-editor@0.2.6
+dsh plugin --profile web add @grapecity-software/dsh-spreadjs-driver@0.1.4
 dsh --profile web
 ```
 
@@ -56,6 +56,8 @@ dsh --profile web
 
 选中 driver 后，AI 获得 `sjs_live_open`、`sjs_live_execute` 和 `sjs_live_status`。没有打开工作簿时，driver 可以请求 editor 打开文件并等待初始化；新文件可由 driver 从准备好的空白模板复制，Workbook 仍由 editor 创建和持有。
 
+已保存的桥选择会在插件延迟加载、重载或卸载后保留。所选桥暂未注册时，设置页会显示「当前不可用」及它的 id；它重新加载后会自动连接，也可以手动选择其他桥或「不使用」。其他桥先加载不会清空这项设置。
+
 driver 执行期间 editor 会显示操作中提示，禁用 Designer 的鼠标/键盘编辑及冲突的保存、另存为、新建、导出入口。若用户关闭或切换 editor，销毁 Workbook 前会保存当前快照到现有恢复缓存，driver 返回中断；重新打开文件后检查已恢复的部分，再继续任务。该缓存只在当前页面生命周期内有效，不跨页面刷新，也不恢复 JavaScript 的执行位置。快照失败会明确写入控制台日志。
 
 driver 的状态和执行按调用聊天隔离，并绑定当前文件的加载实例；重新加载即更新实例身份。恢复缓存使用完整聊天资源地址，不同聊天的同名文件不会互相恢复或清理。取消或超时后阻止后续自动保存；异步导出结束、写回之前再次检查任务权限。忽略取消信号的脚本仍持有编辑锁，直到结束或实例被销毁。已发送的写入可能完成，因此取消不能保证回滚。两侧插件需同时更新以支持实例身份协议。
@@ -63,7 +65,7 @@ driver 的状态和执行按调用聊天隔离，并绑定当前文件的加载�
 #### 要求
 
 - **请同步升级 editor 与 driver**，以使用完整的实例身份、独占锁和恢复协议。
-- **两侧统一支持 DSH `0.2.0-rc.2`**：桥选择页使用 `settings.section`，选择结果保存在 editor 的设置文档中。开发依赖与宿主 peer 声明均以该 RC 为基线；旧版本和 alpha 不在支持范围内。
+- **两侧声明支持 DSH `>=0.2.1-rc.3 <0.3.0-0`**：桥选择页使用 `settings.section`，选择结果保存在 editor 的设置文档中。开发依赖固定在已验证的 rc.4；rc.3 到 rc.5 的相关 UI API 实现无差异，当前桌面环境验收基线为 rc.4。
 - **driver 前提**：Node ≥22.19、同一 web profile 中的 editor 和可用的前端连接。服务端无需安装 Chrome/Edge。
 
 ### 内置版本与文件兼容性
@@ -77,18 +79,23 @@ driver 的状态和执行按调用聊天隔离，并绑定当前文件的加载�
 
 ### 安装
 
-支持 DSH `0.2.0-rc.2`，需要 Node.js ≥22.19。插件使用 DSH 自带的右侧栏，**不需要安装任何第三方侧边栏插件**。升级 DSH 时请同步升级插件；新的 RC 需重新验证后再调整支持声明。
+Editor `0.2.6` 声明支持 DSH `>=0.2.1-rc.3 <0.3.0-0`，需要 Node.js ≥22.19；用户已确认 rc.4 的 dev 环境运行正常。插件使用 DSH 自带的右侧栏，**不需要安装任何第三方侧边栏插件**。新 DSH 次版本需验证 API 后再扩展支持范围。
 
 | DSH 版本 | 状态 | 说明 |
 | --- | --- | --- |
-| `0.2.0-rc.2` | 支持与验证基线 | 类型检查、215 项单测、构建、两个 smoke 与 `verify:package` 通过；运行中的 DSH 仍需重启后执行 `probe:live` 和界面验收 |
+| `>=0.2.1-rc.3 <0.3.0-0` | 声明兼容范围 | 覆盖 DSH 0.2.x 从 rc.3 起的版本；rc.3/rc.4/rc.5 UI API 包实现对比无差异 |
+| `0.2.1-rc.4` | 桌面环境验收基线 | 类型检查、240 项单测、构建、两个 smoke 与包安装校验通过；用户已确认 dev 环境运行正常 |
 
-该 RC 提供工作簿所需的二进制后缀声明、内置只读预览、文档头部动作槽 `sidebar.right.tab.document.actions` 和设置分区 `settings.section`。本版不再声明兼容旧版 DSH。
+**版本策略：** `engines.dsh` 与 DSH API peers 使用同一有界范围；范围起点取插件所需 API 的最低版本，上界停在下一条 DSH 次版本线。范围内的 patch 和 RC 不要求每次发布插件；开发依赖固定在最近通过验证的 RC。扩展到新的 DSH 次版本前，先比较 API 并跑安装/运行 smoke，再发布更新后的兼容声明。
+
+请同步使用 Editor `0.2.6` 与 Driver `0.1.4`；旧版插件的精确版本声明可能导致安装被拒绝。
+
+当前验收的 rc.4 提供工作簿所需的二进制后缀声明、内置只读预览、文档头部动作槽 `sidebar.right.tab.document.actions` 和设置分区 `settings.section`。兼容声明限定在 DSH 0.2.x 主线。
 
 插件内置 SpreadJS 和 Designer，无需编译。使用已安装的 DSH CLI 安装并启动：
 
 ```sh
-dsh plugin --profile web add @grapecity-software/dsh-spreadjs-editor
+dsh plugin --profile web add @grapecity-software/dsh-spreadjs-editor@0.2.6
 dsh --profile web
 ```
 
@@ -97,8 +104,8 @@ dsh --profile web
 也可以通过 npx 安装并启动：
 
 ```sh
-npx --yes @deepseek-ai/dsh@0.2.0-rc.2 plugin --profile web add @grapecity-software/dsh-spreadjs-editor
-npx --yes @deepseek-ai/dsh@0.2.0-rc.2 --profile web
+npx --yes @deepseek-ai/dsh@0.2.1-rc.4 plugin --profile web add @grapecity-software/dsh-spreadjs-editor@0.2.6
+npx --yes @deepseek-ai/dsh@0.2.1-rc.4 --profile web
 ```
 
 旧版本用户请参阅[升级说明](CHANGELOG.md)。
@@ -130,7 +137,7 @@ Designer 自带的「文件」标签页已经**从 Ribbon 上隐藏**：插件�
 头部工具栏上的「另存为…」把当前工作簿写到工作区的**另一个**路径——包括在 Designer 里重新置空的空白工作簿。它不碰原来那个文件。
 
 - **默认目标**：同目录、同后缀，文件名后面加「副本」（`报表.xlsx` → `报表-副本.xlsx`）。
-- **成功后就地切换**：这个标签页会直接开到刚写下的文件上继续编辑，不会另开一个标签页。
+- **成功后就地切换**：当前内容完整写入且文档仍在时，这个标签页直接打开新文件继续编辑；若期间产生新改动，则保留当前文件并提示继续保存。已关闭或切走的文档不会因旧任务完成而跳转。
 - **同名不覆盖**：目标已存在时宿主会拒绝写入（写回要求带版本基线，另存为没有），对话框直接说「目标文件已存在，请换一个名字」，而不是默默覆盖。
 - **只接受 5 种后缀**：`.xlsx`、`.xlsm`、`.csv`、`.sjs`、`.ssjson`。写出格式由后缀决定，其它后缀会写出打不开的文件，所以在提交前就拦下。
 - **越界同样被拒**：路径解析与围栏由宿主按写回那一套规则判定，工作区之外一律拒绝。
@@ -143,9 +150,9 @@ DSH 在标签页被切走时会卸载文档主体，平台也没有可供拦下�
 - **切走再切回不丢。** 有未保存改动的工作簿会在主体卸载前留成一份快照，切回同一个标签页时原样恢复，不需要重新读盘。
 - **关掉标签页也不丢。** 快照同时按文件路径保留；重新打开同一个文件时，只要磁盘上的文件仍是快照写下的那一版，就自动恢复，并在面板右下角的胶囊里说明来源。
 - **文件被外部改过时不默默套用。** 若磁盘上的文件已经变了（Agent 改过、你在别处存过），面板右下角会浮出一个胶囊提示「存在未保存的改动缓存，但文件已在磁盘上被修改」，由你选择**恢复**（用缓存继续，之后保存即写入磁盘）或**丢弃**（重新读盘）。
-- **看得见，而且有两处。** 头部工具栏的「保存」在有未保存改动时带一个标记点（像 Excel 标题栏的 `*`）；面板右下角另有一个浮动胶囊，显示「未保存的改动」与「丢弃」操作。胶囊悬浮在表格上方，不占布局高度，保存成功后消失。
+- **看得见，而且有两处。** 头部工具栏的「保存」在有未保存改动时带一个标记点（像 Excel 标题栏的 `*`）；面板右下角另有一个浮动胶囊，显示「未保存的改动」与「丢弃」操作。胶囊悬浮在表格上方，不占布局高度，当前内容全部保存后消失。
 - **整页关闭会提示。** 刷新或关闭页面时，只要还有未保存的改动（含已留存的缓存），浏览器会弹出一次自己的离开确认。
-- **保存即清空。** 保存成功后，该文件的快照全部清除。
+- **保存当前内容后清空。** 当前内容完整写入后，该文件的快照清除；保存期间的新改动仍保留未保存标记，切走或关闭后留下的较新快照不会被旧保存清掉。
 
 ### 配置
 
@@ -173,7 +180,7 @@ DSH 在标签页被切走时会卸载文档主体，平台也没有可供拦下�
 
 | 命令 | 验证内容 |
 | --- | --- |
-| `npm run typecheck`、`npm test` | 类型契约，以及 215 个单元测试（保存路由的每条守卫、文件地址解析与地址构造、另存为的目标校验、默认名与失败文案、保存命令重定向的每条分支、编辑器主题桥的每条分支、查看器名称与二进制后缀声明的边界、未保存改动的缓存规则与脏状态跟踪的边界、打开时「用文件还是用缓存」的每个分支、面板状态胶囊的状态与操作矩阵、文档头部动作的发布/订阅/命令路由、按钮的尺寸字号颜色规格、「只在表格文件上出现」的判定与注册顺序，隐藏 Designer「文件」Tab 那条规则的两处身份与作用域，以及桥选择的方向与「写入被拒也要报出来」、桥字段是否真的声明为 volatile、名册自身的契约（重复 id 拒绝、disposer 语义、只在真的变化时通知）、名册与设置页在有无 settings 服务时的接线，以及设置页每一行确实是照 DSH 自己设置页的行规格画的） |
+| `npm run typecheck`、`npm test` | 类型契约，以及 240 个单元测试（保存路由的每条守卫、文件地址解析与地址构造、另存为的目标校验、默认名与失败文案、保存命令重定向的每条分支、编辑器主题桥的每条分支、查看器名称与二进制后缀声明的边界、未保存改动的缓存规则与脏状态跟踪的边界、打开时「用文件还是用缓存」的每个分支、面板状态胶囊的状态与操作矩阵、文档头部动作的发布/订阅/命令路由、按钮的尺寸字号颜色规格、「只在表格文件上出现」的判定与注册顺序，隐藏 Designer「文件」Tab 那条规则的两处身份与作用域，以及桥选择的方向与「写入被拒也要报出来」、桥字段是否真的声明为 volatile、名册自身的契约（重复 id 拒绝、disposer 语义、只在真的变化时通知）、名册与设置页在有无 settings 服务时的接线，以及设置页每一行确实是照 DSH 自己设置页的行规格画的） |
 | `node scripts/smoke-client.mjs` | 构建后的浏览器半结构：loader 包装、内联的 SpreadJS 与样式、外部依赖只有 react |
 | `node scripts/smoke-node.mjs` | 构建后的宿主半：路由注册、许可证配置，以及保存路径的真实写盘、冲突与越界拒绝 |
 | `npm run probe:live` | **对着正在运行的 DSH** 跑一遍真实保存：真实 `ctx.fs` 的解析、落盘、冲突守卫、工作区越界；并核对进程里装的是不是本构建（插件版本与内置 SpreadJS 版本） |
@@ -212,8 +219,8 @@ This package depends on no driver. SpreadJS, Designer and extensions are build/d
 Both plugins go into the **same web profile** — the driver's live-workbook capability exists only in the Web UI:
 
 ```sh
-dsh plugin --profile web add @grapecity-software/dsh-spreadjs-editor
-dsh plugin --profile web add @grapecity-software/dsh-spreadjs-driver
+dsh plugin --profile web add @grapecity-software/dsh-spreadjs-editor@0.2.6
+dsh plugin --profile web add @grapecity-software/dsh-spreadjs-driver@0.1.4
 dsh --profile web
 ```
 
@@ -232,12 +239,14 @@ The editor **owns** the workbook you open; each driver **registers** as a candid
 
 Selecting the driver enables `sjs_live_open`, `sjs_live_execute` and `sjs_live_status`. The driver can copy a template and ask this editor to open and initialize it. Import/export and Workbook ownership remain editor features.
 
+The saved bridge choice survives delayed loading, reloads and removal. If that bridge is absent, Settings shows it as unavailable with its id; it reconnects when loaded, or you can choose another bridge or None. Another bridge loading first never clears the saved choice.
+
 Driver status and execution are confined to the calling chat and bound to the current loaded-document identity, renewed on every reload. Recovery snapshots use the full session resource address, so same-named files in different chats cannot restore or clear each other's buffers. Cancellation/timeout prevent subsequent automatic saves; the editor rechecks permission after export and before write-back. Scripts ignoring cancellation retain their edit lock until they settle or the instance is destroyed. A write already sent may complete; cancellation cannot guarantee rollback. Update both plugins for the identity protocol.
 
 #### Requirements
 
 - **Update the editor and driver together** for the complete instance identity, lease and recovery protocol.
-- **Both plugins support DSH `0.2.0-rc.2`**: the bridge picker uses `settings.section` and stores the choice in the editor settings document. Development dependencies and host peers target this RC; older releases and alpha builds are outside the supported baseline.
+- **Both plugins declare support for DSH `>=0.2.1-rc.3 <0.3.0-0`**: the bridge picker uses `settings.section` and stores the choice in the editor settings document. Development dependencies remain pinned to validated rc.4; the relevant UI API package implementations compare without differences from rc.3 through rc.5.
 - **Driver requirements**: Node ≥22.19, the editor in the same web profile, and a working browser connection. No Chrome/Edge installation on the server is required.
 
 ### Bundled Versions and File Compatibility
@@ -251,18 +260,23 @@ The **About** button in the Designer's settings tab shows the bundled versions, 
 
 ### Installation
 
-Supports DSH `0.2.0-rc.2` and requires Node.js ≥22.19. The plugin uses the harness's own right Sidebar and needs **no third-party sidebar plugin**. Update the plugins alongside DSH; a newer RC needs verification before changing the supported baseline.
+Editor `0.2.6` declares support for DSH `>=0.2.1-rc.3 <0.3.0-0` and requires Node.js ≥22.19; the user confirmed rc.4 works in the development environment. The plugin uses the harness's own right Sidebar and needs **no third-party sidebar plugin**. Verify a new DSH minor's APIs before extending the supported range.
 
 | DSH version | Status | Notes |
 | --- | --- | --- |
-| `0.2.0-rc.2` | Supported and verified baseline | Typecheck, 215 unit tests, build, both smokes and `verify:package` pass; restart the running DSH before a separate `probe:live` and UI acceptance check |
+| `>=0.2.1-rc.3 <0.3.0-0` | Declared compatibility range | DSH 0.2.x from rc.3; the rc.3/rc.4/rc.5 UI API package implementations compare without differences |
+| `0.2.1-rc.4` | Desktop validation baseline | Typecheck, 240 unit tests, build, both smokes and package installation checks pass; the user confirmed the development environment works |
 
-This RC supplies the binary-suffix declaration, built-in read-only preview, document-header actions slot `sidebar.right.tab.document.actions`, and settings section `settings.section`. This version no longer declares support for older DSH releases.
+**Version policy:** Keep `engines.dsh` and DSH API peers on the same bounded range, starting at the oldest API version the plugin needs and ending before the next DSH minor line. Patch and RC releases inside that range do not require a plugin release each time; development dependencies stay pinned to the latest validated RC. Before extending support to a new DSH minor, compare the APIs and run install/runtime smokes, then publish the updated compatibility declaration.
+
+Use Editor `0.2.6` together with Driver `0.1.4`; older plugins may be rejected because they declare an exact DSH version.
+
+The validated rc.4 supplies the binary-suffix declaration, built-in read-only preview, document-header actions slot `sidebar.right.tab.document.actions`, and settings section `settings.section`. Compatibility is declared for the DSH 0.2.x line.
 
 The plugin includes SpreadJS and Designer, with no build step required. With the DSH CLI installed:
 
 ```sh
-dsh plugin --profile web add @grapecity-software/dsh-spreadjs-editor
+dsh plugin --profile web add @grapecity-software/dsh-spreadjs-editor@0.2.6
 dsh --profile web
 ```
 
@@ -271,8 +285,8 @@ After startup, open `.xlsx`, `.xlsm`, `.csv`, `.sjs`, or `.ssjson` from the righ
 Alternatively, install and start through npx:
 
 ```sh
-npx --yes @deepseek-ai/dsh@0.2.0-rc.2 plugin --profile web add @grapecity-software/dsh-spreadjs-editor
-npx --yes @deepseek-ai/dsh@0.2.0-rc.2 --profile web
+npx --yes @deepseek-ai/dsh@0.2.1-rc.4 plugin --profile web add @grapecity-software/dsh-spreadjs-editor@0.2.6
+npx --yes @deepseek-ai/dsh@0.2.1-rc.4 --profile web
 ```
 
 For upgrades, see the [release notes](CHANGELOG.md).
@@ -304,7 +318,7 @@ The price is that the File tab's other categories (new, open, import, export, pr
 **另存为…** in the same document header writes the workbook to a *different* path in the workspace — including a workbook that was reset to blank inside the Designer. The file it came from is left untouched.
 
 - **Suggested target**: same directory, same suffix, with the localized word for a copy appended (`report.xlsx` → `report-copy.xlsx`).
-- **It switches this tab.** On success the tab navigates to the file just written and keeps editing there; no second tab is opened.
+- **It switches this tab.** When the current contents are fully written and the document is still present, the tab opens the new file. If later edits remain, it keeps the current file and asks for another save. A completed task does not navigate after its document has closed or switched away.
 - **An existing name is never overwritten.** The host refuses the write (a write-back needs a version baseline, and a Save As has none) and the dialog says so — "that file already exists; choose another name" — instead of replacing what is there.
 - **Only five suffixes are accepted**: `.xlsx`, `.xlsm`, `.csv`, `.sjs`, `.ssjson`. The written format follows the suffix, so anything else would produce a file this editor cannot reopen; it is refused before the write.
 - **Containment is judged by the host**, on the same rule as a write-back: a path outside the session workspace is refused.
@@ -317,9 +331,9 @@ The harness unmounts a document body when its tab is hidden, and the platform of
 - **Switching away and back keeps the edits.** A dirty workbook is kept as a snapshot just before its body unmounts, and restored as-is when the same tab returns, without re-reading the file.
 - **Closing the tab keeps them too.** The snapshot is also kept under the file's path, so reopening that file restores it — and says so in the pill at the panel's bottom-right — as long as the file on disk is still the version the snapshot was written from.
 - **A file changed elsewhere is never silently replaced.** If the file on disk changed since the snapshot (an agent, another editor), the panel offers it instead in that same pill: **Restore** carries on from the buffer (a later save writes it to disk), **Discard** re-reads the file.
-- **It is visible, in two places.** Save in the document header carries a mark while edits are pending, like Excel's title-bar `*`. A floating pill at the bottom-right shows `Unsaved changes` and a Discard action. It costs no layout height and disappears after saving.
+- **It is visible, in two places.** Save in the document header carries a mark while edits are pending, like Excel's title-bar `*`. A floating pill at the bottom-right shows `Unsaved changes` and a Discard action. It costs no layout height and disappears once the current contents are fully saved.
 - **Closing the page warns.** A reload or close raises the browser's own prompt once, as long as anything is unsaved or still cached.
-- **Saving clears it.** A successful save drops every snapshot for that file, so reopening starts from disk.
+- **Saving the current contents clears recovery.** Later edits remain marked as unsaved. An earlier save cannot clear a newer snapshot left when closing or switching the document.
 
 ### Configuration
 
@@ -347,7 +361,7 @@ One more field is deliberately **not** in that table: `bridge` is written by the
 
 | Command | What it proves |
 | --- | --- |
-| `npm run typecheck`, `npm test` | The type contract, and 215 unit tests: every save guard, file-address parsing and address building, the Save As target rules, suggested name and failure wording, every branch of the Save-command redirect, every branch of the editor theme bridge, the viewer-name and binary-suffix edge cases, the unsaved-buffer and dirty-tracking rules, every branch of the file-versus-buffer decision at open, the panel state pill's state/action matrix, the document header actions' publication, subscription, command routing, button spec, "spreadsheets only" rule and registration order, both identities plus the scope of the rule that hides the Designer's File tab, the direction of the bridge choice and that a refused write is reported, that the bridge field really is declared volatile, and the registry's own contract (a duplicate id refused, disposer semantics, notifying only on a real change), the wiring of the roster and the settings page with and without a settings service, and that every row of that page is drawn to the harness's own settings-row spec |
+| `npm run typecheck`, `npm test` | The type contract, and 240 unit tests: every save guard, file-address parsing and address building, the Save As target rules, suggested name and failure wording, every branch of the Save-command redirect, every branch of the editor theme bridge, the viewer-name and binary-suffix edge cases, the unsaved-buffer and dirty-tracking rules, every branch of the file-versus-buffer decision at open, the panel state pill's state/action matrix, the document header actions' publication, subscription, command routing, button spec, "spreadsheets only" rule and registration order, both identities plus the scope of the rule that hides the Designer's File tab, the direction of the bridge choice and that a refused write is reported, that the bridge field really is declared volatile, and the registry's own contract (a duplicate id refused, disposer semantics, notifying only on a real change), the wiring of the roster and the settings page with and without a settings service, and that every row of that page is drawn to the harness's own settings-row spec |
 | `node scripts/smoke-client.mjs` | The built browser half's structure: loader wrapper, inlined SpreadJS and styles, react as the only runtime external |
 | `node scripts/smoke-node.mjs` | The built host half: route registration, license config, and the save path writing real bytes plus refusing conflicts and escapes |
 | `npm run probe:live` | A real save against a **running DSH**: the actual `ctx.fs` resolving, writing, refusing a stale base hash, and refusing a workspace escape — plus a check that the process carries *this* build (plugin and bundled SpreadJS versions) |
