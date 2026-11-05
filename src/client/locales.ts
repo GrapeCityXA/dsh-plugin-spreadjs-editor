@@ -29,6 +29,13 @@ export type EditorTextKey =
   | 'empty.bytes'
   | 'loading.workbook'
   | 'driver.working'
+  | 'failure.title'
+  | 'failure.scope'
+  | 'failure.license'
+  | 'failure.origin'
+  | 'failure.originUnknown'
+  | 'failure.details'
+  | 'failure.detailsUnavailable'
   | 'actions.save'
   | 'actions.saveAs'
   | 'actions.saveDirty'
@@ -79,6 +86,13 @@ const FALLBACK_TEXT: Record<EditorTextKey, string> = {
   'empty.bytes': '这个工作簿需要完整的文件内容，请从文件树重新打开。',
   'loading.workbook': '正在载入…',
   'driver.working': 'AI 正在操作此工作簿，暂时无法编辑',
+  'failure.title': '无法初始化 SpreadJS 编辑器',
+  'failure.scope': '当前文件的编辑器已停止，你仍可关闭或切换标签页，使用其他侧栏功能。',
+  'failure.license': '若错误与授权有关，请核对 SpreadJS 和 Designer 两份许可证是否适用于下面的页面来源。更新授权配置后，请重新打开文件。',
+  'failure.origin': '页面来源：',
+  'failure.originUnknown': '无法读取',
+  'failure.details': '错误详情',
+  'failure.detailsUnavailable': '无法读取错误详情',
   'actions.save': '保存',
   'actions.saveAs': '另存为…',
   'actions.saveDirty': '有未保存的改动',
@@ -126,6 +140,13 @@ const DICTIONARIES: { zh: Record<string, string>; en: Record<string, string> } =
     'empty.bytes': 'This workbook needs its complete file contents. Reopen it from the file tree.',
     'loading.workbook': 'Loading…',
     'driver.working': 'AI is working on this workbook. Editing is temporarily unavailable.',
+    'failure.title': 'SpreadJS Editor could not initialize',
+    'failure.scope': 'The editor for this file has stopped. You can still close or switch tabs and use other sidebar features.',
+    'failure.license': 'If this error concerns licensing, check that both the SpreadJS and Designer licenses cover the page origin below. Reopen the file after updating the license configuration.',
+    'failure.origin': 'Page origin:',
+    'failure.originUnknown': 'Unavailable',
+    'failure.details': 'Error details',
+    'failure.detailsUnavailable': 'Error details are unavailable',
     'actions.save': 'Save',
     'actions.saveAs': 'Save As…',
     'actions.saveDirty': 'There are unsaved changes',

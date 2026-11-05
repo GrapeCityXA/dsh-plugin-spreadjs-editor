@@ -6,14 +6,21 @@ const h = vi.hoisted(() => ({
   pending: [] as Array<() => void>, refIndex: 0, effectIndex: 0,
   fromJSON: vi.fn(), workbook: undefined as any,
   markDirty: undefined as (() => void) | undefined,
+  constructorError: undefined as Error | undefined,
+  workbookError: undefined as Error | undefined,
+  runtimeLicenseError: undefined as Error | undefined,
+  designerLicenseError: undefined as Error | undefined,
+  initializationError: undefined as Error | undefined,
+  designerDestroy: vi.fn(), stopWatch: vi.fn(), construct: vi.fn(),
+  themeListener: undefined as (() => void) | undefined,
 }))
 vi.mock('react', () => ({
   forwardRef: (render: any) => render,
   useRef: (value: any) => {
     const i = h.refIndex++
-    return h.refs[i] ?? (h.refs[i] = { current: i === 0 ? { querySelector: () => null } : value })
+    return h.refs[i] ?? (h.refs[i] = { current: i === 0 ? { querySelector: () => null, replaceChildren: vi.fn() } : value })
   },
-  useState: (value: any) => [value, () => {}],
+  useState: (value: any) => [value, (next: any) => { if (next instanceof Error) h.initializationError = next }],
   useEffect: (fn: () => (() => void) | undefined, deps: any[]) => {
     const i = h.effectIndex++
     const old = h.effects[i]
@@ -22,14 +29,18 @@ vi.mock('react', () => ({
   },
   useImperativeHandle: (ref: any, create: () => any) => { ref.current = create() },
 }))
-vi.mock('@grapecity-software/spread-sheets', () => ({ Spread: { Sheets: { FileType: { ssjson: 'ssjson' } } } }))
+vi.mock('@grapecity-software/spread-sheets', () => ({ Spread: { Sheets: {
+  FileType: { ssjson: 'ssjson' },
+  set LicenseKey(_value: string) { if (h.runtimeLicenseError) throw h.runtimeLicenseError },
+} } }))
 vi.mock('@grapecity-software/spread-excelio', () => ({ IO: class {} }))
 vi.mock('@grapecity-software/spread-sheets-io', () => ({}))
 vi.mock('@grapecity-software/spread-sheets-resources-zh', () => ({}))
 vi.mock('@grapecity-software/spread-sheets-designer', () => ({ Spread: { Sheets: { Designer: { Designer: class {
-  getWorkbook() { return h.workbook }
-  destroy() {}
-} } } } }))
+  constructor() { h.construct(); if (h.constructorError) throw h.constructorError }
+  getWorkbook() { if (h.workbookError) throw h.workbookError; return h.workbook }
+  destroy() { h.designerDestroy(); h.workbook?.destroy?.() }
+}, set LicenseKey(_value: string) { if (h.designerLicenseError) throw h.designerLicenseError } } } } }))
 vi.mock('@grapecity-software/spread-sheets-designer-resources-cn', () => ({}))
 vi.mock('@grapecity-software/spread-sheets-shapes', () => ({}))
 vi.mock('@grapecity-software/spread-sheets-charts', () => ({}))
@@ -47,14 +58,17 @@ vi.mock('@grapecity-software/spread-sheets-reportsheet-addon', () => ({}))
 vi.mock('@grapecity-software/spread-sheets-languagepackages', () => ({}))
 
 vi.mock('../src/client/styles.ts', () => ({ setEditorTheme() {} }))
-vi.mock('../src/client/ds-theme.ts', () => ({ harnessThemeIsDark: () => false, onHarnessThemeChange: () => () => {} }))
+vi.mock('../src/client/ds-theme.ts', () => ({ harnessThemeIsDark: () => false, onHarnessThemeChange: (fn: () => void) => {
+  h.themeListener = fn
+  return () => { h.themeListener = undefined }
+} }))
 vi.mock('../src/client/about.ts', () => ({ installDesignerAbout: () => ({ installed: true }) }))
 vi.mock('../src/client/designer-save-command.ts', () => ({ redirectDesignerSave: () => true, registerDesignerSaveTarget: () => () => {} }))
 vi.mock('../src/client/workbook-dirty.ts', () => ({
   resolveDirtyEvents: () => [],
   watchWorkbookChanges: (_workbook: unknown, onDirty: () => void) => {
     h.markDirty = onDirty
-    return { stop() {} }
+    return { stop: () => h.stopWatch() }
   },
 }))
 
@@ -66,9 +80,11 @@ function deferred() { let resolve!: () => void; let reject!: (reason: Error) => 
 const settle = async () => { for (let i = 0; i < 12; i++) await Promise.resolve() }
 
 describe('editor Workbook availability for drivers', () => {
-  async function loadedHost() {
+  async function loadedHost(configure?: (props: SpreadsheetHostProps) => void) {
     h.refs = []; h.effects = []; h.pending = []
-    h.fromJSON.mockResolvedValue(undefined)
+    h.constructorError = h.workbookError = h.runtimeLicenseError = h.designerLicenseError = h.initializationError = undefined
+    h.construct.mockReset(); h.designerDestroy.mockReset(); h.stopWatch.mockReset()
+    h.fromJSON.mockReset().mockResolvedValue(undefined)
     h.workbook = {
       options: {}, fromJSON: h.fromJSON, toJSON: vi.fn(() => ({ cells: ['AI edit'] })),
       export: (ok: (blob: Blob) => void) => ok(new Blob(['{}'])),
@@ -82,12 +98,79 @@ describe('editor Workbook availability for drivers', () => {
       onStatus() {}, onLoadingChange() {}, onNewWorkbook() {}, onDirtyChange: vi.fn(),
       onUnsaved: vi.fn(), onSaved: vi.fn(), onDriverBusyChange: vi.fn(),
     }
+    configure?.(props)
     h.refIndex = 0; h.effectIndex = 0
     ;(SpreadsheetHost as unknown as (props: SpreadsheetHostProps, ref: any) => unknown)(props, ref)
     for (const effect of h.pending.splice(0)) effect()
     await settle()
     return { host: ref.current!, props, unmount: () => { for (const effect of h.effects) effect?.cleanup?.() } }
   }
+
+  it.each(['constructor', 'runtime license', 'Designer license', 'workbook getter'] as const)(
+    'contains a failing %s without exposing or loading a partial workbook', async (stage) => {
+      const error = new Error(`Missing License: ${stage}`)
+      const { host, props, unmount } = await loadedHost(props => {
+        if (stage === 'constructor') h.constructorError = error
+        if (stage === 'workbook getter') h.workbookError = error
+        if (stage === 'runtime license') { h.runtimeLicenseError = error; props.licenseKey = 'test-key' }
+        if (stage === 'Designer license') { h.designerLicenseError = error; props.designerLicenseKey = 'test-key' }
+      })
+      expect(h.initializationError).toBe(error)
+      expect(host.getWorkbook()).toBeUndefined()
+      expect(host.getInstanceId()).toBeUndefined()
+      expect(h.fromJSON).not.toHaveBeenCalled()
+      await expect(host.save()).rejects.toThrow(/not ready/)
+      expect(props.fileAccess.save).not.toHaveBeenCalled()
+      expect(() => unmount()).not.toThrow()
+      expect(h.designerDestroy).toHaveBeenCalledTimes(stage === 'workbook getter' ? 1 : 0)
+      expect(h.refs[0]!.current.replaceChildren).toHaveBeenCalledOnce()
+    },
+  )
+
+  it('cleans up a constructed workbook when attaching its edit watch fails', async () => {
+    const { host, unmount } = await loadedHost(() => {
+      Object.defineProperty(h.workbook.options, 'tabStripVisible', { set() { throw new Error('SDK initialization failed') } })
+    })
+    expect(h.initializationError?.message).toBe('SDK initialization failed')
+    expect(host.getWorkbook()).toBeUndefined()
+    expect(h.workbook.destroy).toHaveBeenCalledOnce()
+    expect(h.designerDestroy).toHaveBeenCalledOnce()
+    unmount()
+    expect(h.workbook.destroy).toHaveBeenCalledOnce()
+    expect(h.designerDestroy).toHaveBeenCalledOnce()
+  })
+
+  it('withdraws a workbook after a theme refresh fails without throwing into DSH', async () => {
+    const { host, unmount } = await loadedHost()
+    h.workbook.refresh = () => { throw new Error('runtime stopped') }
+    expect(() => h.themeListener!()).not.toThrow()
+    expect(host.getWorkbook()).toBeUndefined()
+    expect(h.initializationError?.message).toBe('runtime stopped')
+    unmount()
+  })
+
+  it('revokes leases and runs all cleanup steps even when the SDK is broken', async () => {
+    const { host, props, unmount } = await loadedHost()
+    const lease = host.acquireDriverLease()
+    const signal = host.getDriverLeaseSignal(lease)!
+    h.workbookError = new Error('broken getter')
+    h.stopWatch.mockImplementation(() => { throw new Error('broken event cleanup') })
+    h.workbook.destroy.mockImplementation(() => { throw new Error('broken workbook destruction') })
+    h.designerDestroy.mockImplementation(() => { throw new Error('broken Designer destruction') })
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      expect(() => unmount()).not.toThrow()
+      expect(host.getWorkbook()).toBeUndefined()
+      expect(host.isDriverBusy()).toBe(false)
+      expect(signal.aborted).toBe(true)
+      expect(props.onUnsaved).toHaveBeenCalledOnce()
+      expect(props.onDriverBusyChange).toHaveBeenLastCalledWith(false)
+      expect(h.workbook.destroy).toHaveBeenCalledOnce()
+      expect(h.designerDestroy).toHaveBeenCalledOnce()
+      expect(h.refs[0]!.current.replaceChildren).toHaveBeenCalledOnce()
+      expect(log).toHaveBeenCalledTimes(3)
+    } finally { log.mockRestore() }
+  })
 
   it.each(['save', 'saveAs'] as const)('keeps edits made during %s dirty and recoverable', async (operation) => {
     const { host, props, unmount } = await loadedHost()

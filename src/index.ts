@@ -46,9 +46,9 @@ export const inject = ['webServer']
 
 /** Plugin configuration (patch layer). */
 export interface Config {
-  /** SpreadJS license key; empty runs the evaluation build. @default '' */
+  /** SpreadJS trial/deployment key; keyless evaluation requires a supported origin. @default '' */
   licenseKey?: string
-  /** Separate SpreadJS Designer key; empty keeps Designer in evaluation mode. */
+  /** Separate SpreadJS Designer trial/deployment key. */
   designerLicenseKey?: string
   /**
    * Largest workbook, in bytes, this plugin will accept for a save or read back

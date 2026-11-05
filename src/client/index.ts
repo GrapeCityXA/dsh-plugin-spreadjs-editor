@@ -41,7 +41,7 @@ import type { Context } from '@deepseek-ai/cordis'
 // build time, so this costs the bundle nothing and adds no runtime import.
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import { SpreadsheetActions } from './SpreadsheetActions.tsx'
-import { SpreadsheetDocument } from './SpreadsheetDocument.tsx'
+import { ProtectedSpreadsheetDocument } from './editor-failure.tsx'
 import { provideBridgeRegistry } from './bridge.ts'
 import { connectBridgeSetting } from './bridge-setting.ts'
 import { bridgeSettingsPage } from './settings-page.tsx'
@@ -120,7 +120,7 @@ export function apply(ctx: Context): void {
   ctx.effect(() => ctx.slots.inject('sidebar.right.tab.document', () => ctx.slots.register({
     name: 'sidebar.right.tab.document',
     key: SPREADSHEET_DOCUMENT_ID,
-  }, SpreadsheetDocument)), 'dsh-spreadjs-editor: document body')
+  }, ProtectedSpreadsheetDocument)), 'dsh-spreadjs-editor: document body')
 
   // Save acts on the file, so it belongs in the header the harness draws above a
   // previewed file, next to every other viewer's own controls — not inside the

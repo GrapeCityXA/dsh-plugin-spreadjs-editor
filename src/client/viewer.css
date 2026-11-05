@@ -526,3 +526,43 @@
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);
 }
+
+/* A failed editor remains a normal, scrollable document body in the sidebar. */
+.dsh-spreadjs-failure {
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+  padding: 20px;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-base);
+  font-family: var(--dsw-font-family, system-ui, sans-serif);
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.dsh-spreadjs-failure h2 {
+  margin: 0 0 12px;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.dsh-spreadjs-failure p {
+  margin: 0 0 12px;
+}
+
+.dsh-spreadjs-failure-origin,
+.dsh-spreadjs-failure details {
+  color: var(--dsw-alias-label-secondary);
+}
+
+.dsh-spreadjs-failure summary {
+  cursor: pointer;
+}
+
+.dsh-spreadjs-failure pre {
+  white-space: pre-wrap;
+  font-size: 12px;
+}

@@ -17,8 +17,8 @@
     name: '@grapecity-software/dsh-spreadjs-editor'
     inject: [webServer]
     config:
-      # Optional: your SpreadJS license key. Empty (default) runs the
-      # evaluation watermark build. Keep it out of the patch if you prefer
-      # to configure it per-deployment.
+      # Your SpreadJS and Designer trial/deployment keys. Keyless evaluation
+      # requires a supported HTTP(S) loopback origin; DSH Desktop uses
+      # dsh-app://app/ instead. See docs/desktop-licensing.md.
       licenseKey: ''
       designerLicenseKey: ''

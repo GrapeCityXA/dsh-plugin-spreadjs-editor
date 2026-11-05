@@ -1,5 +1,35 @@
 # Release Notes / 版本记录
 
+## 0.2.7
+
+### 中文
+
+**隔离授权及初始化失败，保留 DSH 侧栏可用性**
+
+- 隔离 SpreadJS / Designer 初始化与文档渲染错误，失败时显示当前页面来源和授权排查提示，避免异常冒泡并破坏 DSH sidebar。
+- 初始化失败后清理局部 DOM 和已创建实例；销毁时先撤销工作簿与 Driver 租约，分别处理恢复、事件解绑及 SDK 销毁异常。
+- 主题切换触发的工作簿刷新异常交由文档错误页处理，避免中断 DSH 的主题事件。
+- 避免正常关闭时重复销毁 Workbook；Designer 已负责销毁它持有的工作簿。
+- 补充桌面版 `dsh-app://app/` 授权说明、配置位置和测试步骤，修正「留空即能试用」的描述。
+
+**范围说明：** 本版保留 SDK 的授权校验，失败时显示当前文件的提示。用户用主机名 `app` 申请的试用授权已让运行时启动，但 Designer 显示仍异常；本版不宣称解决桌面版完整授权和 Designer 兼容问题。无须配套升级 Driver，继续使用 `0.1.4`。
+
+**验证：** 类型检查、260 项测试（含真实 React 调度下的初始化失败与侧栏隔离）、构建、客户端 / 宿主 smoke 和独立离线包安装校验通过。真实桌面许可证及 Designer 显示仍需后续验证。
+
+### English
+
+**Contain licensing and initialization failures within the editor**
+
+- Contain SpreadJS / Designer initialization and document rendering failures within the editor, with page-origin and licensing guidance.
+- Clean up partially initialized instances and DOM; revoke Workbook access and Driver leases before independently guarded recovery and disposal steps.
+- Contain workbook refresh failures during theme changes without interrupting DSH's theme event.
+- Avoid destroying a Workbook twice on normal close: Designer owns its workbook's disposal.
+- Document desktop licensing for `dsh-app://app/`, profile configuration, regression steps and the limits of keyless evaluation.
+
+**Scope:** SDK license validation remains in place; failures display a document-local message. A trial key issued for hostname `app` let the runtime start in a user test, but Designer still displayed incorrectly. This release does not establish complete desktop licensing or Designer compatibility. Companion Driver `0.1.4` remains suitable.
+
+**Validation:** Typecheck, 260 tests (including real React initialization-failure and sidebar-isolation tests), build, client / host smokes and independent offline package installation passed. Real desktop licensing and Designer rendering still need further validation.
+
 ## 0.2.6
 
 ### 中文

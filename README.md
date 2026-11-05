@@ -84,7 +84,7 @@ Editor `0.2.6` 声明支持 DSH `>=0.2.1-rc.3 <0.3.0-0`，需要 Node.js ≥22.1
 | DSH 版本 | 状态 | 说明 |
 | --- | --- | --- |
 | `>=0.2.1-rc.3 <0.3.0-0` | 声明兼容范围 | 覆盖 DSH 0.2.x 从 rc.3 起的版本；rc.3/rc.4/rc.5 UI API 包实现对比无差异 |
-| `0.2.1-rc.4` | 桌面环境验收基线 | 类型检查、240 项单测、构建、两个 smoke 与包安装校验通过；用户已确认 dev 环境运行正常 |
+| `0.2.1-rc.4` | 桌面环境验收基线 | 类型检查、260 项单测、构建、两个 smoke 与包安装校验通过；用户已确认 dev 环境运行正常 |
 
 **版本策略：** `engines.dsh` 与 DSH API peers 使用同一有界范围；范围起点取插件所需 API 的最低版本，上界停在下一条 DSH 次版本线。范围内的 patch 和 RC 不要求每次发布插件；开发依赖固定在最近通过验证的 RC。扩展到新的 DSH 次版本前，先比较 API 并跑安装/运行 smoke，再发布更新后的兼容声明。
 
@@ -156,12 +156,12 @@ DSH 在标签页被切走时会卸载文档主体，平台也没有可供拦下�
 
 ### 配置
 
-如已获得许可证，在 web profile 的 `cordis.patch.yml` 中添加以下配置：
+如已获得许可证，在当前 profile 的 `cordis.patch.yml` 中添加以下配置（浏览器为 `web`，桌面版为 `desktop`）：
 
 | Key | 默认值 | 说明 |
 | --- | --- | --- |
-| `licenseKey` | `''` | SpreadJS 部署许可证。留空以带水印的试用模式运行。 |
-| `designerLicenseKey` | `''` | 独立的 SpreadJS Designer 部署许可证。留空保持 Designer 试用状态。 |
+| `licenseKey` | `''` | SpreadJS 试用或部署许可证。无 key 的本地试用限官方支持的 HTTP(S) 回环地址。 |
+| `designerLicenseKey` | `''` | 独立的 SpreadJS Designer 试用或部署许可证。 |
 | `maxSaveBytes` | `67108864` | 单次保存允许的最大字节数；超出直接拒绝，不做截断。 |
 | `trustedHosts` | `[]` | 除本机回环地址外，额外允许调用保存接口的地址（局域网部署时使用）。 |
 
@@ -172,7 +172,9 @@ DSH 在标签页被切走时会卸载文档主体，平台也没有可供拦下�
     designerLicenseKey: 'YOUR_DESIGNER_KEY'
 ```
 
-修改后重启 DSH 并刷新网页。
+修改后重启 DSH 并重新打开文件。
+
+桌面版 DSH `0.2.1-rc.5` 的页面地址是 `dsh-app://app/`，后端在本机不代表页面是 localhost，因此不能依赖无 key 的本地试用。请先向葡萄城确认适用于该协议的 SpreadJS / Designer 授权。[桌面授权与故障排查](docs/desktop-licensing.md) 记录了地址来源、配置位置和回归步骤。初始化失败时，本插件显示局部错误页，关闭或切换文档仍可继续使用 DSH。
 
 还有一项**不写在这里**：`bridge` 是「电子表格编辑器」设置页在 Web UI 里写的，代表用户选了哪一个桥。它同样属于本插件的配置，但**不该手写进 patch**——设置页会把写入结果如实报出来（写入被拒或失败时页面会说明），而手写的值不会经过这条检查。既没选过、又在 patch 里留空，含义相同：`bridge: ''` 等于「不使用」。本插件自身的设置页取代了 DSH 从这个 schema 自动生成的那一页，所以不会出现两个入口。
 
@@ -180,7 +182,7 @@ DSH 在标签页被切走时会卸载文档主体，平台也没有可供拦下�
 
 | 命令 | 验证内容 |
 | --- | --- |
-| `npm run typecheck`、`npm test` | 类型契约，以及 240 个单元测试（保存路由的每条守卫、文件地址解析与地址构造、另存为的目标校验、默认名与失败文案、保存命令重定向的每条分支、编辑器主题桥的每条分支、查看器名称与二进制后缀声明的边界、未保存改动的缓存规则与脏状态跟踪的边界、打开时「用文件还是用缓存」的每个分支、面板状态胶囊的状态与操作矩阵、文档头部动作的发布/订阅/命令路由、按钮的尺寸字号颜色规格、「只在表格文件上出现」的判定与注册顺序，隐藏 Designer「文件」Tab 那条规则的两处身份与作用域，以及桥选择的方向与「写入被拒也要报出来」、桥字段是否真的声明为 volatile、名册自身的契约（重复 id 拒绝、disposer 语义、只在真的变化时通知）、名册与设置页在有无 settings 服务时的接线，以及设置页每一行确实是照 DSH 自己设置页的行规格画的） |
+| `npm run typecheck`、`npm test` | 类型契约，以及 260 个单元测试（保存路由的每条守卫、文件地址解析与地址构造、另存为的目标校验、默认名与失败文案、保存命令重定向的每条分支、编辑器主题桥的每条分支、查看器名称与二进制后缀声明的边界、未保存改动的缓存规则与脏状态跟踪的边界、打开时「用文件还是用缓存」的每个分支、面板状态胶囊的状态与操作矩阵、文档头部动作的发布/订阅/命令路由、按钮的尺寸字号颜色规格、「只在表格文件上出现」的判定与注册顺序，隐藏 Designer「文件」Tab 那条规则的两处身份与作用域，以及桥选择的方向与「写入被拒也要报出来」、桥字段是否真的声明为 volatile、名册自身的契约（重复 id 拒绝、disposer 语义、只在真的变化时通知）、名册与设置页在有无 settings 服务时的接线，以及设置页每一行确实是照 DSH 自己设置页的行规格画的） |
 | `node scripts/smoke-client.mjs` | 构建后的浏览器半结构：loader 包装、内联的 SpreadJS 与样式、外部依赖只有 react |
 | `node scripts/smoke-node.mjs` | 构建后的宿主半：路由注册、许可证配置，以及保存路径的真实写盘、冲突与越界拒绝 |
 | `npm run probe:live` | **对着正在运行的 DSH** 跑一遍真实保存：真实 `ctx.fs` 的解析、落盘、冲突守卫、工作区越界；并核对进程里装的是不是本构建（插件版本与内置 SpreadJS 版本） |
@@ -189,7 +191,7 @@ DSH 在标签页被切走时会卸载文档主体，平台也没有可供拦下�
 
 ### 许可
 
-插件代码免费提供，采用 [MIT 许可证](LICENSE)。内置的 SpreadJS 和 Designer 是葡萄城商业产品，未配置许可证时可按其试用条款体验；插件免费不包含这两个产品的商业授权。
+插件代码免费提供，采用 [MIT 许可证](LICENSE)。内置的 SpreadJS 和 Designer 是葡萄城商业产品，无 key 试用限其官方支持的本地环境；桌面版 `dsh-app://app/` 需确认适用授权。插件免费不包含这两个产品的商业授权。
 
 如用于正式部署或 SaaS 服务，请根据使用场景获取适用的 SpreadJS 和 Designer 授权。
 
@@ -265,7 +267,7 @@ Editor `0.2.6` declares support for DSH `>=0.2.1-rc.3 <0.3.0-0` and requires Nod
 | DSH version | Status | Notes |
 | --- | --- | --- |
 | `>=0.2.1-rc.3 <0.3.0-0` | Declared compatibility range | DSH 0.2.x from rc.3; the rc.3/rc.4/rc.5 UI API package implementations compare without differences |
-| `0.2.1-rc.4` | Desktop validation baseline | Typecheck, 240 unit tests, build, both smokes and package installation checks pass; the user confirmed the development environment works |
+| `0.2.1-rc.4` | Desktop validation baseline | Typecheck, 260 unit tests, build, both smokes and package installation checks pass; the user confirmed the development environment works |
 
 **Version policy:** Keep `engines.dsh` and DSH API peers on the same bounded range, starting at the oldest API version the plugin needs and ending before the next DSH minor line. Patch and RC releases inside that range do not require a plugin release each time; development dependencies stay pinned to the latest validated RC. Before extending support to a new DSH minor, compare the APIs and run install/runtime smokes, then publish the updated compatibility declaration.
 
@@ -337,12 +339,12 @@ The harness unmounts a document body when its tab is hidden, and the platform of
 
 ### Configuration
 
-If you have licenses, add the following to the web profile's `cordis.patch.yml`:
+If you have licenses, add the following to the active profile's `cordis.patch.yml` (`web` for the browser, `desktop` for the desktop app):
 
 | Key | Default | Description |
 | --- | --- | --- |
-| `licenseKey` | `''` | SpreadJS deployment key. Empty runs in evaluation mode with a watermark. |
-| `designerLicenseKey` | `''` | Separate SpreadJS Designer deployment key. Empty keeps Designer in evaluation mode. |
+| `licenseKey` | `''` | SpreadJS trial or deployment key. Keyless local evaluation requires a supported HTTP(S) loopback address. |
+| `designerLicenseKey` | `''` | Separate SpreadJS Designer trial or deployment key. |
 | `maxSaveBytes` | `67108864` | Largest payload one save may carry; a bigger one is refused, never truncated. |
 | `trustedHosts` | `[]` | Extra authorities allowed to call the save endpoint, beyond loopback (for LAN deployments). |
 
@@ -353,7 +355,7 @@ If you have licenses, add the following to the web profile's `cordis.patch.yml`:
     designerLicenseKey: 'YOUR_DESIGNER_KEY'
 ```
 
-Restart DSH and refresh the browser after changing the configuration.
+Restart DSH and reopen the workbook after changing the configuration. DSH Desktop uses `dsh-app://app/`, so keyless localhost evaluation must not be assumed to work there. Confirm appropriate licensing with GrapeCity; see [desktop licensing and troubleshooting](docs/desktop-licensing.md).
 
 One more field is deliberately **not** in that table: `bridge` is written by the **Spreadsheet Editor** page in the Web UI and records which bridge the user chose. It is this plugin's configuration all the same, but it should not be written into the patch by hand — the page reports honestly whether a write was accepted, and a hand-written value never goes through that check. Not having chosen yet and leaving it empty in the patch mean the same thing: `bridge: ''` is "None". This plugin's own page replaces the one DSH would otherwise synthesise from the schema, so there is only ever one entry point.
 
@@ -361,7 +363,7 @@ One more field is deliberately **not** in that table: `bridge` is written by the
 
 | Command | What it proves |
 | --- | --- |
-| `npm run typecheck`, `npm test` | The type contract, and 240 unit tests: every save guard, file-address parsing and address building, the Save As target rules, suggested name and failure wording, every branch of the Save-command redirect, every branch of the editor theme bridge, the viewer-name and binary-suffix edge cases, the unsaved-buffer and dirty-tracking rules, every branch of the file-versus-buffer decision at open, the panel state pill's state/action matrix, the document header actions' publication, subscription, command routing, button spec, "spreadsheets only" rule and registration order, both identities plus the scope of the rule that hides the Designer's File tab, the direction of the bridge choice and that a refused write is reported, that the bridge field really is declared volatile, and the registry's own contract (a duplicate id refused, disposer semantics, notifying only on a real change), the wiring of the roster and the settings page with and without a settings service, and that every row of that page is drawn to the harness's own settings-row spec |
+| `npm run typecheck`, `npm test` | The type contract, and 260 unit tests: every save guard, file-address parsing and address building, the Save As target rules, suggested name and failure wording, every branch of the Save-command redirect, every branch of the editor theme bridge, the viewer-name and binary-suffix edge cases, the unsaved-buffer and dirty-tracking rules, every branch of the file-versus-buffer decision at open, the panel state pill's state/action matrix, the document header actions' publication, subscription, command routing, button spec, "spreadsheets only" rule and registration order, both identities plus the scope of the rule that hides the Designer's File tab, the direction of the bridge choice and that a refused write is reported, that the bridge field really is declared volatile, and the registry's own contract (a duplicate id refused, disposer semantics, notifying only on a real change), the wiring of the roster and the settings page with and without a settings service, and that every row of that page is drawn to the harness's own settings-row spec |
 | `node scripts/smoke-client.mjs` | The built browser half's structure: loader wrapper, inlined SpreadJS and styles, react as the only runtime external |
 | `node scripts/smoke-node.mjs` | The built host half: route registration, license config, and the save path writing real bytes plus refusing conflicts and escapes |
 | `npm run probe:live` | A real save against a **running DSH**: the actual `ctx.fs` resolving, writing, refusing a stale base hash, and refusing a workspace escape — plus a check that the process carries *this* build (plugin and bundled SpreadJS versions) |
@@ -370,6 +372,6 @@ One more field is deliberately **not** in that table: `bridge` is written by the
 
 ### License
 
-The plugin code is free under the [MIT license](LICENSE). Bundled SpreadJS and Designer are GrapeCity commercial products available for evaluation under their trial terms without license keys. The free plugin does not include commercial licenses for these products.
+The plugin code is free under the [MIT license](LICENSE). Bundled SpreadJS and Designer are GrapeCity commercial products. Keyless local evaluation is limited to the environments supported by their trial terms; DSH Desktop's `dsh-app://app/` page requires confirming suitable licensing with GrapeCity. See [desktop licensing and troubleshooting](docs/desktop-licensing.md). The free plugin does not include commercial licenses for these products.
 
 For production or SaaS deployments, obtain SpreadJS and Designer licenses appropriate to your use.

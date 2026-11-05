@@ -383,6 +383,7 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
     const [status, setStatus] = useState<LoadStatus>({ kind: 'idle' })
     const [driverBusy, setDriverBusy] = useState(false)
     const [loadRetry, setLoadRetry] = useState(0)
+    const [initializationError, setInitializationError] = useState<Error | undefined>(undefined)
 
     sourceRef.current = source
     if (workbookSourceRef.current.source !== source || workbookSourceRef.current.load !== load) {
@@ -423,15 +424,13 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
       return true
     }
 
-    // SpreadJS and Designer require separate license keys and both must be set
-    // before the designer is constructed.
-    useEffect(() => {
-      if (!ready) return
-      const sheets = (GC as any).Spread?.Sheets
-      if (sheets !== undefined && licenseKey !== '') sheets.LicenseKey = licenseKey
-      const ns = designerNamespace()
-      if (ns !== undefined && designerLicenseKey !== '') ns.LicenseKey = designerLicenseKey
-    }, [licenseKey, designerLicenseKey, ready])
+    function failInitialization(error: unknown): void {
+      // A theme subscription runs outside React. Re-enter render to let the
+      // document's error boundary contain SDK failures just like effect errors.
+      workbookReadyRef.current = false
+      loadSeqRef.current += 1
+      setInitializationError(error instanceof Error ? error : new Error(String(error)))
+    }
 
     // Follow the harness palette for both halves of the editor. This runs before
     // the Designer is constructed, so it starts on the right palette and on the
@@ -441,8 +440,12 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
     // that stylesheet, not by a Designer setting.
     useEffect(() => {
       const apply = (): void => {
-        applyEditorTheme()
-        designerRef.current?.getWorkbook()?.refresh()
+        try {
+          applyEditorTheme()
+          designerRef.current?.getWorkbook()?.refresh()
+        } catch (error) {
+          failInitialization(error)
+        }
       }
       apply()
       return onHarnessThemeChange(apply)
@@ -468,84 +471,121 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
     // Create / destroy the designer with the host element.
     useEffect(() => {
       const el = hostRef.current
-      const ns = designerNamespace()
-      if (!ready || el === null || ns?.Designer === undefined) return
-      const config = cloneDefaultDesignerConfig()
-      // The Designer's own Save — ribbon button, File menu, Ctrl+S — downloads a
-      // copy by default, which is the wrong meaning inside this panel: the open
-      // document already has a file in the session workspace, so Save must write
-      // it. Re-point the command before the Designer exists; Export and Save As
-      // keep their default behaviour, because those do mean "write a copy".
-      const steered = redirectDesignerSave(ns, config)
-      if (!steered) {
-        console.warn('[dsh-spreadjs-editor] the Designer Save command was not redirected; use Save in the document header')
+      if (!ready || el === null) return
+      let designer: DesignerLike | undefined
+      let spread: any
+      let disposed = false
+      const safely = (label: string, action: () => void): void => {
+        try { action() } catch (error) {
+          console.error(`[dsh-spreadjs-editor] ${label} failed:`, error)
+        }
       }
-      // The Designer's own File tab is hidden, not rewritten: viewer.css takes the
-      // button out of the ribbon, because the File tab's Save downloads a copy while
-      // this panel's Save writes the file back, and two Saves one click apart is how
-      // the wrong one gets pressed. Nothing here depends on the tab's private menu
-      // template any more; the check after construction reports whether the rule
-      // still catches the element the shipped build draws.
-      //
-      // The panel used to describe itself in a status bar; that information — the
-      // plugin and SpreadJS versions, and the licence state — lives in an About
-      // dialog now, opened from a button in the Designer's own ribbon.
-      const about = installDesignerAbout(ns, config, {
-        runtimeLicensed: licenseKey !== '',
-        designerLicensed: designerLicenseKey !== '',
-      })
-      console.info(
-        `[dsh-spreadjs-editor] about button installed=${about.installed} tab=${about.tab ?? '-'}`
-        + ` registered=${about.registered} command=${about.command} ribbonGroup=${about.ribbonGroup}`
-        + (about.reason === undefined ? '' : ` reason=${about.reason}`),
-      )
-      const designer = new ns.Designer(el, config)
-      // The File tab is hidden with the rule in viewer.css, not by config: a build
-      // that changes either identity would un-hide a download button silently, so say
-      // what actually happened. `matched=0` means the rule is now dead.
-      const fileTab = el.querySelector('[data-command="fileMenuButton"], .gc-designer-fileMenuButton')
-      console.info(
-        `[dsh-spreadjs-editor] Designer File tab hidden: matched=${fileTab === null ? 0 : 1}`
-        + ` display=${fileTab === null ? '-' : getComputedStyle(fileTab).display}`,
-      )
-      const spread = designer.getWorkbook()
-      if (spread !== undefined) {
-        spread.options.tabStripVisible = true
-        spread.options.newTabVisible = true
-        dirtyWatchRef.current = watchWorkbookChanges(
-          spread as DirtyWatchWorkbook,
-          markWorkbookDirty,
-          resolveDirtyEvents(eventsTable()),
-        )
-      }
-      designerRef.current = designer
-      return () => {
-        dirtyWatchRef.current?.stop()
-        dirtyWatchRef.current = null
-        const current = designer.getWorkbook()
+      const dispose = (): void => {
+        if (disposed) return
+        disposed = true
+        // Withdraw the instance and cancel its lease before calling vendor code:
+        // even a broken getter or destructor must not leave an active driver.
         designerRef.current = null
         workbookReadyRef.current = false
+        instanceIdRef.current = undefined
         loadSeqRef.current += 1
+        loadInFlightRef.current = false
         const lease = driverLeaseRef.current
-        try {
-          if ((dirtyRef.current || lease !== undefined) && current !== undefined) {
-            // Snapshot before destruction so reopening can recover partial edits.
-            onUnsavedRef.current(current.toJSON())
+        driverLeaseRef.current = undefined
+        const controller = driverControllerRef.current
+        driverControllerRef.current = undefined
+        loadDeferredRef.current = false
+        safely('driver cancellation', () => controller?.abort())
+        const watch = dirtyWatchRef.current
+        dirtyWatchRef.current = null
+        safely('workbook event cleanup', () => watch?.stop())
+        // Use the instance obtained during construction. Calling getWorkbook()
+        // during disposal can itself throw after a licence/initialization error.
+        safely('unsaved workbook recovery', () => {
+          if ((dirtyRef.current || lease !== undefined) && spread !== undefined) {
+            onUnsavedRef.current(spread.toJSON())
             console.info('[dsh-spreadjs-editor] kept unsaved changes before unmounting the editor')
           }
-        } catch (error) {
-          console.error('[dsh-spreadjs-editor] could not keep the unsaved workbook before unmount:', error)
-        } finally {
-          dirtyRef.current = false
-          if (lease !== undefined) onDriverBusyChangeRef.current(false)
-          driverLeaseRef.current = undefined
-          driverControllerRef.current?.abort()
-          driverControllerRef.current = undefined
-          loadDeferredRef.current = false
-        }
-        if (current !== undefined && typeof current.destroy === 'function') current.destroy()
-        if (typeof designer.destroy === 'function') designer.destroy()
+        })
+        dirtyRef.current = false
+        if (lease !== undefined) safely('driver busy reset', () => onDriverBusyChangeRef.current(false))
+        // Designer 19.2.1 owns and destroys its workbook. Do not destroy it a
+        // second time on the normal path; try the workbook only if its owner
+        // could not be disposed (including incomplete construction).
+        let ownerDisposed = false
+        safely('Designer destruction', () => {
+          if (typeof designer?.destroy !== 'function') return
+          designer.destroy()
+          ownerDisposed = true
+        })
+        if (!ownerDisposed) safely('workbook destruction', () => spread?.destroy?.())
+        safely('Designer element cleanup', () => el.replaceChildren?.())
       }
+      try {
+        const ns = designerNamespace()
+        if (ns?.Designer === undefined) throw new Error('SpreadJS Designer is not available')
+        // Both licence setters can throw as well as the constructor. Keep the
+        // complete SDK setup in one guarded operation, before exposing a workbook.
+        const sheets = (GC as any).Spread?.Sheets
+        if (sheets !== undefined && licenseKey !== '') sheets.LicenseKey = licenseKey
+        if (designerLicenseKey !== '') ns.LicenseKey = designerLicenseKey
+        const config = cloneDefaultDesignerConfig()
+        // The Designer's own Save — ribbon button, File menu, Ctrl+S — downloads a
+        // copy by default, which is the wrong meaning inside this panel: the open
+        // document already has a file in the session workspace, so Save must write
+        // it. Re-point the command before the Designer exists; Export and Save As
+        // keep their default behaviour, because those do mean "write a copy".
+        const steered = redirectDesignerSave(ns, config)
+        if (!steered) {
+          console.warn('[dsh-spreadjs-editor] the Designer Save command was not redirected; use Save in the document header')
+        }
+        // The Designer's own File tab is hidden, not rewritten: viewer.css takes the
+        // button out of the ribbon, because the File tab's Save downloads a copy while
+        // this panel's Save writes the file back, and two Saves one click apart is how
+        // the wrong one gets pressed. Nothing here depends on the tab's private menu
+        // template any more; the check after construction reports whether the rule
+        // still catches the element the shipped build draws.
+        //
+        // The panel used to describe itself in a status bar; that information — the
+        // plugin and SpreadJS versions, and the licence state — lives in an About
+        // dialog now, opened from a button in the Designer's own ribbon.
+        const about = installDesignerAbout(ns, config, {
+          runtimeLicensed: licenseKey !== '',
+          designerLicensed: designerLicenseKey !== '',
+        })
+        console.info(
+          `[dsh-spreadjs-editor] about button installed=${about.installed} tab=${about.tab ?? '-'}`
+          + ` registered=${about.registered} command=${about.command} ribbonGroup=${about.ribbonGroup}`
+          + (about.reason === undefined ? '' : ` reason=${about.reason}`),
+        )
+        designer = new ns.Designer(el, config)
+        spread = designer.getWorkbook()
+        if (spread === undefined || spread === null) throw new Error('Designer workbook is not available')
+        // The File tab is hidden with the rule in viewer.css, not by config: a build
+        // that changes either identity would un-hide a download button silently, so say
+        // what actually happened. `matched=0` means the rule is now dead.
+        const fileTab = el.querySelector('[data-command="fileMenuButton"], .gc-designer-fileMenuButton')
+        console.info(
+          `[dsh-spreadjs-editor] Designer File tab hidden: matched=${fileTab === null ? 0 : 1}`
+          + ` display=${fileTab === null ? '-' : getComputedStyle(fileTab).display}`,
+        )
+        if (spread !== undefined) {
+          spread.options.tabStripVisible = true
+          spread.options.newTabVisible = true
+          dirtyWatchRef.current = watchWorkbookChanges(
+            spread as DirtyWatchWorkbook,
+            markWorkbookDirty,
+            resolveDirtyEvents(eventsTable()),
+          )
+        }
+        designerRef.current = designer
+      } catch (error) {
+        dispose()
+        failInitialization(error)
+      }
+      return dispose
+    // Config is loaded once before ready. Changing deployment keys requires
+    // reopening this document; never rebuild a live dirty workbook for a prop update.
     }, [ready])
 
     // Put the selected workbook into the Designer: the file's own bytes, or the
@@ -844,6 +884,8 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
       }),
       [onLoadingChange, onNewWorkbook, onStatus],
     )
+
+    if (initializationError !== undefined) throw initializationError
 
     return (
       <div className="dsh-spreadjs-host">

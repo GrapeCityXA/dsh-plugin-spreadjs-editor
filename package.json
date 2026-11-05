@@ -1,6 +1,6 @@
 {
   "name": "@grapecity-software/dsh-spreadjs-editor",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "DSH sidebar SpreadJS editor with binary save, recovery and a selectable bridge for compatible drivers.",
   "keywords": [
     "deepseek-harness",
@@ -27,6 +27,7 @@
     "cordis.patch.yml",
     "README.md",
     "docs/bridge-contract.md",
+    "docs/desktop-licensing.md",
     "CHANGELOG.md",
     "LICENSE",
     "THIRD_PARTY_NOTICES.md"
@@ -112,7 +113,9 @@
     "@grapecity-software/spread-sheets-tablesheet": "19.2.1",
     "@types/node": "^22.0.0",
     "@types/react": "^18.3.0",
+    "@types/react-test-renderer": "18.3.1",
     "react": "^18.2.0",
+    "react-test-renderer": "18.3.1",
     "tsdown": "^0.22.0",
     "typescript": "^5.9.0",
     "unrun": "^0.3.1",

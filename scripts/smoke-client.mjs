@@ -42,6 +42,7 @@ check('no @grapecity require remains (inlined)', !/require\("@grapecity/.test(co
 check('spread-sheets css string embedded', code.includes('gc-spread-sheets'))
 check('designer css string embedded', /SpreadJS Designer Library \d+\.\d+\.\d+/.test(code))
 check('editor css string embedded', code.includes('.dsh-spreadjs-panel'))
+check('document error boundary and fallback embedded', code.includes('getDerivedStateFromError') && code.includes('dsh-spreadjs-failure'))
 
 console.log(`\n${pass} passed, ${fail} failed`)
 process.exit(fail === 0 ? 0 : 1)

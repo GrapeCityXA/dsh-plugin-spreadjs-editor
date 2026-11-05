@@ -45,6 +45,7 @@ import {
 import { BRIDGE_REGISTRY_SERVICE } from '../src/client/bridge-registry.ts'
 import { EDITOR_LOCALE_NAMESPACE, EDITOR_TITLE_FALLBACK } from '../src/client/locales.ts'
 import { exportFileType, workbookFileType } from '../src/client/SpreadsheetHost.tsx'
+import { ProtectedSpreadsheetDocument } from '../src/client/editor-failure.tsx'
 
 /** One light snapshot, in the shape `ctx.theme.getTheme()` returns. */
 const themeSnapshot = {
@@ -278,7 +279,7 @@ describe('document registration', () => {
     const seat = slotRegister.mock.calls[0]?.[0] as unknown as { name?: unknown; key?: unknown }
     expect(seat.name).toBe('sidebar.right.tab.document')
     expect(seat.key).toBe(SPREADSHEET_DOCUMENT_ID)
-    expect(typeof slotRegister.mock.calls[0]?.[1]).toBe('function')
+    expect(slotRegister.mock.calls[0]?.[1]).toBe(ProtectedSpreadsheetDocument)
   })
 
   it('registers the file actions in the harness document header', () => {
