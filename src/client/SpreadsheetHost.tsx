@@ -10,7 +10,6 @@
  */
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import * as GC from '@grapecity-software/spread-sheets'
-import * as ExcelIO from '@grapecity-software/spread-excelio'
 import '@grapecity-software/spread-sheets-io'
 import '@grapecity-software/spread-sheets-resources-zh'
 import '@grapecity-software/spread-sheets-shapes'
@@ -41,7 +40,6 @@ import { setEditorTheme } from './styles.ts'
 import { harnessThemeIsDark, onHarnessThemeChange } from './ds-theme.ts'
 import { resolveDirtyEvents, watchWorkbookChanges, type DirtyWatch, type DirtyWatchWorkbook } from './workbook-dirty.ts'
 
-export type ExportFormat = 'xlsx' | 'sjs' | 'ssjson' | 'csv'
 export type StatusTone = 'idle' | 'busy' | 'error'
 
 export interface SpreadsheetHostHandle {
@@ -59,8 +57,6 @@ export interface SpreadsheetHostHandle {
    */
   /** Returns false when newer edits remain after the copy was written. */
   saveAs: (path: string) => Promise<boolean>
-  exportAs: (format: ExportFormat) => Promise<void>
-  newWorkbook: () => void
   /**
    * The loaded workbook this panel is editing, or undefined while unavailable,
    * loading, saving, or after a load failure. Handed to the spreadjs bridge so an
@@ -148,7 +144,6 @@ export interface SpreadsheetHostProps {
   fileAccess: SpreadsheetFileAccess
   onStatus: (status: string, tone?: StatusTone) => void
   onLoadingChange: (loading: boolean) => void
-  onNewWorkbook: () => void
   /** Whether the live workbook holds edits that are not on disk. */
   onDirtyChange: (dirty: boolean) => void
   /**
@@ -166,7 +161,6 @@ type LoadStatus = { kind: 'idle' } | { kind: 'loading' } | { kind: 'error'; mess
 
 interface DesignerLike {
   getWorkbook(): any
-  setWorkbook(spread: any): void
   destroy?(): void
 }
 
@@ -184,21 +178,6 @@ function extname(path: string): string {
   const name = basename(path)
   const idx = name.lastIndexOf('.')
   return idx >= 0 ? name.slice(idx).toLowerCase() : ''
-}
-
-function replaceExt(path: string, ext: string): string {
-  const current = extname(path)
-  const base = current === '' ? path : path.slice(0, path.length - current.length)
-  return `${base}.${ext}`
-}
-
-function downloadBlob(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob)
-  const anchor = document.createElement('a')
-  anchor.href = url
-  anchor.download = filename
-  anchor.click()
-  URL.revokeObjectURL(url)
 }
 
 function designerNamespace(): DesignerNamespace | undefined {
@@ -256,43 +235,12 @@ export function workbookFileType(path: string): GC.Spread.Sheets.FileType {
   return GC.Spread.Sheets.FileType.ssjson
 }
 
-export function exportFileType(format: ExportFormat): GC.Spread.Sheets.FileType {
-  if (format === 'xlsx') return GC.Spread.Sheets.FileType.excel
-  if (format === 'csv') return GC.Spread.Sheets.FileType.csv
-  return GC.Spread.Sheets.FileType.ssjson
-}
-
-interface ExcelIoLike {
-  open(
-    file: File,
-    success: (json: object) => void,
-    error: (error?: { errorMessage?: string }) => void,
-  ): void
-}
-
-function excelJson(file: File): Promise<object> {
-  const IO = (ExcelIO as unknown as { IO?: new () => ExcelIoLike }).IO
-  if (IO === undefined) return Promise.reject(new Error('spread-excelio IO is unavailable'))
-  return new Promise((resolve, reject) => {
-    const io = new IO()
-    io.open(file, json => resolve(json), error => {
-      reject(new Error(error?.errorMessage ?? 'excel import failed'))
-    })
-  })
-}
-
 async function loadIntoWorkbook(
   spread: any,
   file: File,
   path: string,
 ): Promise<void> {
   const ext = extname(path)
-  if (ext === '.xlsx' || ext === '.xlsm') {
-    // ExcelIO is the proven path for xlsx/xlsm: parse to workbook JSON, then
-    // fromJSON into a fresh workbook before handing it to the Designer.
-    spread.fromJSON(await excelJson(file))
-    return
-  }
   if (ext === '.ssjson') {
     spread.fromJSON(JSON.parse(await file.text()) as object)
     return
@@ -307,28 +255,13 @@ async function loadIntoWorkbook(
     }
     spread.import(file, resolve, fail, {
       fileType: workbookFileType(path),
-      includeBindingSource: true,
+      ...(ext === '.xlsx' || ext === '.xlsm' ? {} : { includeBindingSource: true }),
     })
   })
 }
 
-function resetWorkbook(spread: any): void {
-  const count = spread.getSheetCount()
-  for (let i = count - 1; i > 0; i--) spread.removeSheet(i)
-  const sheet = spread.getSheet(0)
-  if (sheet !== undefined) {
-    sheet.reset()
-    sheet.setRowCount(200)
-    sheet.setColumnCount(20)
-  }
-}
-
-function workbookBlob(spread: any, path: string, format?: ExportFormat): Promise<Blob> {
-  const target = format === undefined && extname(path) === '.sjs'
-    ? 'sjs'
-    : format === undefined
-      ? workbookFileType(path)
-      : exportFileType(format)
+function workbookBlob(spread: any, path: string): Promise<Blob> {
+  const target = extname(path) === '.sjs' ? 'sjs' : workbookFileType(path)
   return new Promise((resolve, reject) => {
     const fail = (error: unknown) => {
       reject(error instanceof Error ? error : new Error(String(error)))
@@ -345,7 +278,7 @@ function workbookBlob(spread: any, path: string, format?: ExportFormat): Promise
 }
 
 export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHostProps>(
-  function SpreadsheetHost({ source, load, licenseKey, designerLicenseKey = '', ready, fileAccess, onStatus, onLoadingChange, onNewWorkbook, onDirtyChange, onUnsaved, onSaved, onDriverBusyChange }, ref) {
+  function SpreadsheetHost({ source, load, licenseKey, designerLicenseKey = '', ready, fileAccess, onStatus, onLoadingChange, onDirtyChange, onUnsaved, onSaved, onDriverBusyChange }, ref) {
     const hostRef = useRef<HTMLDivElement | null>(null)
     const designerRef = useRef<DesignerLike | null>(null)
     const loadSeqRef = useRef(0)
@@ -504,7 +437,6 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
         safely('unsaved workbook recovery', () => {
           if ((dirtyRef.current || lease !== undefined) && spread !== undefined) {
             onUnsavedRef.current(spread.toJSON())
-            console.info('[dsh-spreadjs-editor] kept unsaved changes before unmounting the editor')
           }
         })
         dirtyRef.current = false
@@ -530,45 +462,19 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
         if (sheets !== undefined && licenseKey !== '') sheets.LicenseKey = licenseKey
         if (designerLicenseKey !== '') ns.LicenseKey = designerLicenseKey
         const config = cloneDefaultDesignerConfig()
-        // The Designer's own Save — ribbon button, File menu, Ctrl+S — downloads a
-        // copy by default, which is the wrong meaning inside this panel: the open
-        // document already has a file in the session workspace, so Save must write
-        // it. Re-point the command before the Designer exists; Export and Save As
-        // keep their default behaviour, because those do mean "write a copy".
+        // Redirect the Designer's download-based Save before creating the instance.
         const steered = redirectDesignerSave(ns, config)
         if (!steered) {
           console.warn('[dsh-spreadjs-editor] the Designer Save command was not redirected; use Save in the document header')
         }
-        // The Designer's own File tab is hidden, not rewritten: viewer.css takes the
-        // button out of the ribbon, because the File tab's Save downloads a copy while
-        // this panel's Save writes the file back, and two Saves one click apart is how
-        // the wrong one gets pressed. Nothing here depends on the tab's private menu
-        // template any more; the check after construction reports whether the rule
-        // still catches the element the shipped build draws.
-        //
-        // The panel used to describe itself in a status bar; that information — the
-        // plugin and SpreadJS versions, and the licence state — lives in an About
-        // dialog now, opened from a button in the Designer's own ribbon.
         const about = installDesignerAbout(ns, config, {
           runtimeLicensed: licenseKey !== '',
           designerLicensed: designerLicenseKey !== '',
         })
-        console.info(
-          `[dsh-spreadjs-editor] about button installed=${about.installed} tab=${about.tab ?? '-'}`
-          + ` registered=${about.registered} command=${about.command} ribbonGroup=${about.ribbonGroup}`
-          + (about.reason === undefined ? '' : ` reason=${about.reason}`),
-        )
+        if (!about.installed) console.warn('[dsh-spreadjs-editor] the About button could not be installed:', about.reason)
         designer = new ns.Designer(el, config)
         spread = designer.getWorkbook()
         if (spread === undefined || spread === null) throw new Error('Designer workbook is not available')
-        // The File tab is hidden with the rule in viewer.css, not by config: a build
-        // that changes either identity would un-hide a download button silently, so say
-        // what actually happened. `matched=0` means the rule is now dead.
-        const fileTab = el.querySelector('[data-command="fileMenuButton"], .gc-designer-fileMenuButton')
-        console.info(
-          `[dsh-spreadjs-editor] Designer File tab hidden: matched=${fileTab === null ? 0 : 1}`
-          + ` display=${fileTab === null ? '-' : getComputedStyle(fileTab).display}`,
-        )
         if (spread !== undefined) {
           spread.options.tabStripVisible = true
           spread.options.newTabVisible = true
@@ -828,49 +734,11 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
       }
     }
 
-    async function exportAs(format: ExportFormat): Promise<void> {
-      if (driverLeaseRef.current !== undefined) throw new WorkbookNotReadyError('The Driver currently owns this workbook')
-      const designer = designerRef.current
-      if (designer === null) return
-      const path = sourceRef.current?.name ?? 'workbook.sjs'
-      const name = replaceExt(path, format)
-      onLoadingChange(true)
-      onStatus(`Exporting ${name}…`, 'busy')
-      try {
-        const blob = await workbookBlob(designer.getWorkbook(), path, format)
-        downloadBlob(blob, name)
-        onStatus(`Exported ${name}`, 'idle')
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        onStatus(`Export failed: ${message}`, 'error')
-      } finally {
-        onLoadingChange(false)
-      }
-    }
-
-    function newWorkbook(): void {
-      if (driverLeaseRef.current !== undefined) throw new WorkbookNotReadyError('The Driver currently owns this workbook')
-      const designer = designerRef.current
-      if (designer === null) return
-      resetWorkbook(designer.getWorkbook())
-      loadSeqRef.current += 1
-      loadInFlightRef.current = false
-      workbookReadyRef.current = true
-      setStatus({ kind: 'idle' })
-      // Resetting the workbook fires changes of its own, and they are not edits to
-      // a file: this panel holds a brand-new book that has never been on disk.
-      markWorkbookClean()
-      onNewWorkbook()
-      onStatus('New workbook', 'idle')
-    }
-
     useImperativeHandle(
       ref,
       () => ({
         save,
         saveAs,
-        exportAs,
-        newWorkbook,
         getWorkbook: () => {
           if (!workbookReadyRef.current || loadInFlightRef.current || saveInFlightRef.current) return undefined
           return designerRef.current?.getWorkbook()
@@ -882,7 +750,7 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
         isDriverBusy: () => driverLeaseRef.current !== undefined,
         getDriverLeaseSignal: (lease: string) => lease === driverLeaseRef.current ? driverControllerRef.current?.signal : undefined,
       }),
-      [onLoadingChange, onNewWorkbook, onStatus],
+      [onLoadingChange, onStatus],
     )
 
     if (initializationError !== undefined) throw initializationError
@@ -896,7 +764,7 @@ export const SpreadsheetHost = forwardRef<SpreadsheetHostHandle, SpreadsheetHost
           </div>
         ) : null}
         {source === undefined ? (
-          <div className="dsh-spreadjs-empty">{editorText('empty.newWorkbook')}</div>
+          <div className="dsh-spreadjs-empty">{editorText('empty.bytes')}</div>
         ) : null}
         {status.kind === 'loading' ? <div className="dsh-spreadjs-loading">{editorText('loading.workbook')}</div> : null}
         {status.kind === 'error' ? <div className="dsh-spreadjs-error">{status.message}</div> : null}

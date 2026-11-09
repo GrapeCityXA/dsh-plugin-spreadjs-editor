@@ -11,7 +11,6 @@ vi.mock('@grapecity-software/spread-sheets', () => ({
     },
   },
 }))
-vi.mock('@grapecity-software/spread-excelio', () => ({ IO: class {} }))
 vi.mock('@grapecity-software/spread-sheets-io', () => ({}))
 vi.mock('@grapecity-software/spread-sheets-resources-zh', () => ({}))
 vi.mock('@grapecity-software/spread-sheets-designer', () => ({}))
@@ -44,7 +43,7 @@ import {
 } from '../src/client/index.ts'
 import { BRIDGE_REGISTRY_SERVICE } from '../src/client/bridge-registry.ts'
 import { EDITOR_LOCALE_NAMESPACE, EDITOR_TITLE_FALLBACK } from '../src/client/locales.ts'
-import { exportFileType, workbookFileType } from '../src/client/SpreadsheetHost.tsx'
+import { workbookFileType } from '../src/client/SpreadsheetHost.tsx'
 import { ProtectedSpreadsheetDocument } from '../src/client/editor-failure.tsx'
 
 /** One light snapshot, in the shape `ctx.theme.getTheme()` returns. */
@@ -188,15 +187,12 @@ describe('client plugin manifest', () => {
     expect(on).toHaveBeenCalledWith('theme/change', expect.any(Function))
   })
 
-  it('maps file extensions and export formats to SpreadJS FileType enums', () => {
+  it('maps file extensions to SpreadJS FileType enums', () => {
     expect(workbookFileType('a.xlsx')).toBe(0)
     expect(workbookFileType('a.xlsm')).toBe(0)
     expect(workbookFileType('a.csv')).toBe(2)
     expect(workbookFileType('a.ssjson')).toBe(1)
     expect(workbookFileType('a.json')).toBe(1)
-    expect(exportFileType('xlsx')).toBe(0)
-    expect(exportFileType('csv')).toBe(2)
-    expect(exportFileType('ssjson')).toBe(1)
   })
 })
 

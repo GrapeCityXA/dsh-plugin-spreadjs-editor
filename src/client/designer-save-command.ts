@@ -3,9 +3,7 @@
  *
  * Save is the affordance a user reaches for first, and the Designer's default
  * one opens a "save file" dialog that downloads a copy to local disk. That is the
- * wrong meaning inside this panel, where the open document already has a file in
- * the session workspace: Save must write that file. Copies belong to Export and
- * Save As, which keep their default behaviour.
+ * wrong meaning inside this panel, where Save must write the workspace file.
  *
  * Three facts about the Designer shape this module:
  *
@@ -38,9 +36,7 @@ export interface DesignerNamespaceLike {
 }
 
 /**
- * The Designer's `CommandNames` table. Only `Save` is read by name; the index
- * signature lets the File-menu customisation look up the other entries it owns
- * without this module having to enumerate the whole product enum.
+ * The Designer's `CommandNames` table; only Save is needed here.
  */
 export interface DesignerCommandNames {
   Save?: string
@@ -113,11 +109,8 @@ function workbookOf(context: unknown): unknown {
  * launched on, and a panel reports the workbook it is editing. A lone panel is
  * accepted without a match, because a context that cannot name its workbook
  * still has only one possible destination.
- *
- * Exported for the File menu customisation, which receives the same kind of
- * context from the Designer's own handler.
  */
-export function designerSaveTargetFor(context: unknown): DesignerSaveTarget | undefined {
+function designerSaveTargetFor(context: unknown): DesignerSaveTarget | undefined {
   if (targets.length === 0) return undefined
   const workbook = workbookOf(context)
   if (workbook !== undefined) {

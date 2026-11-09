@@ -279,16 +279,10 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
     const outcome = decideLoad(tabId, resourceAddress, diskHash)
     if (outcome.kind === 'deferred') return
     if (outcome.kind === 'buffer') {
-      // One line per open, next to the file menu's and the about button's: the
-      // console is where this plugin says why the panel is doing what it does.
-      console.info(`[dsh-spreadjs-editor] restoring unsaved changes for ${path} (from this ${outcome.buffer.from === 'tab' ? 'tab' : 'session'})`)
       setHeld(outcome.buffer)
       setOffered(undefined)
       setDecision({ tabId, path, bytes, load: { kind: 'buffer', workbook: outcome.buffer.workbook } })
       return
-    }
-    if (outcome.kind === 'offer') {
-      console.info(`[dsh-spreadjs-editor] unsaved changes for ${path} were kept, but the file changed on disk; offering them`)
     }
     setHeld(undefined)
     setOffered(outcome.kind === 'offer' ? outcome.buffer : undefined)
@@ -486,7 +480,6 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
   const discardEdits = useCallback(() => {
     if (driverBusyRef.current) return
     if (address === undefined) return
-    console.info(`[dsh-spreadjs-editor] discarded unsaved changes for ${address.path}; reloading from disk`)
     forgetPath(resourceAddress)
     setHeld(undefined)
     setOffered(undefined)
@@ -530,7 +523,6 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
     if (!lifetime.active) return
     // The write is done: everything after this point reports it, never undoes it.
     setSaveAsBusy(false)
-    const writtenFrom = address.path
     setSaveAsOpen(false)
     if (!currentRevisionSaved) {
       handleStatus(`${editorText('saveAs.done')}${target}. ${editorText('saveAs.newerEdits')}`, 'idle')
@@ -538,7 +530,6 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
     }
     forgetPath(resourceAddress)
     handleStatus(`${editorText('saveAs.done')}${target}`, 'idle')
-    console.info(`[dsh-spreadjs-editor] saved ${writtenFrom} as ${target}`)
     if (tabActions === undefined) {
       // The file is on disk; only the automatic switch is missing, so say where it
       // went instead of leaving the panel looking like it now shows that file.
@@ -552,8 +543,6 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
       console.warn('[dsh-spreadjs-editor] could not open the file just written:', error)
     }
   }, [address, resourceAddress, handleStatus, tabActions, lifetime])
-
-  const noop = useCallback(() => {}, [])
 
   // The decision is only valid for the exact inputs it was made from; a fresh read
   // of the same file withdraws it in the same render, so nothing loads twice.
@@ -614,7 +603,6 @@ export function SpreadsheetDocument(props: DocumentPreviewProps): React.JSX.Elem
           fileAccess={fileAccess}
           onStatus={handleStatus}
           onLoadingChange={handleLoadingChange}
-          onNewWorkbook={noop}
           onDirtyChange={handleDirtyChange}
           onUnsaved={handleUnsaved}
           onSaved={handleSaved}

@@ -17,8 +17,8 @@
     name: '@grapecity-software/dsh-spreadjs-editor'
     inject: [webServer]
     config:
-      # Your SpreadJS and Designer trial/deployment keys. Keyless evaluation
-      # requires a supported HTTP(S) loopback origin; DSH Desktop uses
-      # dsh-app://app/ instead. See docs/desktop-licensing.md.
+      # Separate SpreadJS and Designer Component keys. Keyless evaluation is
+      # limited to supported HTTP(S) loopback environments. Desktop use needs
+      # applicable unrestricted licenses; see docs/desktop-licensing.md.
       licenseKey: ''
       designerLicenseKey: ''

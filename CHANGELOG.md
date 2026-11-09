@@ -1,5 +1,41 @@
 # Release Notes / 版本记录
 
+## 0.2.9
+
+### 中文
+
+- `.xlsx` 和 `.xlsm` 改用 SpreadJS Workbook IO 导入，移除独立 ExcelIO 依赖；导入报错时继续禁止保存。
+- 桌面环境与受影响的实际文件仍需验证；本次变更不改变 SpreadJS 的授权要求。
+
+### English
+
+- Import `.xlsx` and `.xlsm` with SpreadJS Workbook IO and remove the standalone ExcelIO dependency. Saving remains blocked on import failure.
+- Desktop behavior with the affected file still needs verification. This change does not alter SpreadJS licensing requirements.
+
+## 0.2.8
+
+### 中文
+
+- 精简中英文 README，集中说明安装、保存、可选 Driver 和授权配置；明确恢复快照只在当前页面内存中，刷新或关闭页面后不保留。
+- 统一桌面授权要求：必须取得适用于该场景、同时覆盖 SpreadJS 和 Designer Component 的无限制授权；没有该授权，桌面版无法使用本编辑器。移除桌面配置指引和本地授权试验记录。
+- 删除已不可达的新建/下载导出内部接口及辅助代码、Node 20 构建补丁、冗余成功日志和过时注释；保留保存、另存为、恢复及 Driver 桥接协议。
+- 清理过时发布 TODO，将可复用的发布流程和手工回归步骤整理到 `docs`；依赖安装统一使用已提交的 pnpm 锁文件。
+
+**升级说明：** 建议与 Driver `0.1.5` 配套使用；Driver 本次同步发布文档与工程清理。DSH 兼容范围和内置 SpreadJS / Designer 版本保持不变。
+
+**验证：** 类型检查、260 项测试、构建、客户端与宿主 smoke、独立离线包安装校验通过。
+
+### English
+
+- Simplify both README languages around installation, saving, the optional Driver, and licensing. Clarify that recovery snapshots live only in page memory and do not survive a page refresh or close.
+- Require applicable unrestricted licenses covering both SpreadJS and Designer Component for desktop use; without them, the editor cannot be used in the desktop app. Remove desktop configuration instructions and local licensing experiments.
+- Remove unreachable internal New/Download Export interfaces and helpers, the Node 20 build polyfill, redundant success logs, and outdated comments. Retain saving, Save As, recovery, and the Driver bridge contract.
+- Replace obsolete release TODOs with reusable release and manual regression documents. Use the committed pnpm lockfile for dependency installation.
+
+**Upgrade notes:** Use companion Driver `0.1.5`, released alongside this version with documentation and project cleanup. The DSH compatibility range and bundled SpreadJS / Designer versions are unchanged.
+
+**Validation:** Typecheck, 260 tests, build, client and host smokes, and independent offline package installation passed.
+
 ## 0.2.7
 
 ### 中文
@@ -10,11 +46,11 @@
 - 初始化失败后清理局部 DOM 和已创建实例；销毁时先撤销工作簿与 Driver 租约，分别处理恢复、事件解绑及 SDK 销毁异常。
 - 主题切换触发的工作簿刷新异常交由文档错误页处理，避免中断 DSH 的主题事件。
 - 避免正常关闭时重复销毁 Workbook；Designer 已负责销毁它持有的工作簿。
-- 补充桌面版 `dsh-app://app/` 授权说明、配置位置和测试步骤，修正「留空即能试用」的描述。
+- 补充授权要求，修正「留空即能试用」的描述；当前策略见[桌面授权策略](docs/desktop-licensing.md)。
 
-**范围说明：** 本版保留 SDK 的授权校验，失败时显示当前文件的提示。用户用主机名 `app` 申请的试用授权已让运行时启动，但 Designer 显示仍异常；本版不宣称解决桌面版完整授权和 Designer 兼容问题。无须配套升级 Driver，继续使用 `0.1.4`。
+**范围说明：** 本版保留 SDK 的授权校验，失败时显示当前文件的提示。无须配套升级 Driver，继续使用 `0.1.4`。
 
-**验证：** 类型检查、260 项测试（含真实 React 调度下的初始化失败与侧栏隔离）、构建、客户端 / 宿主 smoke 和独立离线包安装校验通过。真实桌面许可证及 Designer 显示仍需后续验证。
+**验证：** 类型检查、260 项测试（含真实 React 调度下的初始化失败与侧栏隔离）、构建、客户端 / 宿主 smoke 和独立离线包安装校验通过。
 
 ### English
 
@@ -24,11 +60,11 @@
 - Clean up partially initialized instances and DOM; revoke Workbook access and Driver leases before independently guarded recovery and disposal steps.
 - Contain workbook refresh failures during theme changes without interrupting DSH's theme event.
 - Avoid destroying a Workbook twice on normal close: Designer owns its workbook's disposal.
-- Document desktop licensing for `dsh-app://app/`, profile configuration, regression steps and the limits of keyless evaluation.
+- Document licensing requirements and the limits of keyless evaluation; see the current [desktop licensing policy](docs/desktop-licensing.md).
 
-**Scope:** SDK license validation remains in place; failures display a document-local message. A trial key issued for hostname `app` let the runtime start in a user test, but Designer still displayed incorrectly. This release does not establish complete desktop licensing or Designer compatibility. Companion Driver `0.1.4` remains suitable.
+**Scope:** SDK license validation remains in place; failures display a document-local message. Companion Driver `0.1.4` remains suitable.
 
-**Validation:** Typecheck, 260 tests (including real React initialization-failure and sidebar-isolation tests), build, client / host smokes and independent offline package installation passed. Real desktop licensing and Designer rendering still need further validation.
+**Validation:** Typecheck, 260 tests (including real React initialization-failure and sidebar-isolation tests), build, client / host smokes and independent offline package installation passed.
 
 ## 0.2.6
 
@@ -46,7 +82,7 @@
 
 **升级说明：** 建议与 Driver `0.1.4` 配套升级，完成打开任务的取消处理。恢复快照仍仅在当前页面生命周期内有效；取消不会撤销已发生的导航或已发送的写入。
 
-**验证：** 类型检查、240 项单测、构建、两个 smoke 和独立离线包安装校验通过；用户在 DSH `0.2.1-rc.4` dev 环境做过基本回归，未发现问题。rc.3、rc.4、rc.5 相关 UI API 包实现比对无差异，桌面运行验证基线为 rc.4。
+**验证：** 类型检查、240 项单测、构建、两个 smoke 和独立离线包安装校验通过；用户在 DSH `0.2.1-rc.4` dev 环境做过基本回归，未发现问题。rc.3、rc.4、rc.5 相关 UI API 包实现比对无差异，开发运行验证基线为 rc.4。
 
 ### English
 
@@ -62,7 +98,7 @@
 
 **Upgrade notes:** Update together with Driver `0.1.4` for complete opening cancellation support. Recovery snapshots remain limited to the current page lifetime. Cancellation does not undo navigation or writes already sent.
 
-**Validation:** Typecheck, 240 tests, build, both smokes and an independent offline package installation passed. The user completed basic development desktop checks on DSH `0.2.1-rc.4` without finding issues. Relevant UI API implementations compare without differences across rc.3, rc.4 and rc.5; desktop runtime validation is on rc.4.
+**Validation:** Typecheck, 240 tests, build, both smokes and an independent offline package installation passed. The user completed basic development checks on DSH `0.2.1-rc.4` without finding issues. Relevant UI API implementations compare without differences across rc.3, rc.4 and rc.5; development runtime validation is on rc.4.
 
 ## 0.2.5
 

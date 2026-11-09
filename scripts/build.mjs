@@ -1,19 +1,4 @@
-/**
- * Build entry. tsdown 0.22 uses `Promise.withResolvers` (ES2024), which is
- * missing on Node 20; polyfill it here, then run the real tsdown CLI.
- */
-if (typeof Promise.withResolvers !== 'function') {
-  Promise.withResolvers = function withResolvers() {
-    let resolve
-    let reject
-    const promise = new Promise((res, rej) => {
-      resolve = res
-      reject = rej
-    })
-    return { promise, resolve, reject }
-  }
-}
-
+/** Build with the project's installed tsdown and config loader. */
 // Resolve tsdown by package location so pnpm's isolated store layout works:
 // the dependency may live in a parent node_modules layer, and tsdown does not
 // export its dist/run.mjs entry through package exports.
@@ -25,7 +10,7 @@ const require = createRequire(import.meta.url)
 const tsdownPackage = require.resolve('tsdown/package.json')
 
 // tsdown's default TS config loader hits a known Node.js bug when the config
-// lives under node_modules. unrun handles that path on Node 20-24.
+// lives under node_modules. Keep unrun for that layout.
 process.argv.push('--config-loader', 'unrun')
 
 await import(pathToFileURL(join(dirname(tsdownPackage), 'dist/run.mjs')).href)

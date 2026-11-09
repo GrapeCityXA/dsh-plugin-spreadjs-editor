@@ -14,7 +14,6 @@ const h = vi.hoisted(() => ({
 vi.mock('@grapecity-software/spread-sheets', () => ({
   Spread: { Sheets: { FileType: { ssjson: 'ssjson' } } },
 }))
-vi.mock('@grapecity-software/spread-excelio', () => ({ IO: class {} }))
 vi.mock('@grapecity-software/spread-sheets-designer', () => ({ Spread: { Sheets: { Designer: { Designer: class {
   constructor() { h.construct(); if (h.constructorError) throw h.constructorError }
   getWorkbook() { return h.workbook }
@@ -95,7 +94,7 @@ async function mountHost() {
     source: { name: 'book.ssjson', path: 'book.ssjson', bytes: new Uint8Array() },
     load: { kind: 'buffer', workbook: {} }, ready: true, licenseKey: '',
     fileAccess: { save: vi.fn(async () => 'saved' as const), saveTo: vi.fn(async () => {}) },
-    onStatus: vi.fn(), onLoadingChange: vi.fn(), onNewWorkbook: vi.fn(), onDirtyChange: vi.fn(),
+    onStatus: vi.fn(), onLoadingChange: vi.fn(), onDirtyChange: vi.fn(),
     onUnsaved: vi.fn(), onSaved: vi.fn(), onDriverBusyChange: vi.fn(),
   }
   const setHost = (value: SpreadsheetHostHandle | null): void => {

@@ -30,10 +30,9 @@ vi.mock('react', () => ({
   useImperativeHandle: (ref: any, create: () => any) => { ref.current = create() },
 }))
 vi.mock('@grapecity-software/spread-sheets', () => ({ Spread: { Sheets: {
-  FileType: { ssjson: 'ssjson' },
+  FileType: { ssjson: 'ssjson', excel: 'excel', csv: 'csv' },
   set LicenseKey(_value: string) { if (h.runtimeLicenseError) throw h.runtimeLicenseError },
 } } }))
-vi.mock('@grapecity-software/spread-excelio', () => ({ IO: class {} }))
 vi.mock('@grapecity-software/spread-sheets-io', () => ({}))
 vi.mock('@grapecity-software/spread-sheets-resources-zh', () => ({}))
 vi.mock('@grapecity-software/spread-sheets-designer', () => ({ Spread: { Sheets: { Designer: { Designer: class {
@@ -87,6 +86,7 @@ describe('editor Workbook availability for drivers', () => {
     h.fromJSON.mockReset().mockResolvedValue(undefined)
     h.workbook = {
       options: {}, fromJSON: h.fromJSON, toJSON: vi.fn(() => ({ cells: ['AI edit'] })),
+      import: vi.fn((_file: File, success: () => void) => success()),
       export: (ok: (blob: Blob) => void) => ok(new Blob(['{}'])),
       suspendPaint() {}, resumePaint() {}, refresh() {}, destroy: vi.fn(),
     }
@@ -95,7 +95,7 @@ describe('editor Workbook availability for drivers', () => {
       source: { name: 'book.ssjson', path: 'book.ssjson', bytes: new Uint8Array() },
       load: { kind: 'buffer', workbook: {} }, ready: true, licenseKey: '',
       fileAccess: { save: vi.fn(async () => 'saved' as const), saveTo: vi.fn(async () => {}) },
-      onStatus() {}, onLoadingChange() {}, onNewWorkbook() {}, onDirtyChange: vi.fn(),
+      onStatus() {}, onLoadingChange() {}, onDirtyChange: vi.fn(),
       onUnsaved: vi.fn(), onSaved: vi.fn(), onDriverBusyChange: vi.fn(),
     }
     configure?.(props)
@@ -200,6 +200,37 @@ describe('editor Workbook availability for drivers', () => {
     expect(props.onUnsaved).not.toHaveBeenCalled()
   })
 
+  it.each(['book.xlsx', 'book.xlsm'])('imports %s through the Workbook IO plugin', async name => {
+    const { host, props, unmount } = await loadedHost(current => {
+      current.source = { name, path: name, bytes: new Uint8Array([1, 2, 3]) }
+      current.load = { kind: 'file' }
+    })
+
+    expect(h.workbook.import).toHaveBeenCalledOnce()
+    const [file, _success, _failure, options] = h.workbook.import.mock.calls[0]!
+    expect(file).toBeInstanceOf(File)
+    expect(options).toEqual({ fileType: 'excel' })
+    expect(h.fromJSON).not.toHaveBeenCalled()
+    expect(host.getWorkbook()).toBe(h.workbook)
+    expect(props.onDirtyChange).toHaveBeenLastCalledWith(false)
+    unmount()
+  })
+
+  it('refuses to save when Excel import fails', async () => {
+    const { host, props, unmount } = await loadedHost(current => {
+      current.source = { name: 'book.xlsx', path: 'book.xlsx', bytes: new Uint8Array([1]) }
+      current.load = { kind: 'file' }
+      h.workbook.import = vi.fn((_file, _success, fail) => fail(new Error('Import failed')))
+    })
+
+    expect(host.getWorkbook()).toBeUndefined()
+    await expect(host.save()).rejects.toThrow(/not ready/)
+    await expect(host.saveAs('copy.xlsx')).rejects.toThrow(/not ready/)
+    expect(props.fileAccess.save).not.toHaveBeenCalled()
+    expect(props.fileAccess.saveTo).not.toHaveBeenCalled()
+    unmount()
+  })
+
   it.each(['save', 'saveAs'] as const)('does not clear recovery when %s completes after unmount', async (operation) => {
     const { host, props, unmount } = await loadedHost()
     const write = deferred()
@@ -267,8 +298,6 @@ describe('editor Workbook availability for drivers', () => {
     await expect(host.save()).rejects.toThrow(/Driver/)
     await expect(host.save('wrong')).rejects.toThrow(/Driver/)
     await expect(host.saveAs('copy.ssjson')).rejects.toThrow(/Driver/)
-    await expect(host.exportAs('ssjson')).rejects.toThrow(/Driver/)
-    expect(() => host.newWorkbook()).toThrow(/Driver/)
     host.releaseDriverLease('wrong')
     expect(host.isDriverBusy()).toBe(true)
     await host.save(lease)
@@ -406,7 +435,7 @@ describe('editor Workbook availability for drivers', () => {
     const props: SpreadsheetHostProps = {
       source: undefined, load: undefined, ready: true, licenseKey: '',
       fileAccess: { save: () => save.promise.then(() => 'saved'), saveTo: async () => {} },
-      onStatus() {}, onLoadingChange() {}, onNewWorkbook() {}, onDirtyChange() {}, onUnsaved() {}, onDriverBusyChange() {},
+      onStatus() {}, onLoadingChange() {}, onDirtyChange() {}, onUnsaved() {}, onDriverBusyChange() {},
     }
     const render = () => {
       h.refIndex = 0; h.effectIndex = 0

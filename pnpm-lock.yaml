@@ -35,9 +35,6 @@ importers:
       '@deepseek-ai/schemastery':
         specifier: ~3.18.5
         version: 3.18.5
-      '@grapecity-software/spread-excelio':
-        specifier: 19.2.1
-        version: 19.2.1
       '@grapecity-software/spread-sheets':
         specifier: 19.2.1
         version: 19.2.1
@@ -339,9 +336,6 @@ packages:
 
   '@grapecity-software/spread-common@19.2.1':
     resolution: {integrity: sha512-a0Ez7lmZaYp8ZKNC40VirpED0oztGh/wPe0c9cHqNLPZ/XPtsZoANmjCo0Wl546HeL8OLAO/MjtNdw7zVS7DKg==}
-
-  '@grapecity-software/spread-excelio@19.2.1':
-    resolution: {integrity: sha512-K1WEFTs/pGbrxNsXzDDPkxVspzpfRPyLH7zynJwFJYZqBAXsxH2FX+WDWvR0c7xfYJi7AsPTIv/JIdatIUbbdg==}
 
   '@grapecity-software/spread-sheets-barcode@19.2.1':
     resolution: {integrity: sha512-ZIa+7HzSbFQ0QUDysxFfWjs5xxJ9XazQR7rCUrx0aBWhiAHbnJimH/Esn39LQzwjghmzfxFXwTLdpe3+JCutZA==}
@@ -1432,10 +1426,6 @@ snapshots:
       '@grapecity-software/spread-common': 19.2.1
 
   '@grapecity-software/spread-common@19.2.1': {}
-
-  '@grapecity-software/spread-excelio@19.2.1':
-    dependencies:
-      '@grapecity-software/spread-sheets': 19.2.1
 
   '@grapecity-software/spread-sheets-barcode@19.2.1':
     dependencies:

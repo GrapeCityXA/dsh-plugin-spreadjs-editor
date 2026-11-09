@@ -26,6 +26,8 @@ try {
     'package/CHANGELOG.md',
     'package/docs/bridge-contract.md',
     'package/docs/desktop-licensing.md',
+    'package/docs/releasing.md',
+    'package/docs/manual-regression.md',
   ]
   const missing = required.filter(file => !files.has(file))
   if (missing.length > 0) {

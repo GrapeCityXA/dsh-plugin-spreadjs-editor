@@ -25,7 +25,6 @@ export const EDITOR_LOCALE_NAMESPACE = 'dsh.spreadjs-editor'
 /** Every string this plugin shows that is not part of the Designer's own chrome. */
 export type EditorTextKey =
   | 'viewer.title'
-  | 'empty.newWorkbook'
   | 'empty.bytes'
   | 'loading.workbook'
   | 'driver.working'
@@ -82,7 +81,6 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
  */
 const FALLBACK_TEXT: Record<EditorTextKey, string> = {
   'viewer.title': 'SpreadJS 编辑器',
-  'empty.newWorkbook': '新工作簿已就绪：用「另存为」写入工作区，或用「导出」下载副本。',
   'empty.bytes': '这个工作簿需要完整的文件内容，请从文件树重新打开。',
   'loading.workbook': '正在载入…',
   'driver.working': 'AI 正在操作此工作簿，暂时无法编辑',
@@ -136,7 +134,6 @@ const DICTIONARIES: { zh: Record<string, string>; en: Record<string, string> } =
   zh: FALLBACK_TEXT,
   en: {
     'viewer.title': 'SpreadJS Editor',
-    'empty.newWorkbook': 'New workbook ready. Use Save As to write it into the workspace, or Export to download a copy.',
     'empty.bytes': 'This workbook needs its complete file contents. Reopen it from the file tree.',
     'loading.workbook': 'Loading…',
     'driver.working': 'AI is working on this workbook. Editing is temporarily unavailable.',
